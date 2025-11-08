@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Agneepath 6.0",
+  title: "Agneepath 7.0",
   description: "",
 };
 
