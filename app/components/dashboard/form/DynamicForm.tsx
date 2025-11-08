@@ -263,10 +263,10 @@ const RenderForm: React.FC<{ schema: ZodObject<ZodRawShape>, draftSchema: ZodObj
 
   const FormDate = React.memo(({ name, label, placeholder }: { name: string; label: string; placeholder: string }) => {
     const currentDate = new Date();
+// Only allow eligible birthdates (>=17 and <25 on 1 Feb 2026)
+const minDate = new Date(2001, 1, 2); // After 1 Feb 2001
+const maxDate = new Date(2009, 1, 1); // On or before 1 Feb 2009
 
-    // Define the range of valid dates
-    const minDate = new Date(currentDate.getFullYear() - 25, currentDate.getMonth(), currentDate.getDate());
-    const maxDate = new Date(currentDate.getFullYear() - 17, currentDate.getMonth(), currentDate.getDate());
 
     const [selectedDate, setSelectedDate] = React.useState<Date>();
     const [selectedYear, setSelectedYear] = React.useState<number | null>(null);
