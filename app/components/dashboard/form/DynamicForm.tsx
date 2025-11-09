@@ -260,6 +260,59 @@ const RenderForm: React.FC<{ schema: ZodObject<ZodRawShape>, draftSchema: ZodObj
     />
   ));
 
+  const FormFile = React.memo(({ name, label, accept }: { name: string; label: string; accept?: string }) => {
+    return (
+      <FormField
+        control={form.control}
+        name={name}
+        render={({ field }) => {
+          const [preview, setPreview] = React.useState<string | null>(
+            typeof field.value === "string" && field.value.startsWith("data:image/")
+              ? field.value
+              : null
+          );
+
+          const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, field: any) => {
+            const file = e.target.files?.[0];
+            if (file) {
+              const reader = new FileReader();
+              reader.onloadend = () => {
+                const dataUrl = reader.result as string;
+                field.onChange(dataUrl); // Save base64 string into form state
+                setPreview(dataUrl);
+              };
+              reader.readAsDataURL(file);
+            }
+          };
+          return(
+            <FormItem>
+              <FormLabel className="font-bold">{label}</FormLabel>
+              <FormControl>
+                <div>
+                  <input
+                    type="file"
+                    accept={accept}
+                    onChange={(e) => handleFileChange(e, field)}
+                    className="block w-full"
+                  />
+                  {preview && (
+                    <img
+                      src={preview}
+                      alt="Preview"
+                      className="mt-2 w-24 h-24 object-cover rounded-md border"
+                    />
+                  )}
+                </div>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )
+        }}
+      />
+    );
+  });
+
+
 
   const FormDate = React.memo(({ name, label, placeholder }: { name: string; label: string; placeholder: string }) => {
     const currentDate = new Date();
@@ -470,6 +523,17 @@ const maxDate = new Date(2009, 1, 1); // On or before 1 Feb 2009
       }
 
       if (baseSchema instanceof ZodString) {
+        const metaType = getNestedMetaValue(meta, metafieldpath, "type");
+        if (metaType === "file") {
+          return (
+            <FormFile
+              key={fieldPath}
+              name={fieldPath}
+              label={getNestedMetaValue(meta, metafieldpath, "label") as string}
+              accept={getNestedMetaValue(meta, metafieldpath, "accept") as string}
+            />
+          );
+        }
         return (
           <FormInput
             key={fieldPath}
