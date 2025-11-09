@@ -69,13 +69,11 @@ const attachments = [
     from: `"Agneepath" <${SMTP_USER}>`,
     to,
     cc :['jiya.vaya_ug2024@ashoka.edu.in','vidishaa.mundhra_ug2025@ashoka.edu.in','nishka.desai_ug2024@ashoka.edu.in','nishita.agarwal_ug2024@ashoka.edu.in'],
-    subject: "Verify your account - Agneepath 2026",
+    subject: "Verify your account",
     headers: {
       "X-Gm-NoSave": "1", // Custom header to prevent saving in Sent folder
       "Message-ID": uniqueMessageId, // Unique Message-ID to prevent threading
       "X-Entity-Ref-ID": uniqueMessageId, // Additional unique identifier
-      "X-Agneepath-Year": "2026", // Custom header for filtering
-      "X-Agneepath-Type": "verification", // Custom header for email type
     },
     // text: `Please verify your email using this Link: ${vlink}`,
     html: emailContent,attachments  });
