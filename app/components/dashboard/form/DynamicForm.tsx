@@ -70,7 +70,7 @@ const RenderForm: React.FC<{ schema: ZodObject<ZodRawShape>, draftSchema: ZodObj
     if (defaultvalues) {
       form.reset(defaultvalues);
       // Signal that reset is complete
-      setHasReset(!hasReset);
+      setHasReset((prev: boolean) => !prev);
     }
   }, [form, defaultvalues]);
    const addFieldToArray = useCallback(
@@ -581,6 +581,7 @@ const maxDate = new Date(2009, 1, 1); // On or before 1 Feb 2009
 
 
   FormSelect.displayName = "FormSelect";
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const memoizedFormFields = useMemo(() => renderFormFields(schema), [schema, arrayFieldCounts,hasReset]);
 
   return (

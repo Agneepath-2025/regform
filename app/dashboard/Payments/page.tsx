@@ -491,7 +491,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ accommodationPrice = 2100 }) 
                     />
                     <div className="flex-1 flex items-center">
                       <div className="bg-gray-100 px-4 py-2 rounded-md w-full">
-                        ₹{(form.watch(`sportsPlayers.${index}.players`) * 800 || 0).toLocaleString()}
+                        ₹{((form.watch(`sportsPlayers.${index}.players`) ?? 0) * 800).toLocaleString()}
                       </div>
                       <Button
                         type="button"
