@@ -33,6 +33,10 @@ async function sendEmail(to: string, id: string) {
     }
   });
 
+  // Generate a unique timestamp to prevent email threading
+  const timestamp = new Date().toISOString();
+  const uniqueMessageId = `<verify-${id}-${Date.now()}@agneepath.co.in>`;
+  
   // const vlink = `${ROOT_URL}verify?token=${id}`;
   const emailContent = `
   <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: auto; border: 1px solid #ddd; padding: 20px; border-radius: 10px;">
@@ -48,7 +52,7 @@ async function sendEmail(to: string, id: string) {
     <p>For any queries contact us at <a href="mailto:agneepath@ashoka.edu.in" style="color: #ed810c; text-decoration: none;">agneepath@ashoka.edu.in</a></p>
     <p>Best regards,<br>Team Agneepath</p>
     <img src="cid:unique-image-cid" alt="Agneepath Logo" style="max-width: 15%; height: auto;" />
-
+    <!-- Timestamp: ${timestamp} -->
   </div>
 `;
 const attachments = [
@@ -68,6 +72,8 @@ const attachments = [
     subject: "Verify your account",
     headers: {
       "X-Gm-NoSave": "1", // Custom header to prevent saving in Sent folder
+      "Message-ID": uniqueMessageId, // Unique Message-ID to prevent threading
+      "X-Entity-Ref-ID": uniqueMessageId, // Additional unique identifier
     },
     // text: `Please verify your email using this Link: ${vlink}`,
     html: emailContent,attachments  });
