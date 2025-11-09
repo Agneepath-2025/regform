@@ -40,11 +40,13 @@ export default function VerifyAccount() {
         setIsLoading(false);
         return;
       }
-      const response = await post<{ email: string }>("/api/Mailer/Verification", {
+      const response = await post<{ email?: string; message?: string }>("/api/Mailer/Verification", {
         email: decryptedValue.email,
       });
       if (response.error) {
         setError(response.error.message);
+      } else if (response.data && response.data.message === "Email is already verified") {
+        setSuccess("Your email is already verified. You can login now.");
       } else {
         setSuccess("Verification email has been resent.");
       }

@@ -77,11 +77,37 @@ const attachments = [
 export async function POST(req: Request) {
   try {
     const { email } = await req.json();
+    
+    // Check if user is already verified
+    const { db } = await connectToDatabase();
+    const collection = db.collection("users");
+    const user = await collection.findOne({ email });
+    
+    if (!user) {
+      return new Response(
+        JSON.stringify({ error: "User not found" }),
+        { 
+          status: 404,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      );
+    }
+    
+    if (user.emailVerified === true) {
+      return new Response(
+        JSON.stringify({ message: "Email is already verified" }),
+        { 
+          status: 200,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      );
+    }
+    
     const verificationId = await getVerificationId(email);
 
     if (!verificationId) {
       return new Response(
-        JSON.stringify({ error: "User or VerificationId not found" }),
+        JSON.stringify({ error: "VerificationId not found" }),
         { 
           status: 404,
           headers: { 'Content-Type': 'application/json' }

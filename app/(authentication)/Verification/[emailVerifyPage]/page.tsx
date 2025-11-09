@@ -35,14 +35,19 @@ export default function VerifyAccount() {
   // Function to verify email
   const handleEmailVerify = async (verificationToken: string | null, emailID: string | null) => {
     try {
-      const response = await post<{ success: boolean; token: string }>("/api/auth/emailVerify", {
+      const response = await post<{ success: boolean; token: string; alreadyVerified?: boolean }>("/api/auth/emailVerify", {
         vid: verificationToken,
         e: emailID,
       });
       if (response.data && response.data.success) {
-        setTitle("verified");
+        if (response.data.alreadyVerified) {
+          setTitle("Already Verified");
+          setContent("Your email was already verified. You can login now.");
+        } else {
+          setTitle("Verified");
+          setContent("Email Verified. You can Login now");
+        }
         setIsLoading(false);
-        setContent("Email Verified. You can Login now");
         if (response.data.token) {
           document.cookie = `authToken=${response.data.token}; path=/;`;
           // console.("cookie set");
@@ -80,7 +85,7 @@ export default function VerifyAccount() {
         {content && <p className="text-sm text-gray-600 mb-4">{content}</p>}
         {isLoading ? <div className={styles.spinner}></div> : null}
       </CardContent>
-      {!isLoading && title === "verified" && (
+      {!isLoading && (title === "Verified" || title === "Already Verified") && (
         <CardFooter className="justify-end">
           <Button onClick={navigateToDashboard}>
             Go to Dashboard
