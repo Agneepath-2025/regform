@@ -151,10 +151,19 @@ async function sendConfirmationEmail(formData: FormData) {
 
     // Get all unique participant emails
    
+    // Verify transporter before sending
+    try {
+        await transporter.verify();
+        console.log('✅ SMTP connection verified');
+    } catch (error) {
+        console.error('❌ SMTP connection failed:', error);
+        throw new Error('Failed to verify SMTP connection');
+    }
+
     // Send email to all participants
-    console.log(formData)
+    console.log('Sending confirmation email for:', formData.title);
     await transporter.sendMail({
-      from: `Registation <SMTP_USER>`,
+      from: `"Agneepath Registration" <${SMTP_USER}>`,
       to: formData.email,
       cc :['vibha.rawat_ug2023@ashoka.edu.in','muhammed.razinmn_ug2023@ashoka.edu.in','agneepath@ashoka.edu.in'],
       subject: `Thank you for registering for Agneepath 6.0 (${formData.universityName})`,
@@ -164,6 +173,8 @@ async function sendConfirmationEmail(formData: FormData) {
       html: emailContent,
       attachments,
   });
+  
+  console.log('✅ Confirmation email sent successfully to:', formData.email);
 }
 
 export default sendConfirmationEmail;

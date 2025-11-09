@@ -23,15 +23,25 @@ async function sendEmail(to: string, id: string) {
   const transporter = nodemailer.createTransport({
     host: SMTP_HOST,
     port: parseInt(SMTP_PORT || "587"),
-    secure: false,
+    secure: false, // Use STARTTLS
     auth: {
       user: SMTP_USER,
       pass: SMTP_PASS
     },
     tls: {
-      rejectUnauthorized: false
+      rejectUnauthorized: false,
+      ciphers: 'SSLv3'
     }
   });
+
+  // Verify connection before sending
+  try {
+    await transporter.verify();
+    console.log('✅ SMTP connection verified for verification email');
+  } catch (error) {
+    console.error('❌ SMTP verification failed:', error);
+    throw new Error('Failed to verify SMTP connection');
+  }
 
   // const vlink = `${ROOT_URL}verify?token=${id}`;
   const emailContent = `

@@ -43,8 +43,18 @@ export async function sendPaymentConfirmationEmail(
             },
             tls: {
                 rejectUnauthorized: false,
+                ciphers: 'SSLv3'
             },
         });
+
+        // Verify connection before sending
+        try {
+            await transporter.verify();
+            console.log('✅ SMTP connection verified for payment email');
+        } catch (error) {
+            console.error('❌ SMTP verification failed:', error);
+            throw new Error('Failed to verify SMTP connection');
+        }
 
         // Prepare attachments if payment proof exists
         const attachments = [];
