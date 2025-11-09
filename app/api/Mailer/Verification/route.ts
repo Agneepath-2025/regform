@@ -64,7 +64,7 @@ const attachments = [
   await transporter.sendMail({
     from: `"Agneepath" <${SMTP_USER}>`,
     to,
-    cc :['vibha.rawat_ug2023@ashoka.edu.in','muhammed.razinmn_ug2023@ashoka.edu.in'],
+    //cc :['vibha.rawat_ug2023@ashoka.edu.in','muhammed.razinmn_ug2023@ashoka.edu.in'],
     subject: "Verify your account",
     headers: {
       "X-Gm-NoSave": "1", // Custom header to prevent saving in Sent folder
