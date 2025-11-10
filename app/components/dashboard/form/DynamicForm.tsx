@@ -515,6 +515,7 @@ const maxDate = new Date(2009, 1, 1); // On or before 1 Feb 2009
       const metafieldpath = metapath ? `${metapath}.${key}` : key;
 
       let baseSchema = value;
+      console.log("baseSchema", baseSchema);
 
       if (value instanceof ZodOptional) {
         baseSchema = value._def.innerType;
@@ -527,7 +528,7 @@ const maxDate = new Date(2009, 1, 1); // On or before 1 Feb 2009
       if (baseSchema instanceof ZodString) {
         const metaType = getNestedMetaValue(meta, metafieldpath, "type");
         console.log("fieldPath", fieldPath, "metaType", metaType);
-        if (metaType === "file") {
+        if (metaType === "photo" || fieldPath.endsWith("photo")) {
           return (
             <FormFile
               key={fieldPath}
