@@ -253,9 +253,9 @@ const RenderPopoverForm: React.FC<{ schema: ZodObject<ZodRawShape>, meta: formMe
       <AlertDialogContent>
         <AlertDialogTitle></AlertDialogTitle>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 max-h-[70vh] overflow-y-scroll">
             {renderFormFields(schema)}
-            <div className="flex justify-end space-x-2 items-end">
+            <div className="flex justify-end space-x-2 items-end sticky bottom-0 right-0 pt-4 bg-white mt-4 mr-5">
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting ? (
