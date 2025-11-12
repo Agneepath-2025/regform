@@ -19,11 +19,11 @@ import {
 } from "@/components/ui/sidebar";
 
 const items = [
-  { title: "Home Page", url: "https://agneepath.co.in/", icon: Home, external: true }, // Added Home item
+  // { title: "Home Page", url: "https://agneepath.co.in/", icon: Home, external: true }, // Added Home item - removed till main site is up
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Registration Form", url: "/dashboard/regForm", icon: BookText },
   { title: "Payments", url: "/dashboard/Payments", icon: CreditCard },
-  { title: "Accomodations", url: "/dashboard/Accomodation", icon: Hotel },
+  // { title: "Accomodations", url: "/dashboard/Accomodation", icon: Hotel }, // Hide accomodations temporarily till updation
 
 ];
 
