@@ -1,6 +1,7 @@
 "use client";
 
-import { CreditCard, BookText, LayoutDashboard, LogOut, Home, Hotel } from "lucide-react";
+import { CreditCard, BookText, LayoutDashboard, LogOut} from "lucide-react";
+// import { CreditCard, BookText, LayoutDashboard, LogOut, //Home, Hotel } from "lucide-react"; - If home and hotel icons are needed
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -18,7 +19,14 @@ import {
   SidebarFooter,
 } from "@/components/ui/sidebar";
 
-const items = [
+type MenuItem = {
+  title: string;
+  url: string;
+  icon: typeof LayoutDashboard;
+  external?: boolean;
+};
+
+const items: MenuItem[] = [
   // { title: "Home Page", url: "https://agneepath.co.in/", icon: Home, external: true }, // Added Home item - removed till main site is up
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Registration Form", url: "/dashboard/regForm", icon: BookText },
