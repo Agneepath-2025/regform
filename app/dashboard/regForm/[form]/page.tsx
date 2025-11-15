@@ -199,38 +199,37 @@ export default function Form() {
             mobileSize="text-5xl sm:text-2xl"
           />
 
-          <Drawer>
-            <DrawerTrigger asChild>
-              <Button variant="default" className="bg-orange-500 text-white hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-300" >
-                View Sport Guidelines
-              </Button>
-            </DrawerTrigger>
+          <div className="flex justify-center mt-4">
+            <Drawer>
+              <DrawerTrigger asChild>
+                <Button className="bg-orange-500 text-white hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-300">
+                  View Sports Guidelines 
+                </Button>
+              </DrawerTrigger>
+              <DrawerContent>
+                <DrawerHeader>
+                  <DrawerTitle>Sports Guidelines</DrawerTitle>
+                </DrawerHeader>
+                <div className="px-4 py-2 max-h-[60vh] overflow-y-auto prose prose-sm max-w-none flex justify-center">
+                  <div className="flex justify-center w-full">
+                    <ReactMarkdown 
+                      remarkPlugins={[remarkGfm]}
+                      components={MarkdownComponents}
+                    >
+                      {markdownContent}
+                    </ReactMarkdown>
+                  </div>
+                </div>
+                <DrawerFooter>
+                  <DrawerClose asChild>
+                    <Button>Close</Button>
+                  </DrawerClose>
+                </DrawerFooter>
+              </DrawerContent>
+            </Drawer>
+          </div>
             
-            <DrawerContent>
-              <DrawerHeader>
-                <DrawerTitle>Guidelines and rules for {sports[title]}</DrawerTitle>
-                <DrawerDescription></DrawerDescription>
-              </DrawerHeader>
-              
-              <div className="px-4 py-2 max-h-[60vh] overflow-y-auto prose prose-sm max-w-none">
-                <ReactMarkdown 
-                  remarkPlugins={[remarkGfm]}
-                  components={MarkdownComponents}
-                >
-                  {markdownContent}
-                </ReactMarkdown>
-              </div>
-              
-              <DrawerFooter>
-                <DrawerClose asChild>
-                  <Button>Close</Button>
-
-                </DrawerClose>
-              </DrawerFooter>
-            </DrawerContent>
-          </Drawer>
-            
-            <RenderForm
+          <RenderForm
             schema={eventSchema.subEvents[title].specificPages[0].fields}
             draftSchema={eventSchema.subEvents[title].specificPages[0].draft}
             meta={eventSchema.subEvents[title].specificPages[0].meta}

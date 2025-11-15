@@ -203,12 +203,12 @@ export default function RegForm() {
             
             <div className="flex items-start gap-3">
               <span className="flex-shrink-0 w-6 h-6 bg-black text-white rounded-full flex items-center justify-center text-sm">3</span>
-              <p className="text-gray-700">After submitting the form, visit the Accommodation and Payments section to complete your registration. You'll need to pay the registration fee and any accommodation charges to confirm your participation.</p>
+              <p className="text-gray-700">After submitting the form, visit the Payments section to complete your registration. You must pay the registration fee to confirm your participation.</p>
               </div>
             
             <div className="flex items-start gap-3">
               <span className="flex-shrink-0 w-6 h-6 bg-black text-white rounded-full flex items-center justify-center text-sm">4</span>
-              <p className="text-gray-700">Once you submit the form, you'll receive a confirmation email with your responses. Our team will review your details and send a registration confirmation email. You can also check your registration status on the dashboard.</p>
+              <p className="text-gray-700">Once you submit the form, you'll receive a confirmation email with your responses. Our team will review your details and send a final registration confirmation email. You can also view your registration status on the dashboard.</p>
               </div>
             
             <div className="flex items-start gap-3">

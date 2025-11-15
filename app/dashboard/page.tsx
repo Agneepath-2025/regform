@@ -157,10 +157,14 @@ export default function Dashboard() {
   return (
     <div className="h-screen pt-6 pr-6 w-full max-w-[1200px]">
       <HeadingWithUnderline
-        text="Dashboard"
-        desktopSize="md:text-8xl"
-        mobileSize="text-5xl sm:text-4xl"
+        text="Agneepath 7.0"
+        desktopSize="md:text-6xl"
+        mobileSize="text-3xl sm:text-2xl"
       />
+      <h3 className ="text-lg font-semibold text-gray-700 mt-1 mb-6 text-center">
+        30 January, 31 January, 1 February, 2026!
+      </h3>
+      
       <div className="bg-gradient-to-r from-gray-900 to-black rounded-2xl p-8 text-white">
         <h2 className="text-3xl font-bold mb-2">
           Welcome back, {formattedName}! 🏆
