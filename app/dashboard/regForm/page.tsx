@@ -117,7 +117,6 @@ const columns: ColumnDef<FormData>[] = [
     accessorKey: "estimatedCost",
     header: "Estimated Cost",
     cell: ({ row }) => {
-      console.log(row)
       const count = Array.isArray(row.original.playerFields)
         ? row.original.playerFields.length
         : Array.isArray(row.original.fields?.playerFields)
