@@ -15,7 +15,6 @@ import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
 import { encrypt } from "@/app/utils/encryption"
 import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Alert } from "@/components/ui/alert";
 const EmptyState = () => (
   <div className="flex flex-col items-center justify-center p-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
     <Medal className="w-16 h-16 text-gray-400 mb-4" />
