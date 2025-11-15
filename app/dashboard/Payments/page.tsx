@@ -6,7 +6,7 @@ import { Separator } from "@/components/ui/separator"
 import { format, set } from "date-fns"
 import { Medal } from 'lucide-react';
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm, useFieldArray, ControllerRenderProps } from "react-hook-form"
+import { useForm, ControllerRenderProps } from "react-hook-form"
 import { z } from "zod"
 import { useState, useEffect } from "react"
 import styles from "@/app/styles/toast.module.css"
