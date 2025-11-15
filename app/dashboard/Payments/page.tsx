@@ -314,7 +314,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ accommodationPrice = 2100, sp
       if (pdfBlobUrl) {
         URL.revokeObjectURL(pdfBlobUrl);
       }
-    }
+    };
   }, [preview])
 
   return (
