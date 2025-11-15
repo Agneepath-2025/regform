@@ -207,10 +207,6 @@ export default function RegForm() {
       getCoreRowModel: getCoreRowModel(),
     })
 
-    if (registrationDone === true) {
-      return <span className="text-red-600 font-semibold">Registrations are already confirmed</span>
-    }
-
     return (
       <div className="overflow-x-auto rounded-lg shadow-lg">
       <Table>
@@ -252,6 +248,10 @@ export default function RegForm() {
       </Table>
     </div>
     )
+  }
+
+  if (registrationDone === true) {
+    return <span className="text-red-600 font-semibold">Registrations are already confirmed</span>
   }
 
   return (

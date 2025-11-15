@@ -616,16 +616,16 @@ interface PaymentData {
 
 export default function Payments() {
   const paymentFormRef = useRef<HTMLDivElement>(null);
-  const [loading, setLoading] = useState(false)
   const [registrationDone, setRegistrationDone] = useState<boolean | null>(null)
   const [paymentDone, setPaymentDone] = useState<boolean | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
   async function completePayment() {
-    setLoading(true);
+    setIsLoading(true);
     const token = getAuthToken();
     
     if (!token) {
-      setLoading(false);
+      setIsLoading(false);
       return;
     }
 
@@ -652,18 +652,19 @@ export default function Payments() {
     } catch (err) {
       console.error("completeRegistration error:", err);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
+      router.push("/dashboard");
     }
   }
 
   useEffect(() => {
-      setLoading(true)
+      setIsLoading(true)
       const getRegistrationState = async () => {
         try {
           const token = getAuthToken()
           if (!token) {
             // console.error("Auth token not found")
-            setLoading(false)
+            setIsLoading(false)
             return
           }
   
@@ -682,7 +683,7 @@ export default function Payments() {
         } catch (error) {
           // console.error("Error fetching registration/payment state:", error)
         } finally {
-          setLoading(false)
+          setIsLoading(false)
         }
       }
   
@@ -697,9 +698,9 @@ export default function Payments() {
   })
   const [filledForms, setFilledForms] = useState<FormData[]>([]);
   const [updatePrice, setUpdatePrice] = useState<boolean>(false);
-  const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [accommodationPrice, setAccomodationPrice] = useState<number>(2100);
+  const router = useRouter();
 
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
@@ -935,17 +936,8 @@ export default function Payments() {
     );
   };
 
-  const router = useRouter();
   return (
       <div className="w-full h-full relative">
-      {/* Overlay that blocks UI when payments are already confirmed */}
-      {loading && (
-        <div
-          aria-hidden="true"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-white/70 backdrop-blur-sm"
-        >
-        </div>
-      )}
       <div className="w-full px-6 pb-6">
         <HeadingWithUnderline
           text="Payments"

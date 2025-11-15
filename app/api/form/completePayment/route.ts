@@ -7,7 +7,7 @@ import { fetchUserData } from "@/app/utils/GetUpdateUser";
 type UserDoc = {
   _id?: string | { $oid?: string } | { _id?: string };
   email?: string;
-  registrationDone?: boolean | null;
+  paymentDone?: boolean | null;
   [key: string]: unknown;
 };
 
@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
       query = { email };
     }
 
-    const update = { $set: { registrationDone: true, updatedAt: new Date() } };
+    const update = { $set: { paymentDone: true, updatedAt: new Date() } };
 
     const rawResult = (await usersCollection.findOneAndUpdate(
       query,

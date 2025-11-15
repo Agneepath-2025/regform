@@ -316,8 +316,8 @@ const RenderForm: React.FC<{ schema: ZodObject<ZodRawShape>, draftSchema: ZodObj
                         <X size={7} />
                       </button>
                       <Image
-                        width={50}
-                        height={50}
+                        width={150}
+                        height={150}
                         src={preview}
                         alt="Preview"
                         className="mt-2 object-cover rounded-md border"
