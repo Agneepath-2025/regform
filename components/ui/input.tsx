@@ -3,8 +3,12 @@ import * as React from "react"
 import { cn } from "@/lib/utils"
 import { Upload } from "lucide-react"
 
-const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
-  ({ className, type, ...props }, ref) => {
+type InputProps = React.ComponentProps<"input"> & {
+  hideFileInfo?: boolean
+}
+
+const Input = React.forwardRef<HTMLInputElement, InputProps>(
+  ({ className, type, hideFileInfo=false, ...props }, ref) => {
     const inputRef = React.useRef<HTMLInputElement | null>(null)
 
     const defaultComponent = (<input
@@ -42,7 +46,9 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
                                     <Upload className="w-4 h-4" />
                                     <span>Upload File</span>
                                   </button>
-                                  <span className="text-xs">Only .jpeg/.png images allowed. Max filesize: 7MB.</span>
+                                  {!hideFileInfo && (
+                                    <span className="text-xs">Only .jpeg/.png images allowed. Max filesize: 7MB.</span>
+                                  )}
                                 </div>)
 
     return type === "file" ? fileUploadComponent : defaultComponent;

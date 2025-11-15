@@ -3,10 +3,10 @@
 /* eslint-disable react/no-unescaped-entities */
 /* eslint-disable react-hooks/exhaustive-deps */
 import { Separator } from "@/components/ui/separator"
-import { format } from "date-fns"
+import { format, set } from "date-fns"
 import { Medal } from 'lucide-react';
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm, useFieldArray } from "react-hook-form"
+import { useForm, ControllerRenderProps } from "react-hook-form"
 import { z } from "zod"
 import { useState, useEffect } from "react"
 import styles from "@/app/styles/toast.module.css"
@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useRef } from "react";
 import { cn } from "@/lib/utils"
+import Image from "next/image";
 import {
   Popover,
   PopoverContent,
@@ -67,8 +68,6 @@ const EmptyState = () => (
 
 export type FormData = {
   createdAt: string;
-  sportsPlayers: { sport: string; players: string }[];
-  paymentTypes: string[];
   amountInNumbers: number;
   status: string;
 };
@@ -89,21 +88,6 @@ const columns: ColumnDef<FormData>[] = [
   {
     accessorKey: "transactionId",
     header: "Transaction ID",
-  },
-  {
-    accessorKey: "paymentTypes",
-    header: "Payment Type",
-    cell: ({ row }) => row.original.paymentTypes.join(", "),
-  },
-  {
-    accessorKey: "sportsPlayers",
-    header: "Sports & Players",
-    cell: ({ row }) =>
-      row.original.sportsPlayers
-        ? row.original.sportsPlayers
-          .map((item) => `${sports[item.sport]} - ${item.players} Players`)
-          .join(", ")
-        : "No sports",
   },
   {
     accessorKey: "createdAt",
@@ -158,28 +142,26 @@ const FormSchema = z
   )
 
 const PaymentFormSchema = z.object({
-  paymentTypes: z.array(z.string()).min(1, { message: "At least one payment type is required." }),
   paymentMode: z.string().nonempty({ message: "Payment mode is required." }),
-  sportsPlayers: z
-    .array(
-      z.object({
-        sport: z.string().nonempty({ message: "Sport is required." }),
-        players: z.number().positive({ message: "Players must be a positive number." }),
-      })
-    )
-    .optional(),
-  accommodationPeople: z
-    .number()
-    .min(1, { message: "Number of people must be at least 1" })
-    .optional(),
   amountInNumbers: z
     .number().min(800, { message: "Amount must be atleast 800 rupees" }),
-  amountInWords: z.string().nonempty({ message: "Amount in words is required." }),
+  amountInWords: z.string()
+    .nonempty({ message: "Amount in words is required." })
+    .refine((val) => val.toLowerCase().endsWith("rupees only"), {
+      message: "Amount in words must end with 'rupees only'.",
+    }),
   payeeName: z.string().nonempty({ message: "Payee name is required." }),
   transactionId: z.string().nonempty({ message: "Transaction ID is required." }),
-  paymentProof: z.any().refine((val) => val !== null && val !== undefined, {
-    message: "Payment proof is required.",
-  }),
+  paymentProof: z.string()
+    .min(1, { message: "Payment proof is required" })
+    .refine((val) => {
+      const allowed = ["data:image/jpeg", "data:image/png", "data:application/pdf"];
+      return allowed.some((prefix) => val.startsWith(prefix));
+    }, { message: "Only JPG or PNG images, or PDFs are allowed" })
+    .refine((val) => {
+      const sizeKB = (val.length * (3 / 4)) / 1024;
+      return sizeKB <= 10 * 1024;
+    }, { message: "Image must be less than 10MB" }),
   paymentDate: z
     .date()
     .refine((date) => !isNaN(date.getTime()), { message: "A valid payment date is required." }),
@@ -190,9 +172,11 @@ type PaymentFormValues = z.infer<typeof PaymentFormSchema>;
 
 interface PaymentFormProps {
   accommodationPrice?: number;
+  sportsTotal?: number;
+  onCompleted?: () => void;
 }
 
-const PaymentForm: React.FC<PaymentFormProps> = ({ accommodationPrice = 2100 }) => {
+const PaymentForm: React.FC<PaymentFormProps> = ({ accommodationPrice = 2100, sportsTotal = 0, onCompleted }) => {
   const router = useRouter();
   const [showSportFields, setShowSportFields] = useState(false);
   const [showAccommodationFields, setShowAccommodationFields] = useState(false);
@@ -201,48 +185,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ accommodationPrice = 2100 }) 
 
   const form = useForm<PaymentFormValues>({
     resolver: zodResolver(PaymentFormSchema),
-    defaultValues: {
-      paymentTypes: [],
-      sportsPlayers: [],
-      accommodationPeople: undefined,
-    },
   });
-
-  const { fields, append, remove } = useFieldArray({
-    control: form.control,
-    name: "sportsPlayers",
-  });
-
-  useEffect(() => {
-    if (showSportFields && fields.length === 0) {
-      append({ sport: "", players: 1 });
-    }
-  }, [showSportFields, fields.length, append]);
-
-  // Calculate total amount
-  const calculateTotalAmount = () => {
-    let total = 0;
-
-    // Calculate sports registration total
-    const sportsPlayers = form.watch("sportsPlayers");
-    if (sportsPlayers) {
-      total += sportsPlayers.reduce((sum, sport) => sum + (sport.players * 800), 0);
-    }
-
-    // Add accommodation total if selected
-    const accommodationPeople = form.watch("accommodationPeople");
-    if (showAccommodationFields && accommodationPeople) {
-      total += accommodationPeople * accommodationPrice;
-    }
-
-    return total;
-  };
-
-  // Watch for changes that affect total amount
-  const totalAmount = calculateTotalAmount();
-  useEffect(() => {
-    // form.setValue("amountInNumbers", totalAmount);
-  }, [totalAmount, form]);
 
   const resetFormAndState = () => {
     form.reset();
@@ -252,23 +195,13 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ accommodationPrice = 2100 }) 
   };
 
   const onSubmit = async (data: PaymentFormValues) => {
-    console.log(data);
+    //console.log(data);
     setPaymentFormloading(true);
 
     try {
       const formData = new FormData();
 
-      formData.append("paymentTypes", JSON.stringify(data.paymentTypes));
       formData.append("paymentMode", data.paymentMode);
-
-      if (data.sportsPlayers && data.sportsPlayers.length > 0) {
-        formData.append("sportsPlayers", JSON.stringify(data.sportsPlayers));
-      }
-
-      if (data.accommodationPeople) {
-        formData.append("accommodationPeople", data.accommodationPeople.toString());
-        formData.append("accommodationPrice", accommodationPrice.toString());
-      }
 
       formData.append("amountInNumbers", data.amountInNumbers.toString());
       formData.append("amountInWords", data.amountInWords);
@@ -276,6 +209,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ accommodationPrice = 2100 }) 
       formData.append("transactionId", data.transactionId);
       formData.append("paymentDate", data.paymentDate.toISOString());
 
+      // paymentProof is a data URL string — append as-is
       if (data.paymentProof) {
         formData.append("paymentProof", data.paymentProof);
       }
@@ -295,10 +229,12 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ accommodationPrice = 2100 }) 
         return;
       }
 
+      // Use fetch with proper multipart handling
       const response = await fetch(`/api/payments/submit`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
+          // DO NOT set Content-Type; browser will set it with boundary for multipart
         },
         body: formData,
       });
@@ -314,6 +250,8 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ accommodationPrice = 2100 }) 
 
         resetFormAndState();
         setResetForm(!resetForm);
+
+        if (typeof onCompleted === "function") onCompleted();
       } else {
         setPaymentFormloading(false);
         toast({
@@ -334,6 +272,51 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ accommodationPrice = 2100 }) 
     }
   };
 
+
+
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const [preview, setPreview] = useState<string | null>(
+    null
+  );
+
+  const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
+
+  // create/revoke blob URL for PDF data URLs so iframe can render
+  useEffect(() => {
+    if (preview && preview.startsWith("data:application/")) {
+      try {
+        const split = preview.split(',');
+        const meta = split[0]; // e.g. "data:application/pdf;base64"
+        const b64 = split[1] || '';
+        const mimeMatch = meta.match(/data:([^;]+);/);
+        const mime = mimeMatch ? mimeMatch[1] : 'application/pdf';
+        const binary = atob(b64);
+        const len = binary.length;
+        const buffer = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
+          buffer[i] = binary.charCodeAt(i);
+        }
+        const blob = new Blob([buffer], { type: mime });
+        const url = URL.createObjectURL(blob);
+        setPdfBlobUrl(url);
+      } catch (e) {
+        console.warn("Failed to create PDF blob URL", e);
+        setPdfBlobUrl(null);
+      }
+    } else {
+      // not a PDF preview — ensure any previous object URL is revoked
+      if (pdfBlobUrl) {
+        URL.revokeObjectURL(pdfBlobUrl);
+        setPdfBlobUrl(null);
+      }
+    }
+    return () => {
+      if (pdfBlobUrl) {
+        URL.revokeObjectURL(pdfBlobUrl);
+      }
+    };
+  }, [preview])
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pb-6">
@@ -343,177 +326,6 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ accommodationPrice = 2100 }) 
           </div>
         ) : (
           <>
-            <div className="space-y-4">
-              <FormField
-                control={form.control}
-                name="paymentTypes"
-                render={({ field, fieldState }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel className={cn(
-                      "text-lg font-bold",
-                      fieldState.error && "text-red-500"
-                    )}>Payment Type</FormLabel>
-                    <FormDescription className="mt-0">
-                      Select all the payment types you want to make
-                    </FormDescription>
-
-                    <div className="flex gap-4">
-                      {/* <div className="flex items-center space-x-2">
-                        <Checkbox
-                          onCheckedChange={(checked) => {
-                            const current = form.getValues("paymentTypes") || [];
-                            if (checked) {
-                              form.setValue("paymentTypes", [...current, "accommodation"]);
-                              setShowAccommodationFields(true);
-                            } else {
-                              form.setValue("paymentTypes", current.filter(t => t !== "accommodation"));
-                              setShowAccommodationFields(false);
-                              form.setValue("accommodationPeople", undefined);
-                            }
-                          }}
-                        />
-                        <span>Accommodation</span>
-                      </div> */}
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          onCheckedChange={(checked) => {
-                            const current = form.getValues("paymentTypes") || [];
-                            if (checked) {
-                              form.setValue("paymentTypes", [...current, "registration"]);
-                              setShowSportFields(true);
-                            } else {
-                              form.setValue("paymentTypes", current.filter(t => t !== "registration"));
-                              setShowSportFields(false);
-                              form.setValue("sportsPlayers", []);
-                            }
-                          }}
-                        />
-                        <span>Player Registration</span>
-                      </div>
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-
-
-            {showAccommodationFields && (
-              <div className="space-y-4">
-                <div>
-                  <FormLabel className="text-lg font-bold block">Accommodation Details</FormLabel>
-                  <FormDescription>
-                    Enter the number of people requiring accommodation
-                  </FormDescription>
-                </div>
-                <div className="flex items-center gap-4">
-                  <FormField
-                    control={form.control}
-                    name="accommodationPeople"
-                    render={({ field }) => (
-                      <FormItem className="flex-1">
-                        <Input
-                          type="number"
-                          placeholder="Number of people"
-                          {...field}
-                          onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                          min={1}
-                        />
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <div className="flex-1">
-                    <div className="bg-gray-100 px-4 py-2 rounded-md">
-                      ₹{((form.watch("accommodationPeople") || 0) * accommodationPrice).toLocaleString()}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {showSportFields && (
-              <div className="space-y-4">
-                <div>
-                  <FormLabel className="text-lg font-bold block">Sport Registration Details</FormLabel>
-                  <FormDescription>
-                    Please enter number of players for each sport you're paying registration fee for
-                  </FormDescription>
-                </div>
-                <div className="flex items-center justify-between">
-                  <FormLabel className="font-bold flex-1">Select Sport</FormLabel>
-                  <FormLabel className="font-bold flex-1">Number of players</FormLabel>
-                  <FormLabel className="font-bold flex-1">Registration Fee(₹)</FormLabel>
-                </div>
-
-                {fields.map((field, index) => (
-                  <div key={field.id} className="flex items-center gap-4">
-                    <FormField
-                      control={form.control}
-                      name={`sportsPlayers.${index}.sport`}
-                      render={({ field, fieldState }) => (
-                        <FormItem className="flex-1">
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <SelectTrigger className={cn(
-                              fieldState.error && "border-red-500"
-                            )}>
-                              <SelectValue placeholder="Choose a sport" />
-                            </SelectTrigger>
-                            <SelectContent className="overflow-y-scroll z-50">
-                              {Object.entries(sports).map(([key, value]) => (
-                                <SelectItem key={key} value={key}>
-                                  {value}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name={`sportsPlayers.${index}.players`}
-                      render={({ field }) => (
-                        <FormItem className="flex-1">
-                          <Input
-                            type="number"
-                            placeholder="Enter number"
-                            {...field}
-                            onChange={(e) => field.onChange(parseInt(e.target.value))}
-                            min={1}
-                            max={20}
-                          />
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <div className="flex-1 flex items-center">
-                      <div className="bg-gray-100 px-4 py-2 rounded-md w-full">
-                        ₹{((form.watch(`sportsPlayers.${index}.players`) ?? 0) * 800).toLocaleString()}
-                      </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => remove(index)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-                <Button
-                  type="button"
-                  className="bg-black text-white hover:bg-gray-800"
-                  onClick={() => append({ sport: "", players: 1 })}
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Sport
-                </Button>
-              </div>
-            )}
             <FormField
               control={form.control}
               name="paymentMode"
@@ -526,7 +338,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ accommodationPrice = 2100 }) 
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="bank">Bank Transfer</SelectItem>
-                      <SelectItem value="cheque">Cheque</SelectItem>
+                      <SelectItem value="upi">UPI</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -544,7 +356,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ accommodationPrice = 2100 }) 
                     fieldState.error && "text-red-500"
                   )}>Total Amount in Numbers</FormLabel>
                   <FormDescription className="mt-0">
-                    Total amount to pay: ₹{totalAmount.toLocaleString()}
+                    Total amount to pay: ₹{sportsTotal}
                   </FormDescription>
                   <Input
                     type="number"
@@ -566,7 +378,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ accommodationPrice = 2100 }) 
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-lg font-bold">Total Amount in Words</FormLabel>
-                  <FormDescription>Add "only" at the end</FormDescription>
+                  <FormDescription>Add "only" at the end. Ex: Two thousand rupees only</FormDescription>
                   <Input placeholder="Enter amount in words" {...field} />
                   <FormMessage />
                 </FormItem>
@@ -590,7 +402,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ accommodationPrice = 2100 }) 
               name="transactionId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-lg font-bold">Transaction ID/Cheque Number</FormLabel>
+                  <FormLabel className="text-lg font-bold">Transaction ID</FormLabel>
                   <Input placeholder="Enter transaction ID or cheque number" {...field} />
                   <FormMessage />
                 </FormItem>
@@ -600,18 +412,107 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ accommodationPrice = 2100 }) 
             <FormField
               control={form.control}
               name="paymentProof"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-lg font-bold">Payment Proof</FormLabel>
-                  <FormDescription>File Type: PDF or Image, Maximum 1</FormDescription>
-                  <Input
-                    type="file"
-                    accept="image/*,application/pdf"
-                    onChange={(e) => field.onChange(e.target.files?.[0])}
-                  />
-                  <FormMessage />
-                </FormItem>
-              )}
+              render={({ field }) => {
+                const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, field: ControllerRenderProps<{
+                    paymentMode: string;
+                    amountInNumbers: number;
+                    amountInWords: string;
+                    payeeName: string;
+                    transactionId: string;
+                    paymentProof: string;
+                    paymentDate: Date;
+                    accommodationPeople?: number | undefined;
+                    remarks?: string | undefined;
+                }, "paymentProof">) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                      const dataUrl = reader.result as string;
+                      field.onChange(dataUrl); // Save base64 string into form state
+                      setPreview(dataUrl);
+                    };
+                    reader.readAsDataURL(file);
+                  }
+                };
+                return (
+                  <FormItem>
+                    <FormLabel className="text-lg font-bold">Payment Proof</FormLabel>
+                    <FormDescription>File Type: PDF/JPEG/PNG. Maximum 1. Max filesize: 10MB</FormDescription>
+                    <div>
+                      <Input
+                        type="file"
+                        accept="image/*,application/pdf"
+                        hideFileInfo={true}
+                        onChange={(e) => handleFileChange(e, field)}
+                        ref={fileInputRef}
+                      />
+                      {(preview && field?.value?.startsWith("data:image/")) && (
+                        <div className="relative inline-block">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (fileInputRef.current) {
+                                // Clear the input value
+                                fileInputRef.current.value = '';
+                                field.onChange(""); // reset the form value
+                                setPreview(null); // clear preview
+                              }
+                            }}
+                            className="absolute top-3 left-1 p-1 rounded-full bg-red-50 hover:bg-red-100 text-red-600 transition-colors"
+                            title="Clear selected file"
+                          >
+                            <X size={7} />
+                          </button>
+                          <Image
+                            width={500}
+                            height={500}
+                            src={preview}
+                            alt="Preview"
+                            className="mt-2 object-cover rounded-md border"
+                          />
+                        </div>
+                      )}
+                      {(preview && field?.value?.startsWith("data:application/")) && (
+                        <div className="relative inline-block">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (fileInputRef.current) {
+                                // Clear the input value
+                                fileInputRef.current.value = '';
+                                field.onChange(""); // reset the form value
+                                setPreview(null); // clear preview
+                                if (pdfBlobUrl) {
+                                  URL.revokeObjectURL(pdfBlobUrl);
+                                  setPdfBlobUrl(null);
+                                }
+                              }
+                            }}
+                            className="absolute top-3 left-1 p-1 rounded-full bg-red-50 hover:bg-red-100 text-red-600 transition-colors"
+                            title="Clear selected file"
+                          >
+                            <X size={7} />
+                          </button>
+                          {pdfBlobUrl ? (
+                            <iframe
+                              src={pdfBlobUrl}
+                              width="500"
+                              height="500"
+                              style={{ border: 'none' }}
+                              title="PDF Viewer"
+                              className="mt-2 object-cover rounded-md border"
+                            />
+                          ) : (
+                            <div className="w-12 h-12 flex items-center justify-center bg-gray-100 rounded">Preview unavailable</div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                );
+              }}
             />
 
             <FormField
@@ -619,7 +520,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ accommodationPrice = 2100 }) 
               name="paymentDate"
               render={({ field }) => (
                 <FormItem className="flex flex-col">
-                  <FormLabel className="font-bold text-lg">Date of Payment/ Cheque Deposit</FormLabel>
+                  <FormLabel className="font-bold text-lg">Date of Payment</FormLabel>
                   <Popover>
                     <PopoverTrigger asChild>
                       <FormControl>
@@ -702,13 +603,81 @@ interface PaymentData {
 
 export default function Payments() {
   const paymentFormRef = useRef<HTMLDivElement>(null);
+  const [registrationDone, setRegistrationDone] = useState<boolean | null>(null)
+  const [paymentDone, setPaymentDone] = useState<boolean | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
-  const handleScroll = () => {
-    // Scroll to the target section
-    if (paymentFormRef.current) {
-      paymentFormRef.current.scrollIntoView({ behavior: 'smooth' });
+  async function completePayment() {
+    setIsLoading(true);
+    const token = getAuthToken();
+    
+    if (!token) {
+      setIsLoading(false);
+      return;
     }
-  };
+
+    try {
+      const response = await post<{ success: boolean; message?: string }>(
+        `/api/form/completePayment`,
+        { cookies: token }
+      );
+
+      if (response?.data?.success) {
+        setPaymentDone(true);
+
+        // navigate then force a re-render of app-router server components
+        await router.push("/dashboard/Payments");
+        try { router.refresh(); } catch {} // ensure app router revalidates
+
+        // notify any client components (sidebar) to refetch immediately
+        try { window.dispatchEvent(new Event("user:updated")); } catch {}
+
+        return;
+      }
+
+      console.warn("completeRegistration: unexpected response", response);
+    } catch (err) {
+      console.error("completeRegistration error:", err);
+    } finally {
+      setIsLoading(false);
+      router.push("/dashboard");
+    }
+  }
+
+  useEffect(() => {
+      setIsLoading(true)
+      const getRegistrationState = async () => {
+        try {
+          const token = getAuthToken()
+          if (!token) {
+            // console.error("Auth token not found")
+            setIsLoading(false)
+            return
+          }
+  
+          const response = await post<{ success: boolean; data?: { registrationDone?: boolean; paymentDone?: boolean } }>(
+            `/api/sync/dashboard`,
+            { cookies: token }
+          )
+
+          if (response.data?.success && response.data?.data) {
+            setRegistrationDone(!!response.data.data.registrationDone)
+            setPaymentDone(!!response.data.data.paymentDone)
+          } else {
+            setRegistrationDone(null)
+            setPaymentDone(null)
+          }
+        } catch (error) {
+          // console.error("Error fetching registration/payment state:", error)
+        } finally {
+          setIsLoading(false)
+        }
+      }
+  
+      getRegistrationState()
+    }, [])
+
+
   const [showInput, setShowInput] = useState(false);
   const [paymentData, setPaymentData] = useState<PaymentData>({
     Accommodation: { needAccommodation: false },
@@ -716,9 +685,9 @@ export default function Payments() {
   })
   const [filledForms, setFilledForms] = useState<FormData[]>([]);
   const [updatePrice, setUpdatePrice] = useState<boolean>(false);
-  const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [accommodationPrice, setAccomodationPrice] = useState<number>(2100);
+  const router = useRouter();
 
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
@@ -776,8 +745,8 @@ export default function Payments() {
   }, []);
 
   async function onSubmit(data: z.infer<typeof FormSchema>) {
+    console.log("onSubmit triggered");
     try {
-
       const token = getAuthToken();
       const response = await post<{ success: boolean; data?: PaymentData }>(
         `/api/payments/Accommodation`,
@@ -893,6 +862,12 @@ export default function Payments() {
   }
 
   const overallTotal = calculateSportsTotal() + calculateAccommodationTotal()
+  const sportsTotal = calculateSportsTotal();
+
+
+  if (registrationDone === false || registrationDone === null || paymentDone === true) {
+    return <span className="text-red-600 font-semibold">{paymentDone === true  ? "Payments have already been confirmed"  : "Please complete your registration first before making payments"}</span>
+  }
 
   if (isLoading) return <div className="flex items-center justify-center h-64">
     <div className="w-12 h-12 border-4 border-black border-t-transparent rounded-full animate-spin"></div>
@@ -949,7 +924,7 @@ export default function Payments() {
   };
 
   return (
-    <div className="w-full h-full relative">
+      <div className="w-full h-full relative">
       <div className="w-full px-6 pb-6">
         <HeadingWithUnderline
           text="Payments"
@@ -983,12 +958,23 @@ export default function Payments() {
             </tbody>
           </table>
         </div>
+        <h3 className="text-lg font-medium mb-3">UPI Details</h3>
+        <div className="overflow-x-auto">
+          <table className="w-full mb-6 border-collapse bg-white shadow-sm rounded-lg">
+            <tbody className="divide-y divide-gray-200">
+              <tr>
+                <td className="py-3 px-4 font-medium bg-gray-50">UPI ID</td>
+                <td className="py-3 px-4">upi@upi</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <div className="space-y-4 ml-4">
         <div className="flex items-start gap-3">
           <span className="flex-shrink-0 w-6 h-6 bg-black text-white rounded-full flex items-center justify-center text-sm">1</span>
-          <p className="text-gray-700">Submit your payment details by clicking the <code>Add Payment</code> button below or scroll at the bottom of this page.</p>
+          <p className="text-gray-700">Submit your payment details below.</p>
         </div>
 
         <div className="flex items-start gap-3">
@@ -998,7 +984,7 @@ export default function Payments() {
 
         <div className="flex items-start gap-3">
           <span className="flex-shrink-0 w-6 h-6 bg-black text-white rounded-full flex items-center justify-center text-sm">3</span>
-          <p className="text-gray-700">You can view your auto calculated registration fee below based on your submitted forms. To calculate your accommodation price you can fill accommodation details section.</p>
+          <p className="text-gray-700">You can view your auto calculated registration fee below based on your submitted forms.</p>
         </div>
 
         <div className="flex items-start gap-3">
@@ -1008,8 +994,6 @@ export default function Payments() {
       </div>
     </div>
         <div className="mt-10 space-y-8 pb-10">
-          <Button onClick={handleScroll}>Add Payment</Button>
-
           <Card>
             <CardHeader>
               <HeadingWithUnderline
@@ -1131,7 +1115,7 @@ export default function Payments() {
           </Card> */}
         </div>
 
-        <div className="mt-6 pb-8 overflow-auto">
+        {/*<div className="mt-6 pb-8 overflow-auto">
           {filledForms.length === 0 ? (
             <div></div>
           ) : (
@@ -1144,12 +1128,16 @@ export default function Payments() {
               <DataTable columns={columns} data={filledForms} />
             </div>
           )}
-        </div>
+        </div>*/}
 
         <Separator className="my-4" ref={paymentFormRef} />
         <h2 className="mt-5 text-2xl font-semibold text-gray-800">Payment Form</h2>
         <p className="text-sm text-gray-600 mb-4">Enter your payment details below</p>
-        <PaymentForm accommodationPrice={accommodationPrice} />
+        <PaymentForm
+          accommodationPrice={accommodationPrice}
+          sportsTotal={sportsTotal}
+          onCompleted={completePayment}
+        />
       </div>
     </div>
   )

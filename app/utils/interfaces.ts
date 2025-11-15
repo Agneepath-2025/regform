@@ -12,6 +12,8 @@ export interface User {
   vid?: string;
   submittedForms?:Record<string,any>;
   Accommodation?:Record<string,any>;
+  registrationDone?: boolean;
+  paymentDone?: boolean;
 
 }
 

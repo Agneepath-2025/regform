@@ -1,17 +1,10 @@
 import nodemailer from "nodemailer";
 import { sports } from "../forms/schema";
 
-interface SportPlayers {
-    sport: string;
-    players: number;  // Number of players
-}
-
 interface PaymentFormData {
     name?:string,
     email?:string,
-    paymentTypes: string[];  // Will contain max 2 strings
     paymentMode: string;
-    sportsPlayers?: SportPlayers[];
     amountInNumbers: number;
     amountInWords: string;
     payeeName: string;
@@ -19,7 +12,7 @@ interface PaymentFormData {
     accommodationPeople?:number,
     accommodationPrice?:number,
     paymentDate: Date;
-    paymentProof?: File;
+    paymentProof?: string;
     remarks?: string;
 }
 
@@ -49,11 +42,24 @@ export async function sendPaymentConfirmationEmail(
         // Prepare attachments if payment proof exists
         const attachments = [];
         if (formData.paymentProof) {
-            const paymentProofBuffer = Buffer.from(await formData.paymentProof.arrayBuffer());
-            attachments.push({
-                filename: 'payment-proof' + formData.paymentProof.name.substring(formData.paymentProof.name.lastIndexOf('.')),
-                content: paymentProofBuffer,
-            });
+            // If paymentProof is a data URL string: "data:<mime>;base64,<b64>"
+            if (typeof formData.paymentProof === "string" && formData.paymentProof.startsWith("data:")) {
+                const match = formData.paymentProof.match(/^data:([^;]+);base64,(.+)$/);
+                if (match) {
+                    const mime = match[1]; // e.g. "application/pdf" or "image/png"
+                    const b64 = match[2];
+                    const buffer = Buffer.from(b64, "base64");
+                    const ext = mime.split("/")[1]?.split("+")[0] ?? "bin";
+                    attachments.push({
+                        filename: `payment-proof.${ext}`,
+                        content: buffer,
+                        contentType: mime,
+                    });
+                }
+            } else if (typeof formData.paymentProof === "string") {
+                // Already a file path/URL — skip or log
+                console.log("Payment proof is a path, not a data URL:", formData.paymentProof);
+            }
         }
 
         // Generate payment details table
@@ -67,10 +73,6 @@ export async function sendPaymentConfirmationEmail(
         <tr>
           <td style="padding: 8px; border: 1px solid #ddd;"><strong>Payee Name</strong></td>
           <td style="padding: 8px; border: 1px solid #ddd;">${formData.payeeName}</td>
-        </tr>
-        <tr>
-          <td style="padding: 8px; border: 1px solid #ddd;"><strong>Payment Type</strong></td>
-          <td style="padding: 8px; border: 1px solid #ddd;">${formData.paymentTypes.join(', ')}</td>
         </tr>
         <tr>
           <td style="padding: 8px; border: 1px solid #ddd;"><strong>Payment Mode</strong></td>
@@ -96,33 +98,6 @@ export async function sendPaymentConfirmationEmail(
         ` : ''}
       </table>
     `;
-
-        // Generate sports and players count table
-        const sportsTable = formData.sportsPlayers && formData.sportsPlayers.length > 0 ? `
-      <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
-        <tr>
-          <td colspan="3" style="padding: 10px; background-color: #f0f0f0;">
-            <strong>Sports Registration Details</strong>
-          </td>
-        </tr>
-        <tr>
-          <td style="padding: 8px; border: 1px solid #ddd; background-color: #f8f8f8;"><strong>Sport</strong></td>
-          <td style="padding: 8px; border: 1px solid #ddd; background-color: #f8f8f8;"><strong>Players</strong></td>
-          <td style="padding: 8px; border: 1px solid #ddd; background-color: #f8f8f8;"><strong>Registration Fee</strong></td>
-        </tr>
-        ${formData.sportsPlayers.map(sportGroup => `
-          <tr>
-            <td style="padding: 8px; border: 1px solid #ddd;"><strong>${sports[sportGroup.sport]}</strong></td>
-            <td style="padding: 8px; border: 1px solid #ddd;">${sportGroup.players} Player${sportGroup.players > 1 ? 's' : ''}</td>
-            <td style="padding: 8px; border: 1px solid #ddd;">₹${(sportGroup.players * 800).toLocaleString()}</td>
-          </tr>
-        `).join('')}
-        <tr>
-          <td colspan="2" style="padding: 8px; border: 1px solid #ddd; text-align: right;"><strong>Total Registration Fee:</strong></td>
-          <td style="padding: 8px; border: 1px solid #ddd;"><strong>₹${formData.sportsPlayers.reduce((total, sport) => total + (sport.players * 800), 0).toLocaleString()}</strong></td>
-        </tr>
-      </table>
-    ` : '';
 
         // Generate accommodation details table
         const accommodationTable = formData.accommodationPeople && formData.accommodationPrice ? `
@@ -154,7 +129,6 @@ export async function sendPaymentConfirmationEmail(
         <p>Thank you for submitting your payment for Agneepath 6.0. This email confirms that we have received your payment details and they are currently under review by our team.</p>
         
         ${paymentDetailsTable}
-        ${sportsTable}
         ${accommodationTable}
         
         <p><strong>Note:</strong> Our team will review your payment details and send you a confirmation email once verified. Please allow up to 48-72 hours for the verification process.</p>
