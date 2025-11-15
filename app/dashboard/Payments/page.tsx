@@ -6,7 +6,7 @@ import { Separator } from "@/components/ui/separator"
 import { format, set } from "date-fns"
 import { Medal } from 'lucide-react';
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm, useFieldArray, ControllerRenderProps } from "react-hook-form"
+import { useForm, ControllerRenderProps } from "react-hook-form"
 import { z } from "zod"
 import { useState, useEffect } from "react"
 import styles from "@/app/styles/toast.module.css"
@@ -196,7 +196,6 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ accommodationPrice = 2100, sp
 
   const onSubmit = async (data: PaymentFormValues) => {
     //console.log(data);
-    console.log("onSubmit triggered");
     setPaymentFormloading(true);
 
     try {
@@ -275,18 +274,6 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ accommodationPrice = 2100, sp
 
 
 
-   useEffect(() => {
-    const subscription = form.watch((value) => {
-      console.log("Form values:", JSON.stringify(value));
-      console.log("Form errors:", JSON.stringify(form.formState.errors));
-    });
-    return () => subscription.unsubscribe();
-  }, [form]);
-
-
-
-
-
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [preview, setPreview] = useState<string | null>(
     null
@@ -327,7 +314,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ accommodationPrice = 2100, sp
       if (pdfBlobUrl) {
         URL.revokeObjectURL(pdfBlobUrl);
       }
-    }
+    };
   }, [preview])
 
   return (

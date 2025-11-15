@@ -3,7 +3,7 @@
 /* eslint-disable react/no-unescaped-entities */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
-import { useEffect, useState, useMemo } from "react"
+import { useEffect, useState } from "react"
 import { ArrowRight, Medal } from 'lucide-react';
 import HeadingWithUnderline from "@/app/components/dashboard/headingWithUnderline"
 import RenderPopoverForm from "@/app/components/dashboard/form/PopoverForm"
@@ -15,7 +15,6 @@ import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
 import { encrypt } from "@/app/utils/encryption"
 import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Alert } from "@/components/ui/alert";
 const EmptyState = () => (
   <div className="flex flex-col items-center justify-center p-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
     <Medal className="w-16 h-16 text-gray-400 mb-4" />
@@ -36,7 +35,7 @@ export type FormData = {
 
 const ActionCell: React.FC<{ row: any }> = ({ row }) => {
   const router = useRouter();
-  const { status, _id, title, playerFields } = row.original;
+  const { status, _id, title } = row.original;
 
   return (
     <div className="flex justify-center">
@@ -131,7 +130,6 @@ const columns: ColumnDef<FormData>[] = [
     accessorKey: "estimatedCost",
     header: "Estimated Cost",
     cell: ({ row }) => {
-      console.log(row)
       const count = Array.isArray(row.original.playerFields)
         ? row.original.playerFields.length
         : Array.isArray(row.original.fields?.playerFields)
@@ -261,7 +259,6 @@ export default function RegForm() {
       getCoreRowModel: getCoreRowModel(),
     })
 
-    console.log("Table data:", data);
 
     return (
       <div className="overflow-x-auto rounded-lg shadow-lg">
