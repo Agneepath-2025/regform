@@ -35,7 +35,7 @@ export type FormData = {
 
 const ActionCell: React.FC<{ row: any }> = ({ row }) => {
   const router = useRouter();
-  const { status, _id, title, playerFields } = row.original;
+  const { status, _id, title } = row.original;
 
   return (
     <div className="flex justify-center">
