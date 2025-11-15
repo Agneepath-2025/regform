@@ -196,7 +196,6 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ accommodationPrice = 2100, sp
 
   const onSubmit = async (data: PaymentFormValues) => {
     //console.log(data);
-    console.log("onSubmit triggered");
     setPaymentFormloading(true);
 
     try {
