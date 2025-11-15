@@ -12,6 +12,7 @@ import ReactMarkdown from "react-markdown";
 import type { Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { post } from "@/app/utils/PostGetData";
+
 import {
   Drawer,
   DrawerClose,
@@ -200,7 +201,7 @@ export default function Form() {
 
           <Drawer>
             <DrawerTrigger asChild>
-              <Button variant="link" className="text-blue-500 underline">
+              <Button variant="default" className="bg-orange-500 text-white hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-300" >
                 View Sport Guidelines
               </Button>
             </DrawerTrigger>

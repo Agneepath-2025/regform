@@ -131,7 +131,7 @@ export const coachFields = z.object({
         (phone) => /^[0-9]{10,15}$/.test(phone),
         { message: "Phone number must be atleast 10 digits" }
     ).optional(),
-    gender: z.enum(["Select Gender", "Male", "Female", "Other"], { message: "Gender is required" }).optional(),
+    gender: z.enum(["Select Gender", "Male", "Female"], { message: "Gender is required" }).optional(),
 });
 
 export const coachFieldsMeta: formMeta = {
