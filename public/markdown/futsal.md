@@ -7,7 +7,7 @@ _Womens_
 
 *   Teams can register with a minimum of 7 players and maximum of 10 players 
     
-*   6 players, including the goalkeeper, to be on the field .
+*   7 players, including the goalkeeper, to be on the field .
     
 
 **Substitutes**

@@ -131,7 +131,7 @@ export const coachFields = z.object({
         (phone) => /^[0-9]{10,15}$/.test(phone),
         { message: "Phone number must be atleast 10 digits" }
     ).optional(),
-    gender: z.enum(["Select Gender", "Male", "Female", "Other"], { message: "Gender is required" }).optional(),
+    gender: z.enum(["Select Gender", "Male", "Female"], { message: "Gender is required" }).optional(),
 });
 
 export const coachFieldsMeta: formMeta = {
@@ -266,79 +266,79 @@ export const eventSchema: EventSchema = {
         Badminton_Men: {
             eventName: sports.Badminton_Men,
             specificPages: [
-                generatePageWithPlayerFields(3, 7), // 5 to 7 players
+                generatePageWithPlayerFields(5, 7), // 5 to 7 players
             ],
         },
         Badminton_Women: {
             eventName: sports.Badminton_Women,
             specificPages: [
-                generatePageWithPlayerFields(3, 7), // 5 to 7 players
+                generatePageWithPlayerFields(5, 7), // 5 to 7 players
             ],
         },
         Basketball_Men: {
             eventName: sports.Basketball_Men,
             specificPages: [
-                generatePageWithPlayerFields(5, 12), // 5 to 12 players
+                generatePageWithPlayerFields(5, 7), // 5 to 12 players
             ],
         },
         Basketball_Women: {
             eventName: sports.Basketball_Women,
             specificPages: [
-                generatePageWithPlayerFields(5, 12), // 5 to 12 players
+                generatePageWithPlayerFields(5, 7), // 5 to 12 players
             ],
         },
         Cricket_Men: {
             eventName: sports.Cricket_Men,
             specificPages: [
-                generatePageWithPlayerFields(11, 15), // 11 to 15 players
+                generatePageWithPlayerFields(12, 15), // 12 to 15 players
             ],
         },
         Football_Men: {
             eventName: sports.Football_Men,
             specificPages: [
-                generatePageWithPlayerFields(9, 15), // 9 to 14 players
+                generatePageWithPlayerFields(11, 15), // 11 to 15 players
             ],
         },
         Futsal_Women: {
             eventName: sports.Futsal_Women,
             specificPages: [
-                generatePageWithPlayerFields(6, 9), // 6 to 9 players
+                generatePageWithPlayerFields(7, 10), // 7 to 10 players
             ],
         },
         Volleyball_Men: {
             eventName: sports.Volleyball_Men,
             specificPages: [
-                generatePageWithPlayerFields(6, 12), // 6 to 12 players
+                generatePageWithPlayerFields(8, 12), // 6 to 12 players
             ],
         },
         Volleyball_Women: {
             eventName: sports.Volleyball_Women,
             specificPages: [
-                generatePageWithPlayerFields(6, 12), // 6 to 12 players
+                generatePageWithPlayerFields(8, 12), // 6 to 12 players
             ],
         },
         Table_Tennis_Men: {
             eventName: sports.Table_Tennis_Men,
             specificPages: [
-                generatePageWithPlayerFields(3, 5), // 3 to 5 players
+                generatePageWithPlayerFields(4, 5), // 3 to 5 players
             ],
         },
         Table_Tennis_Women: {
             eventName: sports.Table_Tennis_Women,
             specificPages: [
-                generatePageWithPlayerFields(3, 5), // 3 to 5 players
+                generatePageWithPlayerFields(4, 5), // 3 to 5 players
             ],
         },
         Squash_Men: {
             eventName: sports.Squash_Men,
             specificPages: [
-                generatePageWithPlayerFields(5, 5), // 5 players
+                generatePageWithPlayerFields(3, 5), // 5 players
             ],
         },
         Squash_Women: {
             eventName: sports.Squash_Women,
             specificPages: [
-                generatePageWithPlayerFields(5, 5), // 5 players
+                generatePageWithPlayerFields(3, 5), // 5 players
             ],
         },
         Ball_Pool_Men: {
@@ -384,13 +384,13 @@ export const eventSchema: EventSchema = {
                     pageName: "Coach Details",
                     fields: z.object({
                         coachFields,
-                        playerFields: z.array(playerFields.extend({ gender: z.enum(["Select Gender", "Male", "Female", "Other"], { message: "Gender is required" }) }))
+                        playerFields: z.array(playerFields.extend({ gender: z.enum(["Select Gender", "Male", "Female"], { message: "Gender is required" }) }))
                             .min(5, `Fill details of minimum ${5} players`)
                             .max(9, `A maximum of ${9} players are allowed`),
                     }),
                     draft: z.object({
                         coachFields,
-                        playerFields: z.array(playerFieldsDraft.extend({ gender: z.enum(["Select Gender", "Male", "Female", "Other"], { message: "Gender is required" }).optional() }))
+                        playerFields: z.array(playerFieldsDraft.extend({ gender: z.enum(["Select Gender", "Male", "Female"], { message: "Gender is required" }).optional() }))
                             .min(5, `Fill details of minimum ${5} players`)
                             .max(9, `A maximum of ${9} players are allowed`),
                     }),
@@ -409,14 +409,14 @@ export const eventSchema: EventSchema = {
                     fields: z.object({
                         coachFields,
                         playerFields: z.array(playerFields.extend({ category1: z.enum(swimmingCategories, { message: "Category 1 is required" }), category2: z.enum(swimmingCategories, { message: "Category 1 is required" }).optional() }))
-                            .min(2, `Fill details of minimum ${5} players`)
-                            .max(8, `A maximum of ${9} players are allowed`),
+                            .min(2, `Fill details of minimum ${2} players`)
+                            .max(8, `A maximum of ${8} players are allowed`),
                     }),
                     draft: z.object({
                         coachFields,
                         playerFields: z.array(playerFieldsDraft.extend({ category1: z.enum(swimmingCategories, { message: "Category 1 is required" }).optional(), category2: z.enum(swimmingCategories, { message: "Category 1 is required" }).optional() }))
-                            .min(2, `Fill details of minimum ${5} players`)
-                            .max(8, `A maximum of ${9} players are allowed`),
+                            .min(2, `Fill details of minimum ${2} players`)
+                            .max(8, `A maximum of ${8} players are allowed`),
                     }),
                     meta: {
                         coachFields: coachFieldsMeta,

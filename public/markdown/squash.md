@@ -7,7 +7,7 @@ _Men and Women_
 
 1.  Format will either be a single elimination knockout bracket, or in group-round robins, and then knockouts (depending on the number of registered teams). 
     
-2.  Each team will consist of 5 players (3 playing and 2 substitutes). The 3 players will be divided in a random seed order. 
+2.  Each team will consist of 3 to 5 players (3 playing and 2 substitutes). The 3 players will be divided in a random seed order. 
     
 3.  Each team’s match will be divided into 3 singles matches. Each singles match will be a **best of 3** games. 
     
