@@ -274,18 +274,6 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ accommodationPrice = 2100, sp
 
 
 
-   useEffect(() => {
-    const subscription = form.watch((value) => {
-      console.log("Form values:", JSON.stringify(value));
-      console.log("Form errors:", JSON.stringify(form.formState.errors));
-    });
-    return () => subscription.unsubscribe();
-  }, [form]);
-
-
-
-
-
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [preview, setPreview] = useState<string | null>(
     null
