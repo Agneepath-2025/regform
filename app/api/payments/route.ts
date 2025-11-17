@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
 
     // Fetch specific fields (_id, title, updatedAt) for all documents matching ownerId
     const matchingForms = await formCollection
-      .find({ ownerId }, { projection: { createdAt: 1, transactionId: 1, sportsPlayers: 1, paymentTypes: 1, amountInNumbers: 1, status: 1 } })
+      .find({ ownerId }, { projection: { createdAt: 1, transactionId: 1, amountInNumbers: 1, status: 1 } })
       .toArray();
     const { _id, ...userDataWithoutId } = userResponse.data;
 

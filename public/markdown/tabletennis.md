@@ -7,7 +7,7 @@ Mens & Womens
 
 Singles(A vs Y), Singles (B vs X), Doubles( A/B + C vs X/Y + Z) Reverse Singles 1 (A vs X), Reverse Singles 2 (B vs Y)
 
-Each team (men’s and women’s) will consist of 3-5 players.
+Each team (men’s and women’s) will consist of 4-5 players.
 
 **Game:** 
 

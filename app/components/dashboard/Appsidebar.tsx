@@ -5,6 +5,8 @@ import { CreditCard, BookText, LayoutDashboard, LogOut} from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { post } from "@/app/utils/PostGetData"
 
 import {
   Sidebar,
@@ -24,27 +26,97 @@ type MenuItem = {
   url: string;
   icon: typeof LayoutDashboard;
   external?: boolean;
+  disabled?: boolean;
 };
 
-const items: MenuItem[] = [
-  // { title: "Home Page", url: "https://agneepath.co.in/", icon: Home, external: true }, // Added Home item - removed till main site is up
-  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
-  { title: "Registration Form", url: "/dashboard/regForm", icon: BookText },
-  { title: "Payments", url: "/dashboard/Payments", icon: CreditCard },
-  // { title: "Accomodations", url: "/dashboard/Accomodation", icon: Hotel }, // Hide accomodations temporarily till updation
-
-];
+const getAuthToken = (): string | null => {
+  const cookies = document.cookie.split("; ")
+  const authToken = cookies.find((cookie) => cookie.startsWith("authToken="))
+  return authToken ? authToken.split("=")[1] : null
+}
 
 export function AppSidebar() {
+
+  const [items, setItems] = useState<MenuItem[]>([
+    // { title: "Home Page", url: "https://agneepath.co.in/", icon: Home, external: true }, // Added Home item - removed till main site is up
+    { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, disabled: false },
+    { title: "Registration Form", url: "/dashboard/regForm", icon: BookText, disabled: true  },
+    { title: "Payments", url: "/dashboard/Payments", icon: CreditCard, disabled: true },
+    // { title: "Accomodations", url: "/dashboard/Accomodation", icon: Hotel }, // Hide accomodations temporarily till updation
+
+  ]);
+
   const router = useRouter();
+  const [loading, setLoading] = useState(false)
+  const [registrationDone, setRegistrationDone] = useState<boolean | null>(null)
+  const [paymentDone, setPaymentDone] = useState<boolean | null>(null)
 
   const handleLogout = () => {
     document.cookie = "authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;";
     router.push("/SignIn");
   };
 
+  useEffect(() => {
+      setLoading(true)
+      const getRegistrationState = async () => {
+        try {
+          const token = getAuthToken()
+          if (!token) {
+            // console.error("Auth token not found")
+            setLoading(false)
+            return
+          }
+  
+          const response = await post<{ success: boolean; data?: { registrationDone?: boolean; paymentDone?: boolean } }>(
+            `/api/sync/dashboard`,
+            { cookies: token }
+          )
+
+          if (response.data?.success && response.data?.data) {
+            setRegistrationDone(!!response.data.data.registrationDone)
+            setPaymentDone(!!response.data.data.paymentDone)
+          } else {
+            setRegistrationDone(null)
+            setPaymentDone(null)
+          }
+        } catch (error) {
+          console.error("Error fetching registration/payment state:", error)
+        } finally {
+          setLoading(false)
+        }
+      }
+  
+      getRegistrationState()
+
+      const onUserUpdated = () => {
+        getRegistrationState();
+      }
+
+      window.addEventListener("user:updated", onUserUpdated);
+
+      return () => window.removeEventListener("user:updated", onUserUpdated);
+    }, [])
+
+    useEffect(() => {
+      // derive items so we can toggle disabled based on fetched user flags
+      setItems(items.map((it) => {
+        if (it.title === "Registration Form") {
+          // enable registration route when registrationDone is false (i.e. not completed)
+          return { ...it, disabled: registrationDone === null ? false : !!registrationDone };
+        }
+        if (it.title === "Payments") {
+          // enable payments when registration is done but payment not done
+          // adjust logic as needed; here we enable Payments only when registrationDone is true
+          return { ...it, disabled: registrationDone === null || registrationDone === false ? true : paymentDone === null ? false : !!paymentDone  };
+        }
+        return it;
+      }))
+    }, [registrationDone, paymentDone]);
+
   return (
     <Sidebar>
+      {loading ? <></> :
+      <>
       <SidebarHeader>
         <Image className="mx-auto" src="/logo2.png" alt="Logo" width={180} height={38} priority />
       </SidebarHeader>
@@ -55,11 +127,13 @@ export function AppSidebar() {
             <SidebarMenu>
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
+                  <SidebarMenuButton asChild disabled={item.disabled} className={item.disabled ? "cursor-not-allowed opacity-50" : ""}>
                     <Link
                       href={item.url}
-                      className="flex items-center space-x-2 text-lg font-medium"
+                      className="flex items-center space-x-2 text-lg font-medium {disabled ? 'pointer-events-none opacity-50' : ''}"
                       target={(item as MenuItem).external ? "_blank" : "_self"}
+                      aria-disabled={item.disabled} 
+                      tabIndex={item.disabled ? -1 : undefined}
                     >
                       <item.icon className="h-5 w-5" />
                       <span>{item.title}</span>
@@ -81,7 +155,7 @@ export function AppSidebar() {
             <span>Logout</span>
           </SidebarMenuButton>
         </SidebarMenuItem>
-      </SidebarFooter>
+      </SidebarFooter></>}
     </Sidebar>
   );
 }

@@ -1,4 +1,5 @@
 import { getEmailFromToken } from "@/app/utils/forms/getEmail";
+import { playerFields } from "@/app/utils/forms/schema";
 import { fetchUserData } from "@/app/utils/GetUpdateUser";
 import { connectToDatabase } from "@/lib/mongodb";
 import { Collection } from "mongodb";
@@ -43,7 +44,7 @@ export async function POST(req: NextRequest) {
 
     // Fetch specific fields (_id, title, updatedAt) for all documents matching ownerId
     const matchingForms = await formCollection
-      .find({ ownerId }, { projection: { _id: 1, title: 1, updatedAt: 1,status:1 } })
+      .find({ ownerId }, { projection: { _id: 1, title: 1, updatedAt: 1,status:1, "fields.playerFields": 1 } })
       .toArray();
 
     return NextResponse.json(

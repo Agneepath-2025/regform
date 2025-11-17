@@ -49,21 +49,17 @@ interface PaymentFormData {
   accommodationPeople?: number;
   name?: string;
   email?: string;
-  paymentTypes: string[];
   paymentMode: string;
-  sportsPlayers?: SportPlayers[];
   amountInNumbers: number;
   amountInWords: string;
   payeeName: string;
   transactionId: string;
   paymentDate: Date;
-  paymentProof?: File;
+  paymentProof?: string;
   remarks?: string;
 }
 interface PaymentData {
-  paymentTypes: string[];
   paymentMode: string;
-  sportsPlayers: [];
   accommodationPeople?: number;
   accommodationPrice?: number;
   amountInNumbers: number;
@@ -71,7 +67,7 @@ interface PaymentData {
   payeeName: string;
   transactionId: string;
   paymentDate: Date;
-  paymentProofFile?: string;
+  paymentProof: string;
   strapiId?: ObjectId;
   remarks?: string;
   ownerId: ObjectId;
@@ -102,54 +98,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Handle file upload if present
-    let paymentProofFile: string | undefined;
-    let strapiId: ObjectId | undefined;
-    const file = formData.get("paymentProof") as File | null;
-
-    if (file) {
-      const buffer = Buffer.from(await file.arrayBuffer());
-      const fileExtension = path.extname(file.name);
-      const mimeType = file.type;
-      const fileSize = buffer.byteLength / (1024 * 1024); // File size in MB
-
-      // Generate random filename and hash
-      const randomId = crypto.randomBytes(16).toString("hex");
-      const filename = `${randomId}${fileExtension}`;
-      const hash = crypto.createHash("md5").update(filename).digest("hex");
-
-      const directoryPath = process.env.UPLOAD_PATH || path.join(process.cwd(), "/assets");
-
-      try {
-        await mkdir(directoryPath, { recursive: true });
-        await writeFile(path.join(directoryPath, filename), buffer);
-
-        const fileUrl = `/uploads/${filename}`;
-        paymentProofFile = filename;
-
-        // Save file metadata to Strapi database
-        strapiId = await addFileToStrapiDatabase({
-          name: file.name,
-          hash,
-          ext: fileExtension,
-          mime: mimeType,
-          size: fileSize,
-          url: fileUrl,
-        });
-      } catch (error) {
-        return NextResponse.json(
-          { success: false, message: "Failed to save file" },
-          { status: 500 }
-        );
-      }
-    }
-
     // Prepare payment data
     const paymentData: PaymentData = {
       ownerId: userResponse.data._id,
-      paymentTypes: JSON.parse(formData.get("paymentTypes") as string),
       paymentMode: formData.get("paymentMode") as string,
-      sportsPlayers: JSON.parse(formData.get("sportsPlayers") as string),
       amountInNumbers: Number(formData.get("amountInNumbers")),
       amountInWords: formData.get("amountInWords") as string,
       payeeName: formData.get("payeeName") as string,
@@ -157,6 +109,7 @@ export async function POST(req: NextRequest) {
       paymentDate: new Date(formData.get("paymentDate") as string),
       status: "In review",
       createdAt: new Date(),
+      paymentProof: formData.get("paymentProof") as string,
     };
 
     // Add optional fields
@@ -170,14 +123,6 @@ export async function POST(req: NextRequest) {
       paymentData.accommodationPrice = Number(formData.get("accommodationPrice"));
     }
 
-    if (paymentProofFile) {
-      paymentData.paymentProofFile = paymentProofFile;
-    }
-
-    if (strapiId) {
-      paymentData.strapiId = strapiId;
-    }
-
     // Save to MongoDB
     const { db } = await connectToDatabase();
     const paymentCollection: Collection = db.collection("payments");
@@ -187,22 +132,27 @@ export async function POST(req: NextRequest) {
     const formDataObj: PaymentFormData = {
       name: userResponse.data?.name,
       email: email,
-      paymentTypes: JSON.parse(formData.get("paymentTypes") as string),
       paymentMode: formData.get("paymentMode") as string,
-      sportsPlayers: JSON.parse(formData.get("sportsPlayers") as string),
       amountInNumbers: parseFloat(formData.get("amountInNumbers") as string),
       amountInWords: formData.get("amountInWords") as string,
       payeeName: formData.get("payeeName") as string,
       transactionId: formData.get("transactionId") as string,
       paymentDate: new Date(formData.get("paymentDate") as string),
-      paymentProof: file || undefined,
+      paymentProof: formData.get("paymentProof")as string,
       accommodationPeople: Number(formData.get("accommodationPeople")),
       accommodationPrice: Number(formData.get("accommodationPrice")),
       remarks: formData.get("remarks") as string || undefined,
     };
 
     // Send email confirmation
-    await sendPaymentConfirmationEmail(formDataObj);
+    console.log("Sending confirmation email to:", email);
+    console.log("Payment proof type:", typeof formDataObj.paymentProof);
+    try {
+      await sendPaymentConfirmationEmail(formDataObj);
+    } catch (emailErr) {
+      console.error("Email send failed (non-blocking):", emailErr);
+      // Don't fail the entire request if email fails
+    }
 
     return NextResponse.json(
       {
