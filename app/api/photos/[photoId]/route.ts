@@ -2,8 +2,8 @@ import { NextRequest } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
 import { ObjectId, GridFSBucket } from "mongodb";
 
-export async function GET(req: NextRequest, context: any) {
-  const photoId = (context.params as { photoId: string }).photoId;
+export async function GET(req: NextRequest, { params }: { params: Promise<{ photoId: string }>}) {
+  const { photoId } = await params;
 
   const { db } = await connectToDatabase();
   const bucket = new GridFSBucket(db, { bucketName: "player-image" });
