@@ -1,7 +1,6 @@
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/app/components/dashboard/Appsidebar"
 import { Toaster } from "@/components/ui/toaster"
-import Footer from "@/app/components/Footer"
 
 
 export default function Layout({ children }: { children: React.ReactNode }) {
@@ -14,7 +13,6 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     <main className="flex-1 overflow-y-auto">
       {children}
     </main>
-    <Footer />
   </div>
   
   <Toaster />

@@ -360,13 +360,13 @@ export const eventSchema: EventSchema = {
                     pageName: "Coach Details",
                     fields: z.object({
                         coachFields,
-                        playerFields: z.array(playerFields.extend({ gender: z.enum(["Select Gender", "Male", "Female", "Other"], { message: "Gender is required" }) }))
+                        playerFields: z.array(playerFields.extend({ gender: z.enum(["Select Gender", "Male", "Female"], { message: "Gender is required" }) }))
                             .min(4, `Fill details of minimum ${4} players`)
                             .max(5, `A maximum of ${5} players are allowed`),
                     }),
                     draft: z.object({
                         coachFields,
-                        playerFields: z.array(playerFieldsDraft.extend({ gender: z.enum(["Select Gender", "Male", "Female", "Other"], { message: "Gender is required" }).optional() }))
+                        playerFields: z.array(playerFieldsDraft.extend({ gender: z.enum(["Select Gender", "Male", "Female"], { message: "Gender is required" }).optional() }))
                             .min(4, `Fill details of minimum ${4} players`)
                             .max(5, `A maximum of ${5} players are allowed`),
                     }),
@@ -456,13 +456,13 @@ export const eventSchema: EventSchema = {
                     pageName: "Coach Details",
                     fields: z.object({
                         coachFields,
-                        playerFields: z.array(playerFields.extend({ gender: z.enum(["Select Gender", "Male", "Female", "Other"], { message: "Gender is required" }), category1: z.enum(ShootingCategories, { message: "Category 1 is required" }) }))
+                        playerFields: z.array(playerFields.extend({ gender: z.enum(["Select Gender", "Male", "Female"], { message: "Gender is required" }), category1: z.enum(ShootingCategories, { message: "Category 1 is required" }) }))
                             .min(1, `Fill details of minimum ${1} players`)
                             .max(10, `A maximum of ${10} players are allowed`),
                     }),
                     draft: z.object({
                         coachFields,
-                        playerFields: z.array(playerFieldsDraft.extend({ gender: z.enum(["Select Gender", "Male", "Female", "Other"], { message: "Gender is required" }).optional(), category1: z.enum(ShootingCategories, { message: "Category 1 is required" }).optional() }))
+                        playerFields: z.array(playerFieldsDraft.extend({ gender: z.enum(["Select Gender", "Male", "Female"], { message: "Gender is required" }).optional(), category1: z.enum(ShootingCategories, { message: "Category 1 is required" }).optional() }))
                             .min(1, `Fill details of minimum ${1} players`)
                             .max(10, `A maximum of ${10} players are allowed`),
                     }),

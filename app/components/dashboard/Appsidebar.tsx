@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { post } from "@/app/utils/PostGetData"
+import RegistrationProgress from "@/app/components/dashboard/RegistrationProgress";
 
 import {
   Sidebar,
@@ -50,6 +51,8 @@ export function AppSidebar() {
   const [loading, setLoading] = useState(false)
   const [registrationDone, setRegistrationDone] = useState<boolean | null>(null)
   const [paymentDone, setPaymentDone] = useState<boolean | null>(null)
+  const [hasAnyForm, setHasAnyForm] = useState<boolean>(false)
+  const [hasSubmitted, setHasSubmitted] = useState<boolean>(false)
 
   const handleLogout = () => {
     document.cookie = "authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;";
@@ -79,6 +82,22 @@ export function AppSidebar() {
             setRegistrationDone(null)
             setPaymentDone(null)
           }
+
+          // Also fetch forms to compute progress (any form + any submitted)
+          try {
+            const formsRes = await post<{ success: boolean; data?: Array<{ status?: string }> }>(
+              `/api/form/getAllForms`,
+              { cookies: token }
+            );
+            if (formsRes?.data?.success && Array.isArray(formsRes.data.data)) {
+              const list = formsRes.data.data;
+              setHasAnyForm(list.length > 0);
+              setHasSubmitted(list.some((f) => f.status === "submitted"));
+            } else {
+              setHasAnyForm(false);
+              setHasSubmitted(false);
+            }
+          } catch {}
         } catch (error) {
           console.error("Error fetching registration/payment state:", error)
         } finally {
@@ -121,6 +140,39 @@ export function AppSidebar() {
         <Image className="mx-auto" src="/logo2.png" alt="Logo" width={180} height={38} priority />
       </SidebarHeader>
       <SidebarContent>
+        {/* Registration Progress */}
+        <SidebarGroup>
+          <SidebarGroupLabel>Progress</SidebarGroupLabel>
+          <SidebarGroupContent>
+            {(() => {
+              const steps = ["Select sport", "Submit forms", "Finalise", "Payment"];
+              const completed =
+                (hasAnyForm ? 1 : 0) +
+                (hasSubmitted ? 1 : 0) +
+                (registrationDone ? 1 : 0) +
+                (paymentDone ? 1 : 0);
+              const current = paymentDone
+                ? 4
+                : registrationDone
+                ? 4
+                : hasSubmitted
+                ? 3
+                : hasAnyForm
+                ? 2
+                : 1;
+
+              return (
+                <RegistrationProgress
+                  steps={steps}
+                  current={current}
+                  completed={completed}
+                  compact
+                  className="px-2"
+                />
+              );
+            })()}
+          </SidebarGroupContent>
+        </SidebarGroup>
         <SidebarGroup>
           <SidebarGroupLabel>Menu</SidebarGroupLabel>
           <SidebarGroupContent>
