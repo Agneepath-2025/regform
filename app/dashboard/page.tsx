@@ -169,8 +169,8 @@ export default function Dashboard() {
         <h2 className="text-3xl font-bold mb-2">
           Welcome back, {formattedName}! 🏆
         </h2>
-        <p className="text-gray-300">
-          Track your sports registrations and stay in the game
+        <p className="text-sm text-gray-300">
+          Track your sports registrations and stay in the game. <Link href="/dashboard/regForm" className="text-xs text-blue-300 hover:text-blue-100 underline">Register here</Link>
         </p>
       </div>
 
