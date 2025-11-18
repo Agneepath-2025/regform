@@ -271,8 +271,6 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ accommodationPrice = 2100, sp
   };
 
 
-  const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
-
   // create/revoke blob URL for PDF data URLs so iframe can render
   /*useEffect(() => {
     if (preview && preview.startsWith("data:application/")) {
@@ -308,6 +306,56 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ accommodationPrice = 2100, sp
       }
     };
   }, [preview])*/
+
+
+  const [preview, setPreview] = useState<string | null>(null);
+  const [fileType, setFileType] = useState<string | null>(null);
+  const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
+  const [paymentProofValue, setPaymentProofValue] = useState<File | string | undefined>(undefined)
+
+  // Cleanup blob URLs on unmount
+  useEffect(() => {
+    return () => {
+      if (preview && preview.startsWith("blob:")) {
+        URL.revokeObjectURL(preview);
+      }
+      if (pdfBlobUrl) {
+        URL.revokeObjectURL(pdfBlobUrl);
+      }
+    };
+  }, [preview, pdfBlobUrl]);
+
+  // Handle PDF blob URL creation
+  useEffect(() => {
+    if (fileType === "application/pdf" && preview) {
+      setPdfBlobUrl(preview);
+    } else {
+      if (pdfBlobUrl) {
+        URL.revokeObjectURL(pdfBlobUrl);
+        setPdfBlobUrl(null);
+      }
+    }
+  }, [fileType, preview]);
+
+  // Fetch preview for existing files (string URLs)
+  useEffect(() => {
+    if (typeof paymentProofValue === "string") {
+      async function fetchPreview() {
+        try {
+          const res = await fetch(`/api/payments/proof/${paymentProofValue}`);
+          if (!res.ok) return;
+          const blob = await res.blob();
+          const previewUrl = URL.createObjectURL(blob);
+          setPreview(previewUrl);
+          setFileType(blob.type);
+        } catch (err) {
+          console.error("Failed to fetch preview", err);
+        }
+      }
+      fetchPreview();
+    }
+  }, [paymentProofValue]);
+
 
   return (
     <Form {...form}>
@@ -406,52 +454,8 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ accommodationPrice = 2100, sp
               name="paymentProof"
               render={({ field }) => {
                 const value = field.value;
-                const [preview, setPreview] = useState<string | null>(null);
-                const [fileType, setFileType] = useState<string | null>(null);
-                const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
 
-                // Cleanup blob URLs on unmount
-                useEffect(() => {
-                  return () => {
-                    if (preview && preview.startsWith("blob:")) {
-                      URL.revokeObjectURL(preview);
-                    }
-                    if (pdfBlobUrl) {
-                      URL.revokeObjectURL(pdfBlobUrl);
-                    }
-                  };
-                }, [preview, pdfBlobUrl]);
-
-                // Handle PDF blob URL creation
-                useEffect(() => {
-                  if (fileType === "application/pdf" && preview) {
-                    setPdfBlobUrl(preview);
-                  } else {
-                    if (pdfBlobUrl) {
-                      URL.revokeObjectURL(pdfBlobUrl);
-                      setPdfBlobUrl(null);
-                    }
-                  }
-                }, [fileType, preview]);
-
-                // Fetch preview for existing files (string URLs)
-                useEffect(() => {
-                  if (typeof value === "string") {
-                    async function fetchPreview() {
-                      try {
-                        const res = await fetch(`/api/payments/proof/${value}`);
-                        if (!res.ok) return;
-                        const blob = await res.blob();
-                        const previewUrl = URL.createObjectURL(blob);
-                        setPreview(previewUrl);
-                        setFileType(blob.type);
-                      } catch (err) {
-                        console.error("Failed to fetch preview", err);
-                      }
-                    }
-                    fetchPreview();
-                  }
-                }, [value]);
+                setPaymentProofValue(value)
 
                 const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
                   const file = e.target.files?.[0];

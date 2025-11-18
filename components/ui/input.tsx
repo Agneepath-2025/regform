@@ -47,7 +47,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
                                     <span>Upload File</span>
                                   </button>
                                   {!hideFileInfo && (
-                                    <span className="text-xs">Only .jpeg/.png images allowed. Max filesize: 7MB.</span>
+                                    <span className="text-xs">Only .jpeg/.png images allowed. Max filesize: 5MB.</span>
                                   )}
                                 </div>)
 
