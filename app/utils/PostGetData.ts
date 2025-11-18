@@ -5,12 +5,11 @@ export async function post<T>(
     body: Record<string, any>
   ): Promise<{ data: T | null; error: any | null }> {
     try {
+      const isFormData = body instanceof FormData;
       const response = await fetch(url, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(body),
+        headers: isFormData ? undefined : { "Content-Type": "application/json" },
+        body: isFormData ? body : JSON.stringify(body),
       });
       
       // Check if response is JSON

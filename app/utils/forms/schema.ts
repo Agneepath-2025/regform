@@ -74,19 +74,14 @@ export const playerFields = z.object({
         (phone) => /^[0-9]{10,15}$/.test(phone),
         { message: "Phone number must be atleast 10 digits" }
     ),
-    photo: z.string()
-        .min(1, {message: "Photo is required" })
-        .refine((val) => val.startsWith("data:image/"), {
-            message: "Invalid image format",
-        })
-        .refine((val) => {
-          const allowed = ["data:image/jpeg", "data:image/png"];
-          return allowed.some((prefix) => val.startsWith(prefix));
-        }, { message: "Only JPG or PNG images are allowed" })
-        .refine((val) => {
-          const sizeKB = (val.length * (3 / 4)) / 1024;
-          return sizeKB <= 7 * 1024;
-        }, { message: "Image must be less than 7MB" }),
+    photo: z
+      .instanceof(File)
+      .refine((file) => ["image/jpeg", "image/png"].includes(file.type), {
+        message: "Only JPEG or PNG images allowed",
+      })
+      .refine((file) => file.size <= 5 * 1024 * 1024, {
+          message: "File must be smaller than 5MB",
+      })
 });
 export const playerFieldsDraft = z.object({
     name: z.string().min(1, "Name is required").optional(),
@@ -107,7 +102,7 @@ export const playerFieldsDraft = z.object({
         (phone) => /^[0-9]{10,15}$/.test(phone),
         { message: "Phone number must be atleast 10 digits" }
     ).optional(),
-    photo: z.string().optional(),
+    photo: z.instanceof(File).optional(),
 });
 
 export const playerMeta: formMeta = {

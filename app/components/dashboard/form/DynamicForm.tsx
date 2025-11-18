@@ -146,20 +146,72 @@ const RenderForm: React.FC<{ schema: ZodObject<ZodRawShape>, draftSchema: ZodObj
     },
     [arrayFieldCounts, form]
   );
+
+  function splitDataAndFiles(obj: any) {
+    const jsonData: any = {};
+    const fileData: Record<string, File> = {};
+
+    function recurse(current: any, target: any, parentKey = "") {
+      Object.keys(current).forEach((key) => {
+        const newKey = parentKey ? `${parentKey}.${key}` : key;
+        const value = current[key];
+
+        if (value instanceof File) {
+          fileData[newKey] = value;
+          return; // do NOT include this in JSON
+        }
+
+        if (Array.isArray(value)) {
+          target[key] = [];
+          value.forEach((v, i) => {
+            if (v instanceof File) {
+              fileData[`${newKey}[${i}]`] = v;
+            } else if (typeof v === "object" && v !== null) {
+              target[key][i] = {};
+              recurse(v, target[key][i], `${newKey}[${i}]`);
+            } else {
+              target[key][i] = v;
+            }
+          });
+          return;
+        }
+
+        if (typeof value === "object" && value !== null) {
+          target[key] = {};
+          recurse(value, target[key], newKey);
+          return;
+        }
+
+        target[key] = value;
+      });
+    }
+
+    recurse(obj, jsonData);
+    return { jsonData, fileData };
+  }
+
+
+
   
   async function onSubmit(data: z.infer<typeof formSchema>) {
     try {
       if (isSaveDraft) {
         setIsSubmittingDraft(true);
+        const { jsonData, fileData } = splitDataAndFiles(data);
+
+        const fd = new FormData();
+
+        fd.append("formId", formId);
+        fd.append("isDraft", String(isSaveDraft));
+        fd.append("fields", JSON.stringify(jsonData)); 
+
+        Object.entries(fileData).forEach(([key, file]) => {
+          fd.append(key, file);
+        });
 
         const response = await post<{ success: boolean; error?: { message: string } }>(
           `/api/form/saveForm`,
-          {
-            fields: data,
-            isDraft: true,
-            formId: formId,
-            cookies: getAuthToken,
-          }
+          fd
         );
         // console.log(response);
         // Handle response for draft saving
@@ -179,15 +231,21 @@ const RenderForm: React.FC<{ schema: ZodObject<ZodRawShape>, draftSchema: ZodObj
         }
       } else {
         setIsSubmitting(true);
+        const { jsonData, fileData } = splitDataAndFiles(data);
+
+        const fd = new FormData();
+
+        fd.append("formId", formId);
+        fd.append("isDraft", String(isSaveDraft));
+        fd.append("fields", JSON.stringify(jsonData)); 
+
+        Object.entries(fileData).forEach(([key, file]) => {
+          fd.append(key, file);
+        });
 
         const response = await post<{ success: boolean; error?: { message: string } }>(
           `/api/form/saveForm`,
-          {
-            fields: data,
-            isDraft: false,
-            formId: formId,
-            cookies: getAuthToken,
-          }
+          fd
         );
 
         // Handle response for form submission
@@ -268,25 +326,46 @@ const RenderForm: React.FC<{ schema: ZodObject<ZodRawShape>, draftSchema: ZodObj
         control={form.control}
         name={name}
         render={({ field }) => {
-          const [preview, setPreview] = React.useState<string | null>(
-            typeof field.value === "string" && field.value.startsWith("data:image/")
-              ? field.value
-              : null
-          );
+          const value = field.value;
 
-          const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, field: any) => {
-            const file = e.target.files?.[0];
-            if (file) {
-              const reader = new FileReader();
-              reader.onloadend = () => {
-                const dataUrl = reader.result as string;
-                field.onChange(dataUrl); // Save base64 string into form state
-                setPreview(dataUrl);
-              };
-              reader.readAsDataURL(file);
+          const [preview, setPreview] = React.useState<string | null>(() => {
+            if (value instanceof File) {
+              return URL.createObjectURL(value);
             }
+            return null;
+          });
+
+          React.useEffect(() => {
+            if (typeof value === "string") {
+              async function fetchPreview() {
+                try {
+                  const res = await fetch(`/api/photos/${value}`);
+                  if (!res.ok) return;
+                  const blob = await res.blob();
+                  const previewUrl = URL.createObjectURL(blob);
+                  setPreview(previewUrl);
+                } catch (err) {
+                  console.error("Failed to fetch preview", err);
+                }
+              };
+              fetchPreview();
+            }
+          }, [value]);
+
+          const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+
+            field.onChange(file);
+            setPreview(URL.createObjectURL(file)); // fresh preview
           };
-          return(
+
+          const handleClear = () => {
+            field.onChange(undefined);
+            setPreview(null);
+          };
+
+          return (
             <FormItem>
               <FormLabel className="font-bold">{label}</FormLabel>
               <FormControl>
@@ -294,28 +373,22 @@ const RenderForm: React.FC<{ schema: ZodObject<ZodRawShape>, draftSchema: ZodObj
                   <Input
                     type="file"
                     accept={accept}
-                    onChange={(e) => handleFileChange(e, field)}
+                    onChange={handleFileChange}
                     className="w-full border-input rounded-md shadow-sm sm:text-sm text-base"
-                    ref={fileInputRef}
                   />
+
                   {preview && (
                     <div className="relative inline-block">
                       <button
                         type="button"
-                        onClick={() => {
-                          if (fileInputRef.current) {
-                            // Clear the input value
-                            fileInputRef.current.value = '';
-                            field.onChange(""); // reset the form value
-                            setPreview(null); // clear preview
-                          }
-                        }}
-                        className="absolute top-3 left-1 p-1 rounded-full bg-red-50 hover:bg-red-100 text-red-600 transition-colors"
-                        title="Clear selected file"
+                        onClick={handleClear}
+                        className="absolute top-3 left-1 p-1 rounded-full bg-red-50 hover:bg-red-100 text-red-600"
                       >
                         <X size={7} />
                       </button>
-                      <Image
+
+                      <img
+                        key={preview}
                         width={150}
                         height={150}
                         src={preview}
@@ -328,7 +401,7 @@ const RenderForm: React.FC<{ schema: ZodObject<ZodRawShape>, draftSchema: ZodObj
               </FormControl>
               <FormMessage />
             </FormItem>
-          )
+          );
         }}
       />
     );

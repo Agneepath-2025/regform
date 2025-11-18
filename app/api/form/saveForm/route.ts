@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { getEmailFromToken } from "@/app/utils/forms/getEmail";
 import { connectToDatabase } from "@/lib/mongodb";
-import { Collection, ObjectId } from "mongodb";
+import { Collection, ObjectId, GridFSBucket } from "mongodb";
 import { NextRequest, NextResponse } from "next/server";
 import { fetchUserData } from "@/app/utils/GetUpdateUser";
 import { createErrorResponse, User } from "@/app/utils/interfaces";
@@ -22,6 +22,23 @@ interface UpdateResponse {
   message: string;
   data?: Record<string, any>;
 }
+
+function setNestedValue(target: any, path: string, value: any) {
+  const parts = path
+    .replace(/\]/g, "")
+    .split(/\.|\[/);
+
+  let obj = target;
+
+  for (let i = 0; i < parts.length - 1; i++) {
+    const p = parts[i];
+    if (!obj[p]) obj[p] = isNaN(Number(parts[i + 1])) ? {} : [];
+    obj = obj[p];
+  }
+
+  obj[parts[parts.length - 1]] = value;
+}
+
 
 function typecastDatesInPlayerFields(playerFields: Record<string, object>[]) {
   playerFields.forEach((obj) => {
@@ -87,17 +104,63 @@ async function updateUserData(email: string, data: Partial<User>) {
 }
 
 export async function POST(req: NextRequest) {
+  const { db } = await connectToDatabase();
+  const bucket = new GridFSBucket(db, { bucketName: "player-image" });
   try {
     // Ensure the request has a JSON body
-    const data = await req.json();
-    if (!data || Object.keys(data).length === 0) {
+    const data = await req.formData();
+    if (!data) {
       return NextResponse.json(
         { success: false, message: "Invalid or empty data" },
         { status: 400 }
       );
     }
 
-    const { formId, fields, isDraft } = data;
+    const uploadedFiles: Record<string, File> = {};
+
+    for (const [key, value] of data.entries()) {
+      if (value instanceof File && value.size > 0) {
+        uploadedFiles[key] = value;
+      }
+    }
+
+    //const { formId, fields, isDraft } = data;
+    const formId = data.get("formId") as string;
+    const isDraft = data.get("isDraft") === "true";
+
+    const fieldsJson = data.get("fields") as string;
+    const fields = JSON.parse(fieldsJson);
+
+
+    // Build a nested structure for uploaded file IDs to merge into fields
+    const fileIdStructure: any = {};
+
+    for (const [path, file] of Object.entries(uploadedFiles)) {
+      const buffer = Buffer.from(await file.arrayBuffer());
+      const filename = `${formId}_${path.replace(/[\[\]\.]/g, "_")}_${Date.now()}.jpg`;
+
+      const uploadStream = bucket.openUploadStream(filename, {
+        metadata: { 
+          formId, 
+          fieldPath: path, 
+          contentType: file.type.startsWith("image/") ? file.type : "image/jpeg"
+        },
+      });
+
+      uploadStream.end(buffer);
+
+      const uploadedFileId: ObjectId = await new Promise((resolve, reject) => {
+        uploadStream.on("finish", () => resolve(uploadStream.id));
+        uploadStream.on("error", reject);
+      });
+
+      // Store gridFS id into nested structure using the same path
+      setNestedValue(fileIdStructure, path, uploadedFileId.toString());
+    }
+
+    Object.assign(fields, fileIdStructure);
+
+
     if (!formId || !fields || typeof isDraft !== "boolean") {
       return NextResponse.json(
         { success: false, message: "Form ID, fields, and isDraft are required" },
@@ -217,7 +280,7 @@ if (!isDraft) {
       { status: 200 }
     );
   } catch (error) {
-    // console.error("Error in API handler:", error);
+    console.error("Error in API handler:", error);
 
     if (error instanceof SyntaxError) {
       return NextResponse.json(
