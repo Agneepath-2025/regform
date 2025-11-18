@@ -345,9 +345,9 @@ const maxDate = new Date(2009, 1, 1); // On or before 1 Feb 2009
 
 
     const [selectedDate, setSelectedDate] = React.useState<Date>();
-    const [selectedYear, setSelectedYear] = React.useState<number | null>(null);
-    const [selectedMonth, setSelectedMonth] = React.useState<number | null>(null);
-    const [calendarMonth, setCalendarMonth] = React.useState<Date | undefined>();
+    const [selectedYear, setSelectedYear] = React.useState<number | null>(2003);
+    const [selectedMonth, setSelectedMonth] = React.useState<number | null>(2);
+    const [calendarMonth, setCalendarMonth] = React.useState<Date | undefined>(new Date(2003, 2, 1));
 
     const yearOptions = Array.from(
       { length: maxDate.getFullYear() - minDate.getFullYear() + 1 },
