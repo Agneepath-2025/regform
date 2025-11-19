@@ -67,6 +67,7 @@ const RenderPopoverForm: React.FC<{ schema: ZodObject<ZodRawShape>, meta: formMe
       });
 
       if (response.data?.success && response.data?.formId) {
+        router.push(`/dashboard/regForm/form?i=${encrypt({id:response.data?.formId,title:data.Sports})}`);
         toast({
           variant: "default",
           title: "Form created!",
@@ -74,8 +75,6 @@ const RenderPopoverForm: React.FC<{ schema: ZodObject<ZodRawShape>, meta: formMe
           className: styles["mobile-toast"]
         })
         // Redirect to /?formId=formId
-
-        router.push(`/dashboard/regForm/form?i=${encrypt({id:response.data?.formId,title:data.Sports})}`);
       } else {
         toast({
           variant: "destructive",
