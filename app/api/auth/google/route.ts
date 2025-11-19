@@ -50,6 +50,8 @@ export async function POST(req: NextRequest) {
       if (!existingUser) {
         return NextResponse.json({ success: false, message: "Failed to fetch user after insert." }, { status: 500 });
       }
+
+      // Note: Signup email will be sent after university is saved in SaveUniversity route
     }
     const universityNameRequired = existingUser.universityName === "";
 

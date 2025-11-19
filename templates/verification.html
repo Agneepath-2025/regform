@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Welcome — Agneepath</title>
+    <title>Email Verification — Agneepath</title>
     <style>
       body { 
         font-family: Inter, system-ui, 'Segoe UI', Arial, sans-serif; 
@@ -65,23 +65,6 @@
         color: #111827;
         margin-bottom: 24px;
       }
-      .box { 
-        padding: 20px 24px; 
-        border-radius: 10px; 
-        margin: 24px 0;
-        border: 1px solid;
-      }
-      .success { 
-        background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); 
-        border-color: #10b981; 
-        border-left: 4px solid #10b981;
-        color: #065f46;
-      }
-      .box strong { 
-        font-size: 16px; 
-        display: block; 
-        margin-bottom: 8px;
-      }
       .cta { 
         display: inline-block; 
         padding: 14px 28px; 
@@ -107,12 +90,12 @@
         line-height: 1.8;
       }
       a { 
-        color: #2563eb; 
+        color: #ed810c; 
         text-decoration: none; 
         font-weight: 500;
       }
       a:hover { 
-        color: #1d4ed8; 
+        color: #d97706; 
         text-decoration: underline;
       }
       @media (max-width: 640px) { 
@@ -136,23 +119,17 @@
       </div>
 
       <div class="content">
-        <h1>Welcome to Agneepath</h1>
-        <p class="greeting">Hi {{name}},</p>
+        <h1>Email Verification</h1>
+        <p class="greeting">Hi,</p>
 
-        <div class="box success">
-          <strong>Account created</strong>
-          <div>Your account has been created. Use the link below to go to your dashboard and finish any pending steps (payment, verification).</div>
-        </div>
+        <p>Thank you for registering for Agneepath sports fest. Please verify your email by clicking the button below:</p>
 
-        <p><strong>Email:</strong> {{email}}</p>
-        <p><strong>University:</strong> {{institution}}</p>
+        <p style="text-align: center; margin: 32px 0;">
+          <a class="cta" href="{{verification_link}}">Verify Email</a>
+        </p>
 
-        {{#if verification_link}}
-        <p style="margin-top: 24px;">Please verify your email to complete setup:</p>
-        <p><a class="cta" href="{{verification_link}}">Verify Email</a></p>
-        {{/if}}
+        <p>For any queries contact us at <a href="mailto:agneepath@ashoka.edu.in">agneepath@ashoka.edu.in</a></p>
 
-        <p style="margin-top: 24px;">If you need help, contact <a href="mailto:agneepath@ashoka.edu.in">agneepath@ashoka.edu.in</a>.</p>
         <p style="margin-top: 12px;">Best regards,<br/><strong>Team Agneepath</strong></p>
       </div>
 
@@ -163,4 +140,3 @@
     </div>
   </body>
 </html>
-<!doctype html>
