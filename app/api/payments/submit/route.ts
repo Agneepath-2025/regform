@@ -124,9 +124,6 @@ export async function POST(req: NextRequest) {
       paymentData.accommodationPrice = Number(formData.get("accommodationPrice"));
     }
 
-    // Save to MongoDB
-    const { db } = await connectToDatabase();
-    const paymentCollection: Collection = db.collection("payments");
     const result = await paymentCollection.insertOne(paymentData);
 
     // Prepare email data
