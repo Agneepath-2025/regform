@@ -304,7 +304,7 @@ export default function RegForm() {
   }
 
   if (registrationDone === true) {
-    return <span className="text-red-600 font-semibold">Registrations are already confirmed</span>
+    return <div className="w-full h-full flex items-center justify-center"><span className="text-red-600 font-semibold m-auto">Registrations are already confirmed</span></div>
   }
 
   return (
@@ -322,27 +322,27 @@ export default function RegForm() {
             <h2 className="text-xl font-semibold mb-4">Important Information</h2>
             <div className="space-y-4 ml-4 mb-6">
               <div className="flex items-start gap-3">
-                <span className="flex-shrink-0 w-6 h-6 bg-black text-white rounded-full flex items-center justify-center text-sm">1</span>
+                <span className="flex-shrink-0 w-6 h-6 bg-black text-white rounded-full flex items-start justify-center text-sm" style={{paddingTop: "0.05rem"}}>1</span>
                 <p className="text-gray-700">Click on select sport to start filling out registration form for a sport</p>
               </div>
               
               <div className="flex items-start gap-3">
-                <span className="flex-shrink-0 w-6 h-6 bg-black text-white rounded-full flex items-center justify-center text-sm">2</span>
+                <span className="flex-shrink-0 w-6 h-6 bg-black text-white rounded-full flex items-start justify-center text-sm" style={{paddingTop: "0.05rem"}}>2</span>
                 <p className="text-gray-700">You can't edit a form once it has been submitted</p>
               </div>
               
               <div className="flex items-start gap-3">
-                <span className="flex-shrink-0 w-6 h-6 bg-black text-white rounded-full flex items-center justify-center text-sm">3</span>
+                <span className="flex-shrink-0 w-6 h-6 bg-black text-white rounded-full flex items-start justify-center text-sm">3</span>
                 <p className="text-gray-700">After submitting all forms, visit the payments page to pay for all registrations.</p>
                 </div>
               
               <div className="flex items-start gap-3">
-                <span className="flex-shrink-0 w-6 h-6 bg-black text-white rounded-full flex items-center justify-center text-sm">4</span>
+                <span className="flex-shrink-0 w-6 h-6 bg-black text-white rounded-full flex items-start justify-center text-sm">4</span>
                 <p className="text-gray-700">Once you submit the form, you'll receive a confirmation email with your responses. Our team will review your details and send a registration confirmation email. You can also check your registration status on the dashboard.</p>
                 </div>
               
               <div className="flex items-start gap-3">
-                <span className="flex-shrink-0 w-6 h-6 bg-black text-white rounded-full flex items-center justify-center text-sm">5</span>
+                <span className="flex-shrink-0 w-6 h-6 bg-black text-white rounded-full flex items-start justify-center text-sm">5</span>
                 <p className="text-gray-700">For any queries contact at <a href="mailto:agneepath@ashoka.edu.in" className="text-blue-600 hover:underline">agneepath@ashoka.edu.in</a> 
                 {/* or you can generate a support request from the sidebar */}
                 </p>
@@ -351,7 +351,7 @@ export default function RegForm() {
           </div>
         </div>
     
-        <div className="flex justify-start">
+        <div className="flex justify-start pl-1">
           <div className="">
             <RenderPopoverForm schema={eventSchema.commonPages[0].fields} meta={eventSchema.commonPages[0].meta} />
           </div>
@@ -370,7 +370,7 @@ export default function RegForm() {
         </div>
         <AlertDialog>
         <AlertDialogTrigger asChild>
-          <div className="pr-5 pb-6"><button className="w-full p-3 rounded-md bg-primary text-white flex flex-row items-center justify-center gap-5"><span>Finalise Registrations</span><ArrowRight size={18} /></button></div>
+          <div className="pr-5 pb-5"><button className="w-full p-3 rounded-md bg-primary text-white flex flex-row items-center justify-center gap-5"><span>Finalise Registrations</span><ArrowRight size={18} /></button></div>
         </AlertDialogTrigger>
         <AlertDialogContent>
           <AlertDialogTitle>Finalise Registrations</AlertDialogTitle>

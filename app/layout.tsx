@@ -19,7 +19,7 @@ export default function RootLayout({
 
       {/* Use Georgia as the primary site font; keep other layout unchanged */}
       <body style={{ fontFamily: "Georgia, serif" }} className="antialiased">
-        <div className="pb-20">
+        <div>
           {children}
         </div>
       </body>

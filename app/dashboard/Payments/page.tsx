@@ -153,7 +153,9 @@ const PaymentFormSchema = z.object({
   payeeName: z.string().nonempty({ message: "Payee name is required." }),
   transactionId: z.string().nonempty({ message: "Transaction ID is required." }),
   paymentProof: z
-      .instanceof(File)
+      .custom<File>((v) => v instanceof File && v.size > 0, {
+        message: "Payment proof screenshot is required."
+      })
       .refine((file) => ["image/jpeg", "image/png", "application/pdf"].includes(file.type), {
         message: "Only JPEG, PNG images or PDFs allowed",
       })
@@ -183,6 +185,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ accommodationPrice = 2100, sp
 
   const form = useForm<PaymentFormValues>({
     resolver: zodResolver(PaymentFormSchema),
+    defaultValues: { paymentDate: new Date(), }
   });
 
   const resetFormAndState = () => {
@@ -313,6 +316,12 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ accommodationPrice = 2100, sp
   const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
   const [paymentProofValue, setPaymentProofValue] = useState<File | string | undefined>(undefined)
 
+  const paymentProofWatch = form.watch("paymentProof");
+
+  useEffect(() => {
+    setPaymentProofValue(paymentProofWatch);
+  }, [paymentProofWatch]);
+
   // Cleanup blob URLs on unmount
   useEffect(() => {
     return () => {
@@ -359,7 +368,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ accommodationPrice = 2100, sp
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pb-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         {paymentFormloading ? (
           <div className="flex items-center justify-center h-64">
             <div className="w-12 h-12 border-4 border-black border-t-transparent rounded-full animate-spin"></div>
@@ -372,13 +381,12 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ accommodationPrice = 2100, sp
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-lg font-bold">Mode of Payment</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <Select onValueChange={field.onChange} value={"bank"}>
                     <SelectTrigger>
                       <SelectValue placeholder="Choose payment method" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="bank">Bank Transfer</SelectItem>
-                      <SelectItem value="upi">UPI</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -454,8 +462,6 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ accommodationPrice = 2100, sp
               name="paymentProof"
               render={({ field }) => {
                 const value = field.value;
-
-                setPaymentProofValue(value)
 
                 const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
                   const file = e.target.files?.[0];
@@ -554,44 +560,93 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ accommodationPrice = 2100, sp
             <FormField
               control={form.control}
               name="paymentDate"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel className="font-bold text-lg">Date of Payment</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant={"outline"}
-                          className={cn(
-                            "w-full pl-3 text-left font-normal",
-                            !field.value && "text-muted-foreground"
-                          )}
-                        >
-                          {field.value ? (
-                            format(field.value, "PPP")
-                          ) : (
-                            <span>Pick a date</span>
-                          )}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={field.value}
-                        onSelect={field.onChange}
-                        disabled={(date) =>
-                          date > new Date() || date < new Date("1900-01-01")
-                        }
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )}
+              render={({ field }) => {
+                const handleTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+                  const value = e.target.value;
+
+                  // Must match strict HH:MM:SS (00–23, 00–59, 00–59)
+                  const isValid = /^\d{2}:\d{2}:\d{2}$/.test(value);
+
+                  if (!isValid) return; // Ignore partial or invalid input
+
+                  const [h, m, s] = value.split(":").map(Number);
+
+                  const base = field.value ? new Date(field.value) : new Date();
+                  base.setHours(h);
+                  base.setMinutes(m);
+                  base.setSeconds(s);
+
+                  field.onChange(base);
+                };
+
+
+                return (
+                  <FormItem className="flex flex-col">
+                    <FormLabel className="font-bold text-lg">Date of Payment</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full pl-3 text-left font-normal",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value ? format(field.value, "PPP p") : "Pick a date"}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+
+                      <PopoverContent className="w-auto p-0" align="start">
+                        {/* DATE PICKER */}
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={(date) => {
+                            if (!date) return;
+
+                            // preserve previous time
+                            if (field.value) {
+                              date.setHours(field.value.getHours());
+                              date.setMinutes(field.value.getMinutes());
+                              date.setSeconds(field.value.getSeconds());
+                            }
+
+                            field.onChange(date);
+                          }}
+                          disabled={(date) =>
+                            date > new Date() || date < new Date("1900-01-01")
+                          }
+                          initialFocus
+                        />
+
+                        {/* TIME PICKER */}
+                        <div className="flex flex-row items-center justify-center border rounded-md">
+                          <label className="text-bold ml-2 mr-2 font-bold">Time</label>
+                          <Input
+                            type="time"
+                            step="1"
+                            value={
+                              field.value
+                                ? `${String(field.value.getHours()).padStart(2, "0")}:` +
+                                  `${String(field.value.getMinutes()).padStart(2, "0")}:` +
+                                  `${String(field.value.getSeconds()).padStart(2, "0")}`
+                                : ""
+                            }
+                            onChange={handleTimeChange}
+                            className="bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden border-none"
+                          />
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                );
+              }}
             />
+
 
             <FormField
               control={form.control}
@@ -902,7 +957,7 @@ export default function Payments() {
 
 
   if (registrationDone === false || registrationDone === null || paymentDone === true) {
-    return <span className="text-red-600 font-semibold">{paymentDone === true  ? "Payments have already been confirmed"  : "Please complete your registration first before making payments"}</span>
+    return <div className="w-full h-full flex items-center justify-center"><span className="text-red-600 font-semibold">{paymentDone === true  ? "Payments have already been confirmed"  : "Please complete your registration first before making payments"}</span></div>
   }
 
   if (isLoading) return <div className="flex items-center justify-center h-64">
@@ -994,37 +1049,26 @@ export default function Payments() {
             </tbody>
           </table>
         </div>
-        <h3 className="text-lg font-medium mb-3">UPI Details</h3>
-        <div className="overflow-x-auto">
-          <table className="w-full mb-6 border-collapse bg-white shadow-sm rounded-lg">
-            <tbody className="divide-y divide-gray-200">
-              <tr>
-                <td className="py-3 px-4 font-medium bg-gray-50">UPI ID</td>
-                <td className="py-3 px-4">upi@upi</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
       </div>
 
       <div className="space-y-4 ml-4">
         <div className="flex items-start gap-3">
-          <span className="flex-shrink-0 w-6 h-6 bg-black text-white rounded-full flex items-center justify-center text-sm">1</span>
+          <span className="flex-shrink-0 w-6 h-6 bg-black text-white rounded-full flex items-start justify-center text-sm" style={{paddingTop: "0.05rem"}}>1</span>
           <p className="text-gray-700">Submit your payment details below.</p>
         </div>
 
         <div className="flex items-start gap-3">
-          <span className="flex-shrink-0 w-6 h-6 bg-black text-white rounded-full flex items-center justify-center text-sm">2</span>
+          <span className="flex-shrink-0 w-6 h-6 bg-black text-white rounded-full flex items-start justify-center text-sm" style={{paddingTop: "0.05rem"}}>2</span>
           <p className="text-gray-700">After submitting payment details, you'll receive a confirmation email with a copy of your submission.</p>
         </div>
 
         <div className="flex items-start gap-3">
-          <span className="flex-shrink-0 w-6 h-6 bg-black text-white rounded-full flex items-center justify-center text-sm">3</span>
+          <span className="flex-shrink-0 w-6 h-6 bg-black text-white rounded-full flex items-start justify-center text-sm">3</span>
           <p className="text-gray-700">You can view your auto calculated registration fee below based on your submitted forms.</p>
         </div>
 
         <div className="flex items-start gap-3">
-          <span className="flex-shrink-0 w-6 h-6 bg-black text-white rounded-full flex items-center justify-center text-sm">4</span>
+          <span className="flex-shrink-0 w-6 h-6 bg-black text-white rounded-full flex items-start justify-center text-sm">4</span>
           <p className="text-gray-700">For any queries contact at <a href="mailto:agneepath@ashoka.edu.in" className="text-blue-600 hover:underline">agneepath@ashoka.edu.in</a></p>
         </div>
       </div>
