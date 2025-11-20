@@ -440,13 +440,13 @@ export const eventSchema: EventSchema = {
                     fields: z.object({
                         coachFields,
                         playerFields: z.array(playerFields.extend({ category1: z.enum(swimmingCategories, { message: "Category 1 is required" }), category2: z.enum(swimmingCategories, { message: "Category 1 is required" }).optional() }))
-                            .min(2, `Fill details of minimum ${2} players`)
+                            .min(1, `Fill details of minimum ${1} players`)
                             .max(8, `A maximum of ${8} players are allowed`),
                     }),
                     draft: z.object({
                         coachFields,
                         playerFields: z.array(playerFieldsDraft.extend({ category1: z.enum(swimmingCategories, { message: "Category 1 is required" }).optional(), category2: z.enum(swimmingCategories, { message: "Category 1 is required" }).optional() }))
-                            .min(2, `Fill details of minimum ${2} players`)
+                            .min(1, `Fill details of minimum ${1} players`)
                             .max(8, `A maximum of ${8} players are allowed`),
                     }),
                     meta: {
@@ -464,13 +464,13 @@ export const eventSchema: EventSchema = {
                     fields: z.object({
                         coachFields,
                         playerFields: z.array(playerFields.extend({ category1: z.enum(swimmingCategories, { message: "Category 1 is required" }), category2: z.enum(swimmingCategories, { message: "Category 1 is required" }).optional() }))
-                            .min(2, `Fill details of minimum ${2} players`)
+                            .min(1, `Fill details of minimum ${1} players`)
                             .max(8, `A maximum of ${8} players are allowed`),
                     }),
                     draft: z.object({
                         coachFields,
                         playerFields: z.array(playerFieldsDraft.extend({ category1: z.enum(swimmingCategories, { message: "Category 1 is required" }).optional(), category2: z.enum(swimmingCategories, { message: "Category 1 is required" }).optional() }))
-                            .min(2, `Fill details of minimum ${2} players`)
+                            .min(1, `Fill details of minimum ${1} players`)
                             .max(8, `A maximum of ${8} players are allowed`),
                     }),
                     meta: {

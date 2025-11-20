@@ -6,8 +6,8 @@
 Individual Events (men’s and women’s) (50m freestyle, 50m butterfly, 50m breaststroke, 50m backstroke, 100m freestyle); Relays (200m freestyle relay (women's, men's)   
 **Team:** 
 
-1. Participants from each university are capped at a maximum of 8 swimmers (men’s+women’s) and should have a minimum of 2 swimmers.   
-2. In every event, not more than 2 swimmers from the same university can participate in any heat.   
+1. Participants from each university are capped at a maximum of 8 swimmers (men's+women's) and should have a minimum of 1 swimmer.   
+2. In every event, not more than 2 swimmers from the same university can participate in any heat.
 3. Every swimmer can participate in a maximum of 3 events, excluding relays.  
 4. Relay teams should comprise exactly 4 swimmers.
 
