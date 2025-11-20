@@ -54,6 +54,7 @@ import { post } from "@/app/utils/PostGetData"
 import { sports } from '@/app/utils/forms/schema';
 import { ColumnDef, flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table"
 import { useRouter } from "next/navigation";
+import { toWords } from "number-to-words";
 
 
 const EmptyState = () => (
@@ -189,6 +190,27 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ sportsTotal = 0, onCompleted 
         variant: "destructive",
         title: "Error",
         description: `Amount must equal the total amount to pay: ₹${expectedTotal}`,
+        className: styles["mobile-toast"],
+      });
+      setPaymentFormloading(false);
+      return;
+    }
+
+    // Validate that amountInWords corresponds to the numeric amount using number-to-words
+    const rawWords = (data.amountInWords || "").toString().trim().toLowerCase();
+    const cleanedUser = rawWords.replace(/\s+/g, " ").trim();
+    const expectedBase = (toWords ? toWords(Number(data.amountInNumbers)) : "").toString().replace(/\s+/g, " ").trim().toLowerCase();
+    const expectedFull = `${expectedBase} only`;
+
+    if (cleanedUser !== expectedFull) {
+      form.setError("amountInWords", {
+        type: "manual",
+        message: `Amount in words does not match the numeric amount. Expected: ${expectedBase} only`,
+      });
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: `Amount in words does not match the numeric amount. Expected: ${expectedBase} only`,
         className: styles["mobile-toast"],
       });
       setPaymentFormloading(false);
