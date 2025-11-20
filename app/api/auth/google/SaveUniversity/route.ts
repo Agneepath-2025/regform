@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
 import { getEmailFromToken } from "@/app/utils/forms/getEmail"; // Utility to extract email from JWT
+import { sendSignupConfirmationEmail } from "@/app/utils/mailer/SignupEmail";
 export async function POST(req: NextRequest) {
     try {
         // Step 1: Extract the token from the request cookies
@@ -48,8 +49,16 @@ export async function POST(req: NextRequest) {
             { $set: { universityName,phone } }
         );
 
-        // Step 6: Return success message
+        // Step 6: Send signup confirmation email after university is saved
         if (updateResult.modifiedCount > 0) {
+            // Send signup email now that we have complete information (non-blocking)
+            sendSignupConfirmationEmail({
+                name: user.name,
+                email: email.toLowerCase(),
+                universityName,
+                signupMethod: "google",
+            }).catch((err) => console.error("Sending signup email failed:", err));
+
             return NextResponse.json({
                 success: true,
                 message: "University name saved successfully.",
