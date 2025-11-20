@@ -12,8 +12,6 @@ interface PaymentFormData {
     amountInWords: string;
     payeeName: string;
     transactionId: string;
-    accommodationPeople?:number,
-    accommodationPrice?:number,
     paymentDate: Date;
     paymentProof?: string;
     remarks?: string;
