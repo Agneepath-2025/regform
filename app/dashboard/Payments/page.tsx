@@ -383,6 +383,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ sportsTotal = 0, onCompleted 
                     type="number"
                     placeholder="Enter amount in numbers"
                     {...field}
+                    value={field.value === 0 ? "" : (field.value ?? "")}
                     onChange={e => {
                       const value = parseFloat(e.target.value);
                       field.onChange(isNaN(value) ? 0 : value);
