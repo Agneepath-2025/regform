@@ -163,7 +163,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ sportsTotal = 0, onCompleted 
 
   const form = useForm<PaymentFormValues>({
     resolver: zodResolver(PaymentFormSchema),
-    defaultValues: { paymentDate: new Date(), }
+    defaultValues: { paymentDate: new Date(), paymentMode: "bank" }
   });
 
   const resetFormAndState = () => {
@@ -354,7 +354,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ sportsTotal = 0, onCompleted 
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-lg font-bold">Mode of Payment</FormLabel>
-                  <Select onValueChange={field.onChange} value={"bank"}>
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <SelectTrigger>
                       <SelectValue placeholder="Choose payment method" />
                     </SelectTrigger>
