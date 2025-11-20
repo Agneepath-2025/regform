@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Your QR Code — Agneepath</title>
+    <title>Payment Submitted — Agneepath</title>
     <style>
       body { 
         font-family: Inter, system-ui, 'Segoe UI', Arial, sans-serif; 
@@ -46,8 +46,7 @@
         font-weight: 500;
       }
       .content { 
-        padding: 40px 36px;
-        text-align: center;
+        padding: 40px 36px; 
       }
       h1 { 
         margin: 0 0 8px; 
@@ -66,13 +65,58 @@
         color: #111827;
         margin-bottom: 24px;
       }
-      .qr { 
-        display: inline-block; 
-        padding: 20px; 
-        border-radius: 12px; 
-        background: #ffffff; 
-        border: 2px solid #e5e7eb;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      .box { 
+        padding: 20px 24px; 
+        border-radius: 10px; 
+        margin: 24px 0;
+        border: 1px solid;
+      }
+      .warning { 
+        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); 
+        border-color: #f59e0b; 
+        border-left: 4px solid #f59e0b;
+        color: #92400e;
+      }
+      .info { 
+        background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); 
+        border-color: #2563eb; 
+        border-left: 4px solid #2563eb;
+        color: #1e40af;
+      }
+      .box strong { 
+        font-size: 16px; 
+        display: block; 
+        margin-bottom: 8px;
+      }
+      table.details { 
+        width: 100%; 
+        border-collapse: collapse; 
+        margin-top: 18px;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      table.details td { 
+        padding: 14px 16px; 
+        border-bottom: 1px solid #f3f4f6;
+        font-size: 14px;
+      }
+      table.details tr:last-child td { 
+        border-bottom: none;
+      }
+      table.details th {
+        padding: 14px 16px;
+        background: #f9fafb;
+        font-weight: 600;
+        color: #374151;
+        text-align: left;
+        font-size: 14px;
+        border-bottom: 1px solid #e5e7eb;
+      }
+      .label { 
+        width: 40%; 
+        font-weight: 600; 
+        color: #374151;
       }
       .footer { 
         background: linear-gradient(180deg, #f9fafb 0%, #f3f4f6 100%); 
@@ -81,7 +125,6 @@
         color: #6b7280; 
         font-size: 13px;
         line-height: 1.8;
-        text-align: center;
       }
       a { 
         color: #2563eb; 
@@ -113,25 +156,32 @@
       </div>
 
       <div class="content">
-        <h1>Your QR Code</h1>
+        <h1>Payment Submitted — Pending Verification</h1>
         <p class="greeting">Hello {{name}},</p>
-        <p>Below is your entry QR code. Present this QR at check-in for quick access to the event.</p>
 
-        <div class="qr" style="margin: 24px auto;">
-          <!-- Replace with actual QR image or inlined svg -->
-          <img src="{{qr_code_image}}" alt="QR code" style="display: block; max-width: 240px; height: auto;" />
+        <div class="box warning">
+          <strong>We have received your payment submission.</strong>
+          <div>Your payment has been submitted and is currently pending verification by our team. We will notify you once the payment is verified.  Typical verification time: 48–72 hours.</div>
         </div>
 
-        <p style="margin-top: 16px;">Registration ID: <strong>{{registration_id}}</strong></p>
-        <p style="margin-top: 6px;">Institution: <strong>{{institution}}</strong></p>
+        <table class="details" role="presentation">
+          <tr><td class="label">Registration ID</td><td>{{registration_id}}</td></tr>
+          <tr><td class="label">Institution</td><td>{{institution}}</td></tr>
+          <tr><td class="label">Payment Mode</td><td>{{payment_mode}}</td></tr>
+          <tr><td class="label">Amount</td><td>₹{{amount}} ({{amount_words}})</td></tr>
+          <tr><td class="label">Submitted On</td><td>{{submitted_at}}</td></tr>
+        </table>
 
-        <p style="margin-top: 24px;">If you need help, contact <a href="mailto:agneepath@ashoka.edu.in">agneepath@ashoka.edu.in</a>.</p>
+        <div class="box info">
+          <strong>Need to update something?</strong>
+          <div>If the payment details are incorrect, reply to <a href="mailto:agneepath@ashoka.edu.in">agneepath@ashoka.edu.in</a> and include your registration id.</div>
+        </div>
 
         <p style="margin-top: 20px;">Best regards,<br/><strong>Team Agneepath</strong></p>
       </div>
 
       <div class="footer">
-        <div>Keep this QR code private; do not share it publicly.</div>
+        <div>Questions? <a href="mailto:agneepath@ashoka.edu.in">agneepath@ashoka.edu.in</a></div>
         <div style="margin-top: 8px;">&copy; {{current_year}} Agneepath. All rights reserved.</div>
       </div>
     </div>

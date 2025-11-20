@@ -49,8 +49,8 @@ export const sports: Record<string, string> = {
     Squash_Women: "Squash (Women)",
     Swimming_Men: "Swimming (Men)",
     Swimming_Women: "Swimming (Women)",
-    Ball_Pool_Men: "8 Ball Pool (Men)",
-    Snooker_Men: "Snooker (Men)",
+    Ball_Pool_Mixed: "8 Ball Pool (Mixed)",
+    Snooker_Mixed: "Snooker (Mixed)",
     Shooting: "Shooting"
 } as const;
 
@@ -161,8 +161,8 @@ export const sportField = z.object({
         "Squash (Women)",
         "Swimming (Men)",
         "Swimming (Women)",
-        "8 Ball Pool (Men)",
-        "Snooker (Men)",
+        "8 Ball Pool (Mixed)",
+        "Snooker (Mixed)",
         "Shooting",
     ], { message: "Select a sport" }),
 });
@@ -241,8 +241,8 @@ export const SportsGuidlines: Record<string, string> = {
     Squash_Women: "squash",
     Swimming_Men: "swimming",
     Swimming_Women: "swimming",
-    Ball_Pool_Men: "pool",
-    Snooker_Men: "snooker",
+    Ball_Pool_Mixed: "pool",
+    Snooker_Mixed: "snooker",
     Shooting: "shooting"
 } as const;
 
@@ -273,13 +273,13 @@ export const eventSchema: EventSchema = {
         Basketball_Men: {
             eventName: sports.Basketball_Men,
             specificPages: [
-                generatePageWithPlayerFields(5, 7), // 5 to 12 players
+                generatePageWithPlayerFields(5, 12), // 5 to 12 players
             ],
         },
         Basketball_Women: {
             eventName: sports.Basketball_Women,
             specificPages: [
-                generatePageWithPlayerFields(5, 7), // 5 to 12 players
+                generatePageWithPlayerFields(5, 12), // 5 to 12 players
             ],
         },
         Cricket_Men: {
@@ -336,16 +336,52 @@ export const eventSchema: EventSchema = {
                 generatePageWithPlayerFields(3, 5), // 5 players
             ],
         },
-        Ball_Pool_Men: {
-            eventName: sports.Ball_Pool_Men,
+        Ball_Pool_Mixed: {
+            eventName: sports.Ball_Pool_Mixed,
             specificPages: [
-                generatePageWithPlayerFields(3, 4), // 3 to 4 players
+                {
+                    pageName: "Coach Details",
+                    fields: z.object({
+                        coachFields,
+                        playerFields: z.array(playerFields.extend({ gender: z.enum(["Select Gender", "Male", "Female"], { message: "Gender is required" }) }))
+                            .min(3, `Fill details of minimum ${3} players`)
+                            .max(4, `A maximum of ${4} players are allowed`),
+                    }),
+                    draft: z.object({
+                        coachFields,
+                        playerFields: z.array(playerFieldsDraft.extend({ gender: z.enum(["Select Gender", "Male", "Female"], { message: "Gender is required" }).optional() }))
+                            .min(3, `Fill details of minimum ${3} players`)
+                            .max(4, `A maximum of ${4} players are allowed`),
+                    }),
+                    meta: {
+                        coachFields: coachFieldsMeta,
+                        playerFields: playerMeta,
+                    },
+                }
             ],
         },
-        Snooker_Men: {
-            eventName: sports.Snooker_Men,
+        Snooker_Mixed: {
+            eventName: sports.Snooker_Mixed,
             specificPages: [
-                generatePageWithPlayerFields(3, 4), // 3 to 4 players
+                {
+                    pageName: "Coach Details",
+                    fields: z.object({
+                        coachFields,
+                        playerFields: z.array(playerFields.extend({ gender: z.enum(["Select Gender", "Male", "Female"], { message: "Gender is required" }) }))
+                            .min(3, `Fill details of minimum ${4} players`)
+                            .max(4, `A maximum of ${3} players are allowed`),
+                    }),
+                    draft: z.object({
+                        coachFields,
+                        playerFields: z.array(playerFieldsDraft.extend({ gender: z.enum(["Select Gender", "Male", "Female"], { message: "Gender is required" }).optional() }))
+                            .min(3, `Fill details of minimum ${4} players`)
+                            .max(4, `A maximum of ${3} players are allowed`),
+                    }),
+                    meta: {
+                        coachFields: coachFieldsMeta,
+                        playerFields: playerMeta,
+                    },
+                }
             ],
         },
         Chess_Mixed: {
