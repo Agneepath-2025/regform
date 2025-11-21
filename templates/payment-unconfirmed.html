@@ -165,7 +165,11 @@
         </div>
 
         <table class="details" role="presentation">
-          <tr><td class="label">Registration ID</td><td>{{registration_id}}</td></tr>
+          {{payment_data_rows}}
+        </table>
+
+        <table class="details" role="presentation">
+          <tr><td class="label">Payment ID</td><td>{{payment_id}}</td></tr-->
           <tr><td class="label">Institution</td><td>{{institution}}</td></tr>
           <tr><td class="label">Payment Mode</td><td>{{payment_mode}}</td></tr>
           <tr><td class="label">Amount</td><td>₹{{amount}} ({{amount_words}})</td></tr>

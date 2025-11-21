@@ -23,20 +23,25 @@ interface UpdateResponse {
   data?: Record<string, any>;
 }
 
-function setNestedValue(target: any, path: string, value: any) {
-  const parts = path
+function setDeep(
+  obj: Record<string, any>,
+  path: string,
+  value: any
+): void {
+  const parts: string[] = path
     .replace(/\]/g, "")
-    .split(/\.|\[/);
-
-  let obj = target;
+    .split(/[\.\[]/); 
+    
+  let current: any = obj;
 
   for (let i = 0; i < parts.length - 1; i++) {
-    const p = parts[i];
-    if (!obj[p]) obj[p] = isNaN(Number(parts[i + 1])) ? {} : [];
-    obj = obj[p];
+    current = current[parts[i]];
+    if (current === undefined) {
+      throw new Error(`Invalid path segment: ${parts[i]} in ${path}`);
+    }
   }
 
-  obj[parts[parts.length - 1]] = value;
+  current[parts[parts.length - 1]] = value;
 }
 
 
@@ -44,6 +49,7 @@ function typecastDatesInPlayerFields(playerFields: Record<string, object>[]) {
   playerFields.forEach((obj) => {
     for (const key in obj) {
       if (typeof obj[key] === "string" && !isNaN(Date.parse(obj[key]))) {
+        console.log("DATE: ", obj[key])
         obj[key] = new Date(obj[key]); // Convert string to Date
       }
     }
@@ -132,9 +138,6 @@ export async function POST(req: NextRequest) {
     const fields = JSON.parse(fieldsJson);
 
 
-    // Build a nested structure for uploaded file IDs to merge into fields
-    const fileIdStructure: any = {};
-
     for (const [path, file] of Object.entries(uploadedFiles)) {
       const buffer = Buffer.from(await file.arrayBuffer());
       const filename = `${formId}_${path.replace(/[\[\]\.]/g, "_")}_${Date.now()}.jpg`;
@@ -154,11 +157,11 @@ export async function POST(req: NextRequest) {
         uploadStream.on("error", reject);
       });
 
-      // Store gridFS id into nested structure using the same path
-      setNestedValue(fileIdStructure, path, uploadedFileId.toString());
-    }
+      setDeep(fields, path, uploadedFileId.toString());
+      console.log("DEBUG playerFields BEFORE TYPECAST:", fields.playerFields);
+      console.log("DEBUG playerFields BEFORE TYPECAST:", fields);
 
-    Object.assign(fields, fileIdStructure);
+    }
 
 
     if (!formId || !fields || typeof isDraft !== "boolean") {

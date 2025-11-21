@@ -1,11 +1,12 @@
 import nodemailer from "nodemailer";
 import fs from "fs";
 import path from "path";
+import { sports } from '@/app/utils/forms/schema';
 
 interface PaymentFormData {
     name?:string,
     email?:string,
-    institution?: string,
+    universityName?: string,
     registration_id?: string,
     paymentMode: string;
     amountInNumbers: number;
@@ -15,6 +16,8 @@ interface PaymentFormData {
     paymentDate: Date;
     paymentProof?: string;
     remarks?: string;
+    paymentData: string;
+    paymentId: string;
 }
 
 export async function sendPaymentConfirmationEmail(
@@ -63,24 +66,53 @@ export async function sendPaymentConfirmationEmail(
             }
         }
 
+        type SubmittedSport = {
+          Players: number;
+        };
+
+        type PaymentData = {
+          submittedForms?: Record<string, SubmittedSport>;
+        };
+
+        const payment: PaymentData = JSON.parse(formData.paymentData);
+
+        const calculateSportsTotal = () => {
+          if (!payment.submittedForms) return 0;
+
+          return Object.values(payment.submittedForms).reduce((total, sport) => {
+            return total + sport.Players * 800;
+          }, 0);
+
+        }
+
+        let paymentData = "<tr><td colspan='3' style='padding:10px;background-color:#dbeafe;font-weight:600'><strong>Registration Details</strong></td></tr><tr><th>Sport</th><th>Players</th><th>Registration Fee</th></tr>";
+        for (const [sport, data] of Object.entries(payment.submittedForms ?? {})) {
+          paymentData += `<tr class='label'><td>${sports[sport]}</td><td>${data.Players}</td><td>₹${data.Players * 800}</td></tr>`
+        }
+
+        paymentData += `<tr><th>Total Registration Fee</th><th></th><th>₹${calculateSportsTotal()}</th></tr>`
+
         // Load the HTML template
         const templatePath = path.join(process.cwd(), "templates", "payment-unconfirmed.html");
         let htmlTemplate = fs.readFileSync(templatePath, "utf8");
 
+        console.log(formData.universityName)
+
         // Replace placeholders
         htmlTemplate = htmlTemplate
             .replace(/{{name}}/g, formData.name || '')
-            .replace(/{{institution}}/g, formData.institution || '')
-            .replace(/{{registration_id}}/g, formData.registration_id || '')
+            .replace(/{{institution}}/g, formData.universityName || '')
+            .replace(/{{payment_id}}/g, formData.paymentId || '')
             .replace(/{{amount}}/g, formData.amountInNumbers.toLocaleString('en-IN'))
             .replace(/{{amount_words}}/g, formData.amountInWords.toUpperCase())
-            .replace(/{{payment_mode}}/g, formData.paymentMode)
+            .replace(/{{payment_mode}}/g, formData.paymentMode === "bank" ? "Bank Transfer" : "Unknown")
             .replace(/{{submitted_at}}/g, new Date(formData.paymentDate).toLocaleDateString('en-IN', { 
                 year: 'numeric', 
                 month: 'long', 
                 day: 'numeric' 
             }))
-            .replace(/{{current_year}}/g, new Date().getFullYear().toString());
+            .replace(/{{current_year}}/g, new Date().getFullYear().toString())
+            .replace(/{{payment_data_rows}}/g, paymentData);
 
         // Send email
         await transporter.sendMail({

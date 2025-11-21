@@ -12,6 +12,7 @@ interface PlayerField {
     email: string;
     phone: string;
     gender: string;
+    photo: string;
     [key: string]: any; // For other dynamic fields
 }
 
@@ -93,7 +94,7 @@ async function sendConfirmationEmail(formData: FormData) {
           </td>
         </tr>
         ${Object.entries(player)
-                    .filter(([key]) => !key.startsWith('_') && key !== 'id') // Filter out internal fields
+                    .filter(([key]) => !key.startsWith('_') && key !== 'id' && key !== 'photo') // Filter out internal fields
                     .map(([key, value]) => `
             <tr>
               <td style="padding: 8px; border: 1px solid #e5e7eb; background-color: #f9fafb;"><strong>${formatFieldName(key)}</strong></td>
