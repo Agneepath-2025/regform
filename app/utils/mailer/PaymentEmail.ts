@@ -1,7 +1,6 @@
 import nodemailer from "nodemailer";
 import fs from "fs";
 import path from "path";
-import { sportField } from "../forms/schema";
 import { sports } from '@/app/utils/forms/schema';
 
 interface PaymentFormData {

@@ -54,6 +54,7 @@ import { post } from "@/app/utils/PostGetData"
 import { sports } from '@/app/utils/forms/schema';
 import { ColumnDef, flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table"
 import { useRouter } from "next/navigation";
+import { toWords } from "number-to-words";
 
 
 const EmptyState = () => (
@@ -119,41 +120,26 @@ const columns: ColumnDef<FormData>[] = [
 
 
 
-const FormSchema = z
-  .object({
-    needAccommodation: z.boolean(),
-    numberOfPlayers: z
-      .number({
-        required_error: "Number of players is required when accommodation is needed",
-        invalid_type_error: "Number of players must be a number",
-      })
-      .min(1, "Number of players must be at least 1")
-      .optional(),
-  })
-  .refine(
-    (data) =>
-      data.needAccommodation
-        ? data.numberOfPlayers !== undefined
-        : data.numberOfPlayers === undefined,
-    {
-      message: "Number of players must be at least 1",
-      path: ["numberOfPlayers"],
-    }
-  )
+// Accommodation feature removed: no form schema required here
 
 const PaymentFormSchema = z.object({
   paymentMode: z.string().nonempty({ message: "Payment mode is required." }),
   amountInNumbers: z
     .number().min(800, { message: "Amount must be atleast 800 rupees" }),
-  amountInWords: z.string()
-    .nonempty({ message: "Amount in words is required." })
-    .refine((val) => val.toLowerCase().endsWith("rupees only"), {
-      message: "Amount in words must end with 'rupees only'.",
-    }),
+  amountInWords: z.preprocess(
+    (v) => (typeof v === "string" ? v.trim() : v),
+    z.string()
+      .nonempty({ message: "Amount in words is required." })
+      .refine((val) => val.toLowerCase().endsWith("only"), {
+        message: "Amount in words must end with 'only'.",
+      })
+  ),
   payeeName: z.string().nonempty({ message: "Payee name is required." }),
   transactionId: z.string().nonempty({ message: "Transaction ID is required." }),
   paymentProof: z
-      .instanceof(File)
+      .custom<File>((v) => v instanceof File && v.size > 0, {
+        message: "Payment proof screenshot is required."
+      })
       .refine((file) => ["image/jpeg", "image/png", "application/pdf"].includes(file.type), {
         message: "Only JPEG, PNG images or PDFs allowed",
       })
@@ -169,15 +155,13 @@ const PaymentFormSchema = z.object({
 type PaymentFormValues = z.infer<typeof PaymentFormSchema>;
 
 interface PaymentFormProps {
-  accommodationPrice?: number;
   sportsTotal?: number;
   onCompleted?: () => void;
 }
 
-const PaymentForm: React.FC<PaymentFormProps> = ({ accommodationPrice = 2100, sportsTotal = 0, onCompleted }) => {
+const PaymentForm: React.FC<PaymentFormProps> = ({ sportsTotal = 0, onCompleted }) => {
   const router = useRouter();
   const [showSportFields, setShowSportFields] = useState(false);
-  const [showAccommodationFields, setShowAccommodationFields] = useState(false);
   const [paymentFormloading, setPaymentFormloading] = useState<boolean>(false);
   const [resetForm, setResetForm] = useState<boolean>(false);
   const [paymentData, setPaymentData] = useState<PaymentData>({
@@ -214,18 +198,55 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ accommodationPrice = 2100, sp
 
   const form = useForm<PaymentFormValues>({
     resolver: zodResolver(PaymentFormSchema),
+    defaultValues: { paymentDate: new Date(), paymentMode: "bank" }
   });
 
   const resetFormAndState = () => {
     form.reset();
     setShowSportFields(false);
-    setShowAccommodationFields(false);
     setPaymentFormloading(false);
   };
 
   const onSubmit = async (data: PaymentFormValues) => {
     //console.log(data);
     setPaymentFormloading(true);
+    // Validate that entered amount matches the computed total
+    const expectedTotal = sportsTotal;
+    if (Number(data.amountInNumbers) !== Number(expectedTotal)) {
+      form.setError("amountInNumbers", {
+        type: "manual",
+        message: `Amount must equal the total amount to pay: ₹${expectedTotal}`,
+      });
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: `Amount must equal the total amount to pay: ₹${expectedTotal}`,
+        className: styles["mobile-toast"],
+      });
+      setPaymentFormloading(false);
+      return;
+    }
+
+    // Validate that amountInWords corresponds to the numeric amount using number-to-words
+    const rawWords = (data.amountInWords || "").toString().trim().toLowerCase();
+    const cleanedUser = rawWords.replace(/\s+/g, " ").trim();
+    const expectedBase = (toWords ? toWords(Number(data.amountInNumbers)) : "").toString().replace(/\s+/g, " ").trim().toLowerCase();
+    const expectedFull = `${expectedBase} only`;
+
+    if (cleanedUser !== expectedFull) {
+      form.setError("amountInWords", {
+        type: "manual",
+        message: `Amount in words does not match the numeric amount. Expected: ${expectedBase} only`,
+      });
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: `Amount in words does not match the numeric amount. Expected: ${expectedBase} only`,
+        className: styles["mobile-toast"],
+      });
+      setPaymentFormloading(false);
+      return;
+    }
 
     try {
       const formData = new FormData();
@@ -237,11 +258,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ accommodationPrice = 2100, sp
       formData.append("payeeName", data.payeeName);
       formData.append("transactionId", data.transactionId);
       formData.append("paymentDate", data.paymentDate.toISOString());
-
-
       formData.append("paymentProof", data.paymentProof);
-
-
       if (data.remarks) {
         formData.append("remarks", data.remarks);
       }
@@ -346,6 +363,12 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ accommodationPrice = 2100, sp
   const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
   const [paymentProofValue, setPaymentProofValue] = useState<File | string | undefined>(undefined)
 
+  const paymentProofWatch = form.watch("paymentProof");
+
+  useEffect(() => {
+    setPaymentProofValue(paymentProofWatch);
+  }, [paymentProofWatch]);
+
   // Cleanup blob URLs on unmount
   useEffect(() => {
     return () => {
@@ -392,7 +415,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ accommodationPrice = 2100, sp
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pb-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         {paymentFormloading ? (
           <div className="flex items-center justify-center h-64">
             <div className="w-12 h-12 border-4 border-black border-t-transparent rounded-full animate-spin"></div>
@@ -411,7 +434,6 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ accommodationPrice = 2100, sp
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="bank">Bank Transfer</SelectItem>
-                      <SelectItem value="upi">UPI</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -435,6 +457,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ accommodationPrice = 2100, sp
                     type="number"
                     placeholder="Enter amount in numbers"
                     {...field}
+                    value={field.value === 0 ? "" : (field.value ?? "")}
                     onChange={e => {
                       const value = parseFloat(e.target.value);
                       field.onChange(isNaN(value) ? 0 : value);
@@ -451,7 +474,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ accommodationPrice = 2100, sp
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-lg font-bold">Total Amount in Words</FormLabel>
-                  <FormDescription>Add "only" at the end. Ex: Two thousand rupees only</FormDescription>
+                  <FormDescription>Add "only" at the end. Ex: Two thousand only</FormDescription>
                   <Input placeholder="Enter amount in words" {...field} />
                   <FormMessage />
                 </FormItem>
@@ -487,8 +510,6 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ accommodationPrice = 2100, sp
               name="paymentProof"
               render={({ field }) => {
                 const value = field.value;
-
-                setPaymentProofValue(value)
 
                 const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
                   const file = e.target.files?.[0];
@@ -587,44 +608,93 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ accommodationPrice = 2100, sp
             <FormField
               control={form.control}
               name="paymentDate"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel className="font-bold text-lg">Date of Payment</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant={"outline"}
-                          className={cn(
-                            "w-full pl-3 text-left font-normal",
-                            !field.value && "text-muted-foreground"
-                          )}
-                        >
-                          {field.value ? (
-                            format(field.value, "PPP")
-                          ) : (
-                            <span>Pick a date</span>
-                          )}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={field.value}
-                        onSelect={field.onChange}
-                        disabled={(date) =>
-                          date > new Date() || date < new Date("1900-01-01")
-                        }
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )}
+              render={({ field }) => {
+                const handleTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+                  const value = e.target.value;
+
+                  // Must match strict HH:MM:SS (00–23, 00–59, 00–59)
+                  const isValid = /^\d{2}:\d{2}:\d{2}$/.test(value);
+
+                  if (!isValid) return; // Ignore partial or invalid input
+
+                  const [h, m, s] = value.split(":").map(Number);
+
+                  const base = field.value ? new Date(field.value) : new Date();
+                  base.setHours(h);
+                  base.setMinutes(m);
+                  base.setSeconds(s);
+
+                  field.onChange(base);
+                };
+
+
+                return (
+                  <FormItem className="flex flex-col">
+                    <FormLabel className="font-bold text-lg">Date of Payment</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full pl-3 text-left font-normal",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value ? format(field.value, "PPP p") : "Pick a date"}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+
+                      <PopoverContent className="w-auto p-0" align="start">
+                        {/* DATE PICKER */}
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={(date) => {
+                            if (!date) return;
+
+                            // preserve previous time
+                            if (field.value) {
+                              date.setHours(field.value.getHours());
+                              date.setMinutes(field.value.getMinutes());
+                              date.setSeconds(field.value.getSeconds());
+                            }
+
+                            field.onChange(date);
+                          }}
+                          disabled={(date) =>
+                            date > new Date() || date < new Date("1900-01-01")
+                          }
+                          initialFocus
+                        />
+
+                        {/* TIME PICKER */}
+                        <div className="flex flex-row items-center justify-center border rounded-md">
+                          <label className="text-bold ml-2 mr-2 font-bold">Time</label>
+                          <Input
+                            type="time"
+                            step="1"
+                            value={
+                              field.value
+                                ? `${String(field.value.getHours()).padStart(2, "0")}:` +
+                                  `${String(field.value.getMinutes()).padStart(2, "0")}:` +
+                                  `${String(field.value.getSeconds()).padStart(2, "0")}`
+                                : ""
+                            }
+                            onChange={handleTimeChange}
+                            className="bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden border-none"
+                          />
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                );
+              }}
             />
+
 
             <FormField
               control={form.control}
@@ -658,10 +728,6 @@ const getAuthToken = (): string | null => {
 }
 
 interface PaymentData {
-  Accommodation: {
-    needAccommodation: boolean;
-    cp?: number;
-  };
   submittedForms: {
     [key: string]: {
       Players: number;
@@ -749,19 +815,17 @@ export default function Payments() {
 
   const [showInput, setShowInput] = useState(false);
   const [paymentData, setPaymentData] = useState<PaymentData>({
-    Accommodation: { needAccommodation: false },
     submittedForms: null
   })
   const [filledForms, setFilledForms] = useState<FormData[]>([]);
   const [updatePrice, setUpdatePrice] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null)
-  const [accommodationPrice, setAccomodationPrice] = useState<number>(2100);
   const router = useRouter();
 
-  const form = useForm<z.infer<typeof FormSchema>>({
-    resolver: zodResolver(FormSchema),
-    defaultValues: { needAccommodation: false, numberOfPlayers: undefined },
-  })
+  const form = useForm<PaymentFormValues>({
+    resolver: zodResolver(PaymentFormSchema),
+    defaultValues: { paymentDate: new Date(), }
+  });
 
 
   // const [formReset,setFormReset] = useState(false);
@@ -781,27 +845,13 @@ export default function Payments() {
           }
         );
         if (response.data?.success) {
-          if (response.data.data?.Accommodation.cp) {
-            setAccomodationPrice(response.data.data?.Accommodation.cp);
-          }
           setPaymentData(
             response.data.data || {
-              Accommodation: { needAccommodation: false },
               submittedForms: null,
             }
           );
           setFilledForms(response.data.form);
-          console.log();
           console.log(response.data.form);
-
-          setShowInput(response.data.data?.Accommodation.needAccommodation || false);
-
-          // Only reset the form once after data is fetched
-          if (!resetFormOnce.current) {
-            form.reset({ needAccommodation: false, numberOfPlayers: undefined });
-            form.reset(response.data.data?.Accommodation || {});
-            resetFormOnce.current = true;
-          }
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to fetch payment data");
@@ -813,45 +863,7 @@ export default function Payments() {
     fetchPaymentData();
   }, []);
 
-  async function onSubmit(data: z.infer<typeof FormSchema>) {
-    // console.log("onSubmit triggered");
-    try {
-      const token = getAuthToken();
-      const response = await post<{ success: boolean; data?: PaymentData }>(
-        `/api/payments/Accommodation`,
-        {
-          cookies: token,
-          accommodationData: data
-        }
-      );
-
-      if (!response.data?.success) {
-        return toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Failed to save accommodation data. Please try again.",
-          className: styles["mobile-toast"],
-
-        });
-      }
-
-      toast({
-        title: "Success",
-        description: "Data saved successfully",
-        className: styles["mobile-toast"],
-
-      });
-
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error instanceof Error ? error.message : "An unexpected error occurred",
-        className: styles["mobile-toast"],
-
-      });
-    }
-  }
+  // Accommodation handling removed
 
 
   // async function handleAddPayment(data: z.infer<typeof AddPaymentSchema>) {
@@ -923,19 +935,12 @@ export default function Payments() {
 
   }
 
-  const calculateAccommodationTotal = () => {
-    if (!form.getValues("needAccommodation")) return 0
-    const players = form.getValues("numberOfPlayers") || 0
-    return players * accommodationPrice
-
-  }
-
-  const overallTotal = calculateSportsTotal() + calculateAccommodationTotal()
+  const overallTotal = calculateSportsTotal()
   const sportsTotal = calculateSportsTotal();
 
 
   if (registrationDone === false || registrationDone === null || paymentDone === true) {
-    return <span className="text-red-600 font-semibold">{paymentDone === true  ? "Payments have already been confirmed"  : "Please complete your registration first before making payments"}</span>
+    return <div className="w-full h-full flex items-center justify-center"><span className="text-red-600 font-semibold">{paymentDone === true  ? "Payments have already been confirmed"  : "Please complete your registration first before making payments"}</span></div>
   }
 
   if (isLoading) return <div className="flex items-center justify-center h-64">
@@ -1027,37 +1032,26 @@ export default function Payments() {
             </tbody>
           </table>
         </div>
-        <h3 className="text-lg font-medium mb-3">UPI Details</h3>
-        <div className="overflow-x-auto">
-          <table className="w-full mb-6 border-collapse bg-white shadow-sm rounded-lg">
-            <tbody className="divide-y divide-gray-200">
-              <tr>
-                <td className="py-3 px-4 font-medium bg-gray-50">UPI ID</td>
-                <td className="py-3 px-4">upi@upi</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
       </div>
 
       <div className="space-y-4 ml-4">
         <div className="flex items-start gap-3">
-          <span className="flex-shrink-0 w-6 h-6 bg-black text-white rounded-full flex items-center justify-center text-sm">1</span>
+          <span className="flex-shrink-0 w-6 h-6 bg-black text-white rounded-full flex items-start justify-center text-sm" style={{paddingTop: "0.05rem"}}>1</span>
           <p className="text-gray-700">Submit your payment details below.</p>
         </div>
 
         <div className="flex items-start gap-3">
-          <span className="flex-shrink-0 w-6 h-6 bg-black text-white rounded-full flex items-center justify-center text-sm">2</span>
+          <span className="flex-shrink-0 w-6 h-6 bg-black text-white rounded-full flex items-start justify-center text-sm" style={{paddingTop: "0.05rem"}}>2</span>
           <p className="text-gray-700">After submitting payment details, you'll receive a confirmation email with a copy of your submission.</p>
         </div>
 
         <div className="flex items-start gap-3">
-          <span className="flex-shrink-0 w-6 h-6 bg-black text-white rounded-full flex items-center justify-center text-sm">3</span>
+          <span className="flex-shrink-0 w-6 h-6 bg-black text-white rounded-full flex items-start justify-center text-sm">3</span>
           <p className="text-gray-700">You can view your auto calculated registration fee below based on your submitted forms.</p>
         </div>
 
         <div className="flex items-start gap-3">
-          <span className="flex-shrink-0 w-6 h-6 bg-black text-white rounded-full flex items-center justify-center text-sm">4</span>
+          <span className="flex-shrink-0 w-6 h-6 bg-black text-white rounded-full flex items-start justify-center text-sm">4</span>
           <p className="text-gray-700">For any queries contact at <a href="mailto:agneepath@ashoka.edu.in" className="text-blue-600 hover:underline">agneepath@ashoka.edu.in</a></p>
         </div>
       </div>
@@ -1103,85 +1097,7 @@ export default function Payments() {
             </CardContent>
           </Card>
 
-          {/* <Card>
-            <CardHeader>
-              <CardTitle className="text-2xl">Accommodation Details</CardTitle>
-              <CardDescription>Accommodation cost per player for the entire event is ₹{accommodationPrice}, which also includes meals and transportation to and from the campus.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                  <FormField
-                    control={form.control}
-                    name="needAccommodation"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center space-x-3">
-                        <FormControl>
-                          <Checkbox
-                            checked={field.value}
-                            onCheckedChange={(checked) => {
-                              const isChecked = checked === true
-                              field.onChange(isChecked)
-                              setShowInput(isChecked)
-                              if (!isChecked) {
-                                form.setValue("numberOfPlayers", undefined);
-                                form.reset({ needAccommodation: false })
-                              }
-                            }}
-                          />
-                        </FormControl>
-                        <FormLabel>Do you need accommodation?</FormLabel>
-                      </FormItem>
-                    )}
-                  />
-
-                  {showInput && (
-                    <FormField
-                      control={form.control}
-                      name="numberOfPlayers"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="font-bold">Number of players</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              placeholder="number of players"
-                              value={field.value || ""}
-                              onChange={(e) => {
-                                setUpdatePrice(!updatePrice);
-                                field.onChange(
-                                  e.target.value ? parseInt(e.target.value) : 0
-                                )
-                              }}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  )}
-
-                  <div className="mt-4 p-4 bg-muted rounded-lg">
-                    <div className="flex justify-between items-center">
-                      <span className="font-medium">Accommodation Cost</span>
-                      <span className="font-bold">₹{calculateAccommodationTotal()}</span>
-                    </div>
-                  </div>
-
-                  <Button type="submit">Save</Button>
-                </form>
-              </Form>
-            </CardContent>
-          </Card> */}
-
-          {/* <Card className="bg-primary/5">
-            <CardContent className="p-6">
-              <div className="flex justify-between items-center">
-                <span className="text-2xl font-bold text-primary">Total Amount to be Paid</span>
-                <span className="text-2xl font-bold text-primary">₹{overallTotal}</span>
-              </div>
-            </CardContent>
-          </Card> */}
+          
         </div>
 
         {/*<div className="mt-6 pb-8 overflow-auto">
@@ -1203,7 +1119,6 @@ export default function Payments() {
         <h2 className="mt-5 text-2xl font-semibold text-gray-800">Payment Form</h2>
         <p className="text-sm text-gray-600 mb-4">Enter your payment details below</p>
         <PaymentForm
-          accommodationPrice={accommodationPrice}
           sportsTotal={sportsTotal}
           onCompleted={completePayment}
         />

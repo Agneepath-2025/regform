@@ -229,6 +229,7 @@ const RenderForm: React.FC<{ schema: ZodObject<ZodRawShape>, draftSchema: ZodObj
             description: "Your form draft has been saved successfully.",
             className: styles["mobile-toast"],
           });
+          router.push("/dashboard/regForm")
         } else {
           toast({
             variant: "destructive",
@@ -781,7 +782,7 @@ const maxDate = new Date(2009, 1, 1); // On or before 1 Feb 2009
             className="bg-white text-black hover:bg-slate-100 border-2 border-solid border-black font-semibold py-2.5 px-6  duration-200"
           >
             {isSubmittingDraft ? (
-              <div className="spinner-border animate-spin inline-block w-4 h-4 border-2 rounded-full"></div>
+              <div>Uploading files <div className="spinner-border animate-spin inline-block w-4 h-4 border-2 rounded-full"></div></div>
             ) : (
               "Save Draft"
             )}
@@ -795,7 +796,7 @@ const maxDate = new Date(2009, 1, 1); // On or before 1 Feb 2009
             className=" font-semibold py-2.5 px-6  duration-200"
           >
             {isSubmitting ? (
-              <div className="spinner-border animate-spin inline-block w-4 h-4 border-2 rounded-full"></div>
+              <div>Uploading files <div className="spinner-border animate-spin inline-block w-4 h-4 border-2 rounded-full"></div></div>
             ) : (
               "Submit"
             )}
@@ -812,7 +813,7 @@ const maxDate = new Date(2009, 1, 1); // On or before 1 Feb 2009
             className="bg-white text-black hover:bg-slate-100 border-2 border-solid border-black font-semibold py-2.5 px-6  duration-200"
           >
             {isSubmittingDraft ? (
-              <div className="spinner-border animate-spin inline-block w-4 h-4 border-2 rounded-full"></div>
+              <div>Uploading files <div className="spinner-border animate-spin inline-block w-4 h-4 border-2 rounded-full"></div></div>
             ) : (
               "Save Draft"
             )}
@@ -826,7 +827,7 @@ const maxDate = new Date(2009, 1, 1); // On or before 1 Feb 2009
             className=" font-semibold py-2.5 px-6  duration-200"
           >
             {isSubmitting ? (
-              <div className="spinner-border animate-spin inline-block w-4 h-4 border-2 rounded-full"></div>
+              <div>Uploading files <div className="spinner-border animate-spin inline-block w-4 h-4 border-2 rounded-full"></div></div>
             ) : (
               "Submit"
             )}

@@ -167,9 +167,9 @@ export default function Form() {
           />
 
           {/* ===== SIMPLE WHITE MODAL ===== */}
-          <div className="flex justify-center mt-4">
+          <div className="flex justify-start mt-4 sm:w-2/3 mx-auto sm:px-8">
             <Button
-              className="bg-orange-500 text-white hover:bg-orange-600"
+              className="bg-blue-500 text-white hover:bg-blue-600"
               onClick={() => setOpen(true)}
             >
               View Sports Guidelines

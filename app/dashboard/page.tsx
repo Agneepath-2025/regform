@@ -204,7 +204,7 @@ export default function Dashboard() {
       </Card>
 
       {/* Sports Registration Section */}
-      <div className="space-y-6 mt-8 mb-8">
+      <div className="space-y-6 mt-8 mb-8 pb-5">
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold text-gray-900">Registered Sports</h2>
           {hasRegistrations && (
