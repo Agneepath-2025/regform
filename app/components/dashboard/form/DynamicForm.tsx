@@ -156,6 +156,14 @@ const RenderForm: React.FC<{ schema: ZodObject<ZodRawShape>, draftSchema: ZodObj
         const newKey = parentKey ? `${parentKey}.${key}` : key;
         const value = current[key];
 
+        if (key === "date") {
+          const date = new Date(value);
+          if (!isNaN(date.getTime())) {
+            target[key] = date;
+            return;
+          }
+        }
+
         if (value instanceof File) {
           fileData[newKey] = value;
           return; // do NOT include this in JSON

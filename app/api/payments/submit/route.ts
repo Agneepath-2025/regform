@@ -22,6 +22,9 @@ interface PaymentFormData {
   paymentDate: Date;
   paymentProof?: string;
   remarks?: string;
+  paymentData: string;
+  paymentId: string;
+  universityName: string;
 }
 interface PaymentData {
   paymentMode: string;
@@ -54,13 +57,15 @@ export async function POST(req: NextRequest) {
     }
 
     // Get user data
-    const userResponse = await fetchUserData("email", email, ["_id", "name"]);
+    const userResponse = await fetchUserData("email", email, ["_id", "name", "universityName"]);
     if (!userResponse.success || !userResponse.data?._id) {
       return NextResponse.json(
         { success: false, message: "Owner not found" },
         { status: 404 }
       );
     }
+
+    console.log(userResponse)
 
     // Connect to Mongo
     const { db } = await connectToDatabase();
@@ -111,7 +116,7 @@ export async function POST(req: NextRequest) {
       paymentDate: new Date(formData.get("paymentDate") as string),
       status: "In review",
       createdAt: new Date(),
-      paymentProof: paymentProofId,
+      paymentProof: paymentProofId
     };
 
     // Optional fields
@@ -125,6 +130,7 @@ export async function POST(req: NextRequest) {
     }
 
     const result = await paymentCollection.insertOne(paymentData);
+    const insertedId = result.insertedId.toString()
 
     // Prepare email data
     const formDataObj: PaymentFormData = {
@@ -140,6 +146,9 @@ export async function POST(req: NextRequest) {
       accommodationPeople: Number(formData.get("accommodationPeople")),
       accommodationPrice: Number(formData.get("accommodationPrice")),
       remarks: formData.get("remarks") as string || undefined,
+      paymentData: formData.get("paymentData") as string,
+      paymentId: insertedId as string,
+      universityName: userResponse.data.universityName as string
     };
 
     // Send email confirmation

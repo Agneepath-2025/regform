@@ -54,6 +54,7 @@ import { post } from "@/app/utils/PostGetData"
 import { sports } from '@/app/utils/forms/schema';
 import { ColumnDef, flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table"
 import { useRouter } from "next/navigation";
+import { toWords } from "number-to-words";
 
 
 const EmptyState = () => (
@@ -119,37 +120,20 @@ const columns: ColumnDef<FormData>[] = [
 
 
 
-const FormSchema = z
-  .object({
-    needAccommodation: z.boolean(),
-    numberOfPlayers: z
-      .number({
-        required_error: "Number of players is required when accommodation is needed",
-        invalid_type_error: "Number of players must be a number",
-      })
-      .min(1, "Number of players must be at least 1")
-      .optional(),
-  })
-  .refine(
-    (data) =>
-      data.needAccommodation
-        ? data.numberOfPlayers !== undefined
-        : data.numberOfPlayers === undefined,
-    {
-      message: "Number of players must be at least 1",
-      path: ["numberOfPlayers"],
-    }
-  )
+// Accommodation feature removed: no form schema required here
 
 const PaymentFormSchema = z.object({
   paymentMode: z.string().nonempty({ message: "Payment mode is required." }),
   amountInNumbers: z
     .number().min(800, { message: "Amount must be atleast 800 rupees" }),
-  amountInWords: z.string()
-    .nonempty({ message: "Amount in words is required." })
-    .refine((val) => val.toLowerCase().endsWith("rupees only"), {
-      message: "Amount in words must end with 'rupees only'.",
-    }),
+  amountInWords: z.preprocess(
+    (v) => (typeof v === "string" ? v.trim() : v),
+    z.string()
+      .nonempty({ message: "Amount in words is required." })
+      .refine((val) => val.toLowerCase().endsWith("only"), {
+        message: "Amount in words must end with 'only'.",
+      })
+  ),
   payeeName: z.string().nonempty({ message: "Payee name is required." }),
   transactionId: z.string().nonempty({ message: "Transaction ID is required." }),
   paymentProof: z
@@ -171,33 +155,98 @@ const PaymentFormSchema = z.object({
 type PaymentFormValues = z.infer<typeof PaymentFormSchema>;
 
 interface PaymentFormProps {
-  accommodationPrice?: number;
   sportsTotal?: number;
   onCompleted?: () => void;
 }
 
-const PaymentForm: React.FC<PaymentFormProps> = ({ accommodationPrice = 2100, sportsTotal = 0, onCompleted }) => {
+const PaymentForm: React.FC<PaymentFormProps> = ({ sportsTotal = 0, onCompleted }) => {
   const router = useRouter();
   const [showSportFields, setShowSportFields] = useState(false);
-  const [showAccommodationFields, setShowAccommodationFields] = useState(false);
   const [paymentFormloading, setPaymentFormloading] = useState<boolean>(false);
   const [resetForm, setResetForm] = useState<boolean>(false);
+  const [paymentData, setPaymentData] = useState<PaymentData>({
+    Accommodation: { needAccommodation: false },
+    submittedForms: null
+  })
+
+  useEffect(() => {
+    const fetchPaymentData = async () => {
+      try {
+        const token = getAuthToken();
+        const response = await post<{ success: boolean; data?: PaymentData, form: FormData[] }>(
+
+          `/api/payments`,
+          {
+            cookies: token,
+          }
+        );
+        if (response.data?.success) {          
+          setPaymentData(
+            response.data.data || {
+              Accommodation: { needAccommodation: false },
+              submittedForms: null,
+            }
+          );
+        }
+      } catch (err) {
+        console.error(err instanceof Error ? err.message : "Failed to fetch payment data");
+      }
+    };
+
+    fetchPaymentData();
+  }, []);
 
   const form = useForm<PaymentFormValues>({
     resolver: zodResolver(PaymentFormSchema),
-    defaultValues: { paymentDate: new Date(), }
+    defaultValues: { paymentDate: new Date(), paymentMode: "bank" }
   });
 
   const resetFormAndState = () => {
     form.reset();
     setShowSportFields(false);
-    setShowAccommodationFields(false);
     setPaymentFormloading(false);
   };
 
   const onSubmit = async (data: PaymentFormValues) => {
     //console.log(data);
     setPaymentFormloading(true);
+    // Validate that entered amount matches the computed total
+    const expectedTotal = sportsTotal;
+    if (Number(data.amountInNumbers) !== Number(expectedTotal)) {
+      form.setError("amountInNumbers", {
+        type: "manual",
+        message: `Amount must equal the total amount to pay: ₹${expectedTotal}`,
+      });
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: `Amount must equal the total amount to pay: ₹${expectedTotal}`,
+        className: styles["mobile-toast"],
+      });
+      setPaymentFormloading(false);
+      return;
+    }
+
+    // Validate that amountInWords corresponds to the numeric amount using number-to-words
+    const rawWords = (data.amountInWords || "").toString().trim().toLowerCase();
+    const cleanedUser = rawWords.replace(/\s+/g, " ").trim();
+    const expectedBase = (toWords ? toWords(Number(data.amountInNumbers)) : "").toString().replace(/\s+/g, " ").trim().toLowerCase();
+    const expectedFull = `${expectedBase} only`;
+
+    if (cleanedUser !== expectedFull) {
+      form.setError("amountInWords", {
+        type: "manual",
+        message: `Amount in words does not match the numeric amount. Expected: ${expectedBase} only`,
+      });
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: `Amount in words does not match the numeric amount. Expected: ${expectedBase} only`,
+        className: styles["mobile-toast"],
+      });
+      setPaymentFormloading(false);
+      return;
+    }
 
     try {
       const formData = new FormData();
@@ -209,14 +258,12 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ accommodationPrice = 2100, sp
       formData.append("payeeName", data.payeeName);
       formData.append("transactionId", data.transactionId);
       formData.append("paymentDate", data.paymentDate.toISOString());
-
-
       formData.append("paymentProof", data.paymentProof);
-
-
       if (data.remarks) {
         formData.append("remarks", data.remarks);
       }
+
+      formData.append("paymentData", JSON.stringify(paymentData))
 
       const token = getAuthToken();
       if (!token) {
@@ -410,6 +457,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ accommodationPrice = 2100, sp
                     type="number"
                     placeholder="Enter amount in numbers"
                     {...field}
+                    value={field.value === 0 ? "" : (field.value ?? "")}
                     onChange={e => {
                       const value = parseFloat(e.target.value);
                       field.onChange(isNaN(value) ? 0 : value);
@@ -426,7 +474,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ accommodationPrice = 2100, sp
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-lg font-bold">Total Amount in Words</FormLabel>
-                  <FormDescription>Add "only" at the end. Ex: Two thousand rupees only</FormDescription>
+                  <FormDescription>Add "only" at the end. Ex: Two thousand only</FormDescription>
                   <Input placeholder="Enter amount in words" {...field} />
                   <FormMessage />
                 </FormItem>
@@ -680,10 +728,6 @@ const getAuthToken = (): string | null => {
 }
 
 interface PaymentData {
-  Accommodation: {
-    needAccommodation: boolean;
-    cp?: number;
-  };
   submittedForms: {
     [key: string]: {
       Players: number;
@@ -771,19 +815,17 @@ export default function Payments() {
 
   const [showInput, setShowInput] = useState(false);
   const [paymentData, setPaymentData] = useState<PaymentData>({
-    Accommodation: { needAccommodation: false },
     submittedForms: null
   })
   const [filledForms, setFilledForms] = useState<FormData[]>([]);
   const [updatePrice, setUpdatePrice] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null)
-  const [accommodationPrice, setAccomodationPrice] = useState<number>(2100);
   const router = useRouter();
 
-  const form = useForm<z.infer<typeof FormSchema>>({
-    resolver: zodResolver(FormSchema),
-    defaultValues: { needAccommodation: false, numberOfPlayers: undefined },
-  })
+  const form = useForm<PaymentFormValues>({
+    resolver: zodResolver(PaymentFormSchema),
+    defaultValues: { paymentDate: new Date(), }
+  });
 
 
   // const [formReset,setFormReset] = useState(false);
@@ -803,27 +845,13 @@ export default function Payments() {
           }
         );
         if (response.data?.success) {
-          if (response.data.data?.Accommodation.cp) {
-            setAccomodationPrice(response.data.data?.Accommodation.cp);
-          }
           setPaymentData(
             response.data.data || {
-              Accommodation: { needAccommodation: false },
               submittedForms: null,
             }
           );
           setFilledForms(response.data.form);
-          console.log();
           console.log(response.data.form);
-
-          setShowInput(response.data.data?.Accommodation.needAccommodation || false);
-
-          // Only reset the form once after data is fetched
-          if (!resetFormOnce.current) {
-            form.reset({ needAccommodation: false, numberOfPlayers: undefined });
-            form.reset(response.data.data?.Accommodation || {});
-            resetFormOnce.current = true;
-          }
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to fetch payment data");
@@ -835,45 +863,7 @@ export default function Payments() {
     fetchPaymentData();
   }, []);
 
-  async function onSubmit(data: z.infer<typeof FormSchema>) {
-    // console.log("onSubmit triggered");
-    try {
-      const token = getAuthToken();
-      const response = await post<{ success: boolean; data?: PaymentData }>(
-        `/api/payments/Accommodation`,
-        {
-          cookies: token,
-          accommodationData: data
-        }
-      );
-
-      if (!response.data?.success) {
-        return toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Failed to save accommodation data. Please try again.",
-          className: styles["mobile-toast"],
-
-        });
-      }
-
-      toast({
-        title: "Success",
-        description: "Data saved successfully",
-        className: styles["mobile-toast"],
-
-      });
-
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error instanceof Error ? error.message : "An unexpected error occurred",
-        className: styles["mobile-toast"],
-
-      });
-    }
-  }
+  // Accommodation handling removed
 
 
   // async function handleAddPayment(data: z.infer<typeof AddPaymentSchema>) {
@@ -945,14 +935,7 @@ export default function Payments() {
 
   }
 
-  const calculateAccommodationTotal = () => {
-    if (!form.getValues("needAccommodation")) return 0
-    const players = form.getValues("numberOfPlayers") || 0
-    return players * accommodationPrice
-
-  }
-
-  const overallTotal = calculateSportsTotal() + calculateAccommodationTotal()
+  const overallTotal = calculateSportsTotal()
   const sportsTotal = calculateSportsTotal();
 
 
@@ -1114,85 +1097,7 @@ export default function Payments() {
             </CardContent>
           </Card>
 
-          {/* <Card>
-            <CardHeader>
-              <CardTitle className="text-2xl">Accommodation Details</CardTitle>
-              <CardDescription>Accommodation cost per player for the entire event is ₹{accommodationPrice}, which also includes meals and transportation to and from the campus.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                  <FormField
-                    control={form.control}
-                    name="needAccommodation"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center space-x-3">
-                        <FormControl>
-                          <Checkbox
-                            checked={field.value}
-                            onCheckedChange={(checked) => {
-                              const isChecked = checked === true
-                              field.onChange(isChecked)
-                              setShowInput(isChecked)
-                              if (!isChecked) {
-                                form.setValue("numberOfPlayers", undefined);
-                                form.reset({ needAccommodation: false })
-                              }
-                            }}
-                          />
-                        </FormControl>
-                        <FormLabel>Do you need accommodation?</FormLabel>
-                      </FormItem>
-                    )}
-                  />
-
-                  {showInput && (
-                    <FormField
-                      control={form.control}
-                      name="numberOfPlayers"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="font-bold">Number of players</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              placeholder="number of players"
-                              value={field.value || ""}
-                              onChange={(e) => {
-                                setUpdatePrice(!updatePrice);
-                                field.onChange(
-                                  e.target.value ? parseInt(e.target.value) : 0
-                                )
-                              }}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  )}
-
-                  <div className="mt-4 p-4 bg-muted rounded-lg">
-                    <div className="flex justify-between items-center">
-                      <span className="font-medium">Accommodation Cost</span>
-                      <span className="font-bold">₹{calculateAccommodationTotal()}</span>
-                    </div>
-                  </div>
-
-                  <Button type="submit">Save</Button>
-                </form>
-              </Form>
-            </CardContent>
-          </Card> */}
-
-          {/* <Card className="bg-primary/5">
-            <CardContent className="p-6">
-              <div className="flex justify-between items-center">
-                <span className="text-2xl font-bold text-primary">Total Amount to be Paid</span>
-                <span className="text-2xl font-bold text-primary">₹{overallTotal}</span>
-              </div>
-            </CardContent>
-          </Card> */}
+          
         </div>
 
         {/*<div className="mt-6 pb-8 overflow-auto">
@@ -1214,7 +1119,6 @@ export default function Payments() {
         <h2 className="mt-5 text-2xl font-semibold text-gray-800">Payment Form</h2>
         <p className="text-sm text-gray-600 mb-4">Enter your payment details below</p>
         <PaymentForm
-          accommodationPrice={accommodationPrice}
           sportsTotal={sportsTotal}
           onCompleted={completePayment}
         />

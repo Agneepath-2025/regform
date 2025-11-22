@@ -120,6 +120,12 @@ const columns: ColumnDef<FormData>[] = [
   {
     accessorKey: "status",
     header: "Status",
+    cell: ({ row }) => {
+      const status = row.original.status;
+      if (status === "draft") return "Draft";
+      if (status === "submitted") return "Submitted";
+      return status;
+    },
   },
   {
     id: "actions",

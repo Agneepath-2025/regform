@@ -1,6 +1,8 @@
 import nodemailer from "nodemailer";
 import dotenv from "dotenv";
 import { sports } from "../forms/schema";
+import fs from "fs";
+import path from "path";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 dotenv.config();
@@ -10,6 +12,7 @@ interface PlayerField {
     email: string;
     phone: string;
     gender: string;
+    photo: string;
     [key: string]: any; // For other dynamic fields
 }
 
@@ -67,13 +70,13 @@ async function sendConfirmationEmail(formData: FormData) {
     if (formData.fields.coachFields && Object.keys(formData.fields.coachFields).length > 0) {
         coachTableRows = `
       <tr>
-        <td colspan="2" style="padding: 10px; background-color: #f0f0f0;"><strong>Coach Information</strong></td>
+        <td colspan="2" style="padding: 10px; background-color: #dbeafe; font-weight: 600;"><strong>Coach Information</strong></td>
       </tr>
       ${Object.entries(formData.fields.coachFields)
                 .map(([key, value]) => `
           <tr>
-            <td style="padding: 8px; border: 1px solid #ddd;"><strong>${formatFieldName(key)}</strong></td>
-            <td style="padding: 8px; border: 1px solid #ddd;">${value instanceof Date ? value.toLocaleDateString() : value
+            <td style="padding: 8px; border: 1px solid #e5e7eb; background-color: #f9fafb;"><strong>${formatFieldName(key)}</strong></td>
+            <td style="padding: 8px; border: 1px solid #e5e7eb;">${value instanceof Date ? value.toLocaleDateString() : value
                     }</td>
           </tr>
         `).join('')}
@@ -86,15 +89,16 @@ async function sendConfirmationEmail(formData: FormData) {
         formData.fields.playerFields.forEach((player, index) => {
             playerTableRows += `
         <tr>
-          <td colspan="2" style="padding: 10px; background-color: #f0f0f0;">
+          <td colspan="2" style="padding: 10px; background-color: #dbeafe; font-weight: 600;">
             <strong>Player ${index + 1} Information</strong>
           </td>
         </tr>
         ${Object.entries(player)
+                    .filter(([key]) => !key.startsWith('_') && key !== 'id' && key !== 'photo') // Filter out internal fields
                     .map(([key, value]) => `
             <tr>
-              <td style="padding: 8px; border: 1px solid #ddd;"><strong>${formatFieldName(key)}</strong></td>
-              <td style="padding: 8px; border: 1px solid #ddd;">${value instanceof Date ? value.toLocaleDateString() : value
+              <td style="padding: 8px; border: 1px solid #e5e7eb; background-color: #f9fafb;"><strong>${formatFieldName(key)}</strong></td>
+              <td style="padding: 8px; border: 1px solid #e5e7eb;">${value instanceof Date ? value.toLocaleDateString() : value
                         }</td>
             </tr>
           `).join('')}
@@ -102,46 +106,18 @@ async function sendConfirmationEmail(formData: FormData) {
         });
     }
 
- const emailContent = `
-    <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: auto; border: 1px solid #ddd; padding: 20px; border-radius: 10px;">
-      <h2 style="text-align: center; color: #ed810c;">Registration Confirmation - ${sports[formData.title]}</h2>
-      
-      <p>Dear ${formData.name},</p>
-      
-      <p>We are pleased to inform you that you have successfully registered for Agneepath 6.0, hosted at Ashoka University. We are excited to have you join us for the upcoming competition in ${sports[formData.title]}, representing your institution, ${formData.universityName}.</p>
-      
-      <p style="font-weight: bold; color: #666;">Your application is currently under review by our team. Please note that your registration will only be confirmed after the payment of registration fees. Once you complete the payment, you will receive a separate confirmation email.</p>
+    // Read the email template
+    const templatePath = path.join(process.cwd(), 'templates', 'registration.html');
+    let emailContent = fs.readFileSync(templatePath, 'utf-8');
 
-      <p style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
-        To complete your registration:
-        <ol style="margin-top: 10px;">
-          <li>Please find the attached PDF containing our bank details for payment.</li>
-          <li>Visit the <a href="register.agneepath.co.in/dashboard/Payments" style="color: #ed810c; text-decoration: none;">Accommodation and Payments</a> page to submit your payment confirmation and arrange accommodation if needed.</li>
-        </ol>
-      </p>
-
-      <p>Here is a copy of details that you submitted:</p>
-      
-      <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
-        ${coachTableRows}
-        ${playerTableRows}
-      </table>
-      
-      <p style="margin-top: 20px;">If you have any questions or need to update your information, please feel free to contact us at <a href="mailto:agneepath@ashoka.edu.in" style="color: #ed810c; text-decoration: none;">agneepath@ashoka.edu.in</a> or you can also make a support request by going to the <a href="register.agneepath.co.in" style="color: #ed810c; text-decoration: none;">dashboard</a>.</p>
-      
-      <p style="margin-top: 30px;">Best regards,<br>Team Agneepath 6.0<br>Ashoka University</p>
-      
-      <img src="cid:unique-image-cid" alt="Agneepath Logo" style="max-width: 15%; height: auto;" />
-    </div>
-  `;
+    // Replace placeholders
+    emailContent = emailContent
+        .replace(/{{name}}/g, formData.name)
+        .replace(/{{sport}}/g, sports[formData.title])
+        .replace(/{{current_year}}/g, new Date().getFullYear().toString())
+        .replace(/{{playerAndCoachDetails}}/g, coachTableRows + playerTableRows);
 
     const attachments = [
-        {
-            filename: "logo.png",
-            path: `${process.env.LOGO}`,
-            cid: "unique-image-cid",
-            encoding: "base64"
-        },
         {
             filename: "BankDetails.pdf",
             path: `${process.env.BANK_DETAILS_PDF}`,
@@ -149,16 +125,13 @@ async function sendConfirmationEmail(formData: FormData) {
         }
     ];
 
-    // Get all unique participant emails
-   
     // Send email to all participants
-    console.log(formData)
     await transporter.sendMail({
-      from: `Registation <SMTP_USER>`,
+      from: `"Agneepath Registration" <${SMTP_USER}>`,
       to: formData.email,
-      //2025 OC - cc :['vibha.rawat_ug2023@ashoka.edu.in','muhammed.razinmn_ug2023@ashoka.edu.in','agneepath@ashoka.edu.in'],
-      //cc :['jiya.vaya_ug2024@ashoka.edu.in','vidishaa.mundhra_ug2025@ashoka.edu.in','nishka.desai_ug2024@ashoka.edu.in','nishita.agarwal_ug2024@ashoka.edu.in'],
-      subject: `Thank you for registering for Agneepath 6.0 (${formData.universityName})`,
+      // cc: ['vibha.rawat_ug2023@ashoka.edu.in','muhammed.razinmn_ug2023@ashoka.edu.in','agneepath@ashoka.edu.in'],
+      // cc: ['jiya.vaya_ug2024@ashoka.edu.in','vidishaa.mundhra_ug2025@ashoka.edu.in','nishka.desai_ug2024@ashoka.edu.in','nishita.agarwal_ug2024@ashoka.edu.in'],
+      subject: `Thank you for registering for Agneepath 7.0 (${sports[formData.title]})`,
       headers: {
           "X-Gm-NoSave": "1",
       },
