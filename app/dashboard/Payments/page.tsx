@@ -165,7 +165,6 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ sportsTotal = 0, onCompleted 
   const [paymentFormloading, setPaymentFormloading] = useState<boolean>(false);
   const [resetForm, setResetForm] = useState<boolean>(false);
   const [paymentData, setPaymentData] = useState<PaymentData>({
-    Accommodation: { needAccommodation: false },
     submittedForms: null
   })
 
