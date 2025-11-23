@@ -125,11 +125,23 @@ export function AppSidebar() {
               `/api/form/getAllForms`,
               { cookies: token }
             );
-            if (formsRes?.data?.success && Array.isArray(formsRes.data.data)) {
-              const list = formsRes.data.data;
-              setHasAnyForm(list.length > 0);
-              setHasSubmitted(list.some((f) => f.status === "submitted"));
-            } else {
+            if (formsRes.data?.success && Array.isArray(formsRes.data.data)) {
+  const list = formsRes.data.data;
+
+  // You already check number of forms
+  setHasAnyForm(list.length > 0);
+
+  // NEW FIX: enable payments if form status is confirmed OR not_confirmed OR submitted
+  setHasSubmitted(
+    list.some(
+      (f) =>
+        f.status &&
+        ["confirmed", "not_confirmed", "submitted"].includes(
+          f.status.toLowerCase()
+        )
+    )
+  );
+} else {
               setHasAnyForm(false);
               setHasSubmitted(false);
             }
