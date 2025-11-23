@@ -82,6 +82,7 @@ export const playerFields = z.object({
       .refine((file) => file.size <= 5 * 1024 * 1024, {
           message: "File must be smaller than 5MB",
       })
+      .optional()
 });
 export const playerFieldsDraft = z.object({
     name: z.string().min(1, "Name is required").optional(),
