@@ -174,10 +174,6 @@ export const sportFieldMeta: formMeta = {
 // ---------- Event Schema ----------
 
 
-
-
-
-
 const generatePageWithPlayerFields = (minPlayers: number, maxPlayers: number) => {
     return {
         pageName: "Coach Details",
@@ -210,9 +206,8 @@ const swimmingCategories = [
     "50m Breaststroke (Individual)",
     "50m Backstroke (Individual)",
     "100m Freestyle (Individual)",
-    "100m Individual Medley (Individual)",
-    "200m Freestyle Relay (mixed)",
-    "200m Medley Relay (mixed)"
+    "200m Freestyle Relay",
+    "200m Freestyle Relay (Mixed)",
 ] as const;
 
 export const ShootingCategories =
