@@ -37,11 +37,47 @@ const getAuthToken = (): string | null => {
 }
 
 export function AppSidebar() {
+  <div className="flex flex-col items-center gap-3 px-4 py-3">
+  <button
+    onClick={() => router.push("/dashboard")}
+    className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-400 hover:bg-gray-200"
+  >
+    1
+  </button>
+
+  <div className="w-px h-6 bg-gray-300"></div>
+
+  <button
+    onClick={() => router.push("/dashboard/regForm")}
+    className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-400 hover:bg-gray-200"
+  >
+    2
+  </button>
+
+  <div className="w-px h-6 bg-gray-300"></div>
+
+  <button
+    onClick={() => router.push("/dashboard/Payments")}
+    className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-400 hover:bg-gray-200"
+  >
+    3
+  </button>
+
+  <div className="w-px h-6 bg-gray-300"></div>
+
+  <button
+    onClick={() => router.push("#")}
+    className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-400 hover:bg-gray-200"
+  >
+    4
+  </button>
+</div>
+
 
   const [items, setItems] = useState<MenuItem[]>([
     // { title: "Home Page", url: "https://agneepath.co.in/", icon: Home, external: true }, // Added Home item - removed till main site is up
     { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, disabled: false },
-    { title: "Registration Form", url: "/dashboard/regForm", icon: BookText, disabled: true  },
+    { title: "Registration Form", url: "/dashboard/regForm", icon: BookText, disabled: false  },
     { title: "Payments", url: "/dashboard/Payments", icon: CreditCard, disabled: true },
     // { title: "Accomodations", url: "/dashboard/Accomodation", icon: Hotel }, // Hide accomodations temporarily till updation
 
@@ -119,10 +155,7 @@ export function AppSidebar() {
     useEffect(() => {
       // derive items so we can toggle disabled based on fetched user flags
       setItems(items.map((it) => {
-        if (it.title === "Registration Form") {
-          // enable registration route when registrationDone is false (i.e. not completed)
-          return { ...it, disabled: registrationDone === null ? false : !!registrationDone };
-        }
+        
         if (it.title === "Payments") {
           // enable payments when registration is done but payment not done
           // adjust logic as needed; here we enable Payments only when registrationDone is true
@@ -142,58 +175,73 @@ export function AppSidebar() {
       <SidebarContent>
         {/* Registration Progress */}
         <SidebarGroup>
-          <SidebarGroupLabel>Progress</SidebarGroupLabel>
-          <SidebarGroupContent>
-            {(() => {
-              const steps = ["Select sport", "Submit forms", "Finalise", "Payment"];
-              const completed =
-                (hasAnyForm ? 1 : 0) +
-                (hasSubmitted ? 1 : 0) +
-                (registrationDone ? 1 : 0) +
-                (paymentDone ? 1 : 0);
-              const current = paymentDone
-                ? 4
-                : registrationDone
-                ? 4
-                : hasSubmitted
-                ? 3
-                : hasAnyForm
-                ? 2
-                : 1;
+  <SidebarGroupLabel>Progress</SidebarGroupLabel>
+  <SidebarGroupContent>
 
-              return (
-                <RegistrationProgress
-                  steps={steps}
-                  current={current}
-                  completed={completed}
-                  compact
-                  className="px-2"
-                />
-              );
-            })()}
-          </SidebarGroupContent>
-        </SidebarGroup>
+    <div className="flex items-center justify-between px-3 py-2 w-full">
+
+  {/* STEP 1 */}
+  <button
+    onClick={() => router.push("/dashboard")}
+    className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-400 hover:bg-gray-200"
+  >
+    1
+  </button>
+
+  <div className="flex-1 h-px bg-gray-300 mx-2"></div>
+
+  {/* STEP 2 */}
+  <button
+    onClick={() => router.push("/dashboard/regForm")}
+    className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-400 hover:bg-gray-200"
+  >
+    2
+  </button>
+
+  <div className="flex-1 h-px bg-gray-300 mx-2"></div>
+
+  {/* STEP 3 */}
+  <button
+    onClick={() => router.push("/dashboard/Payments")}
+    className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-400 hover:bg-gray-200"
+  >
+    3
+  </button>
+
+  <div className="flex-1 h-px bg-gray-300 mx-2"></div>
+
+  {/* STEP 4 — sends user back to dashboard */}
+  <button
+    onClick={() => router.push("/dashboard")}
+    className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-400 hover:bg-gray-200"
+  >
+    4
+  </button>
+
+</div>
+
+
+  </SidebarGroupContent>
+</SidebarGroup>
+
         <SidebarGroup>
           <SidebarGroupLabel>Menu</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {items.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild disabled={item.disabled} className={item.disabled ? "cursor-not-allowed opacity-50" : ""}>
-                    <Link
-                      href={item.url}
-                      className="flex items-center space-x-2 text-lg font-medium {disabled ? 'pointer-events-none opacity-50' : ''}"
-                      target={(item as MenuItem).external ? "_blank" : "_self"}
-                      aria-disabled={item.disabled} 
-                      tabIndex={item.disabled ? -1 : undefined}
-                    >
-                      <item.icon className="h-5 w-5" />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
+  {items.map((item) => (
+    <SidebarMenuItem key={item.title}>
+      <Link 
+        href={item.disabled ? "#" : item.url}
+        className={`flex items-center space-x-2 text-lg font-medium px-3 py-2 rounded-md 
+          hover:bg-gray-200
+          ${item.disabled ? "cursor-not-allowed opacity-50 pointer-events-none" : ""}`}
+      >
+        <item.icon className="h-5 w-5" />
+        <span>{item.title}</span>
+      </Link>
+    </SidebarMenuItem>
+  ))}
+</SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>

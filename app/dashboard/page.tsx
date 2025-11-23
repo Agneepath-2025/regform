@@ -158,7 +158,7 @@ export default function Dashboard() {
     <div className="h-screen pt-6 pr-6 w-full max-w-[1200px]">
       <HeadingWithUnderline
         text="Agneepath 7.0"
-        desktopSize="md:text-6xl"
+        desktopSize="md:text-8xl"
         mobileSize="text-3xl sm:text-2xl"
       />
       <h3 className ="text-lg font-semibold text-gray-700 mt-1 mb-6 text-center">
