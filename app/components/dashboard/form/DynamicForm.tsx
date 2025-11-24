@@ -911,7 +911,7 @@ const maxDate = new Date(2009, 1, 1); // On or before 1 Feb 2009
         onChange={(e) => setAgree(e.target.checked)}
       />
       <label htmlFor="agreement" className="text-sm leading-tight">
-        I understand that <strong>Agneepath is not liable for any injury, loss, or damage</strong> 
+        I understand that <strong>Agneepath is not liable for any injury, loss, or damage </strong> 
         that may occur during my participation in the event.
       </label>
     </div>
