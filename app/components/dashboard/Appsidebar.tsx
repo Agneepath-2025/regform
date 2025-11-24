@@ -1,6 +1,6 @@
 "use client";
 
-import { CreditCard, BookText, LayoutDashboard, LogOut, HelpCircle} from "lucide-react";
+import { CreditCard, BookText, LayoutDashboard, LogOut} from "lucide-react";
 // import { CreditCard, BookText, LayoutDashboard, LogOut, //Home, Hotel } from "lucide-react"; - If home and hotel icons are needed
 import Image from "next/image";
 import Link from "next/link";
@@ -8,10 +8,6 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { post } from "@/app/utils/PostGetData"
 import RegistrationProgress from "@/app/components/dashboard/RegistrationProgress";
-import ReactMarkdown from "react-markdown";
-import type { Components } from "react-markdown";
-import remarkGfm from "remark-gfm";
-import { motion, AnimatePresence } from "framer-motion";
 
 import {
   Sidebar,
@@ -25,58 +21,6 @@ import {
   SidebarMenuItem,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-
-const MarkdownComponents: Components = {
-  table: ({ children }) => (
-    <table className="min-w-full divide-y divide-gray-200 my-4 border">
-      {children}
-    </table>
-  ),
-  thead: ({ children }) => <thead className="bg-gray-50">{children}</thead>,
-  tbody: ({ children }) => (
-    <tbody className="bg-white divide-y divide-gray-200">{children}</tbody>
-  ),
-  tr: ({ children }) => <tr className="hover:bg-gray-50">{children}</tr>,
-  td: ({ children }) => (
-    <td className="px-6 py-4 whitespace-normal border-r last:border-r-0">
-      {children}
-    </td>
-  ),
-  th: ({ children }) => (
-    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r last:border-r-0">
-      {children}
-    </th>
-  ),
-  ol: ({ children }) => (
-    <ol className="list-decimal list-outside space-y-2 my-4 ml-4">
-      {children}
-    </ol>
-  ),
-  ul: ({ children }) => (
-    <ul className="list-disc list-outside space-y-2 my-4 ml-4">
-      {children}
-    </ul>
-  ),
-  li: ({ children }) => <li className="pl-2">{children}</li>,
-  p: ({ children }) => <p className="my-4">{children}</p>,
-  h1: ({ children }) => (
-    <h1 className="text-2xl font-bold my-4 hidden">{children}</h1>
-  ),
-  h2: ({ children }) => (
-    <h2 className="text-xl font-bold my-3">{children}</h2>
-  ),
-  h3: ({ children }) => (
-    <h3 className="text-lg font-bold my-2">{children}</h3>
-  ),
-  pre: ({ children }) => (
-    <pre className="bg-gray-100 p-4 rounded-lg overflow-x-auto my-4">
-      {children}
-    </pre>
-  ),
-  code: ({ children }) => (
-    <code className="bg-gray-100 px-1 rounded">{children}</code>
-  ),
-};
 
 type MenuItem = {
   title: string;
@@ -109,8 +53,6 @@ export function AppSidebar() {
   const [paymentDone, setPaymentDone] = useState<boolean | null>(null)
   const [hasAnyForm, setHasAnyForm] = useState<boolean>(false)
   const [hasSubmitted, setHasSubmitted] = useState<boolean>(false)
-  const [faqOpen, setFaqOpen] = useState(false)
-  const [faqContent, setFaqContent] = useState<string>("")
 
   const handleLogout = () => {
     document.cookie = "authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;";
@@ -173,33 +115,6 @@ export function AppSidebar() {
 
       return () => window.removeEventListener("user:updated", onUserUpdated);
     }, [])
-
-  // Fetch FAQ content when modal opens
-  useEffect(() => {
-    if (faqOpen && !faqContent) {
-      const fetchFAQ = async () => {
-        try {
-          const response = await fetch("/markdown/FAQ.md");
-          if (response.ok) {
-            const text = await response.text();
-            setFaqContent(text);
-          }
-        } catch (error) {
-          console.error("Error fetching FAQ:", error);
-        }
-      };
-      fetchFAQ();
-    }
-  }, [faqOpen, faqContent]);
-
-  // ESC close for FAQ
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setFaqOpen(false);
-    };
-    if (faqOpen) window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [faqOpen]);
 
     useEffect(() => {
       // derive items so we can toggle disabled based on fetched user flags
@@ -281,20 +196,6 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-        {/* FAQ Section */}
-        <SidebarGroup>
-          <SidebarGroupLabel>Help</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton onClick={() => setFaqOpen(true)} className="flex space-x-2 text-lg">
-                  <HelpCircle className="h-5 w-5" />
-                  <span>FAQ</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
       </SidebarContent>
       <SidebarFooter className="mt-auto p-4">
         <SidebarMenuItem>
@@ -306,59 +207,7 @@ export function AppSidebar() {
             <span>Logout</span>
           </SidebarMenuButton>
         </SidebarMenuItem>
-      </SidebarFooter>
-
-      {/* FAQ Modal */}
-      <AnimatePresence>
-        {faqOpen && (
-          <>
-            {/* Backdrop */}
-            <motion.div
-              className="fixed inset-0 bg-black/50 z-40"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setFaqOpen(false)}
-            />
-
-            {/* Modal */}
-            <motion.div
-              className="fixed inset-0 z-50 flex items-center justify-center p-4"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
-              <motion.div
-                className="w-full max-w-3xl bg-white rounded-lg shadow-lg max-h-[85vh] overflow-y-auto"
-                initial={{ scale: 0.95, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.95, opacity: 0 }}
-              >
-                <div className="p-6">
-                  <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-2xl font-bold">Frequently Asked Questions</h2>
-                    <button
-                      onClick={() => setFaqOpen(false)}
-                      className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
-                    >
-                      ×
-                    </button>
-                  </div>
-                  <div className="prose prose-sm max-w-none">
-                    <ReactMarkdown
-                      remarkPlugins={[remarkGfm]}
-                      components={MarkdownComponents}
-                    >
-                      {faqContent}
-                    </ReactMarkdown>
-                  </div>
-                </div>
-              </motion.div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-      </>}
+      </SidebarFooter></>}
     </Sidebar>
   );
 }
