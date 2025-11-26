@@ -388,36 +388,118 @@ async function getSheetIds(sheets: ReturnType<typeof google.sheets>, spreadsheet
 }
 
 /**
- * Format sheet headers (bold + gray background)
+ * Apply comprehensive formatting to all sheets
+ * - Bold headers with color
+ * - Borders on all cells
+ * - Alternating row colors for better readability
  */
-async function formatHeaders(sheets: ReturnType<typeof google.sheets>, spreadsheetId: string, sheetIds: Record<string, number>): Promise<void> {
+async function formatSheets(sheets: ReturnType<typeof google.sheets>, spreadsheetId: string, sheetIds: Record<string, number>): Promise<void> {
   try {
-    const requests = Object.entries(sheetIds).map(([sheetName, sheetId]) => ({
-      repeatCell: {
-        range: {
-          sheetId,
-          startRowIndex: 0,
-          endRowIndex: 1,
-        },
-        cell: {
-          userEnteredFormat: {
-            textFormat: { bold: true },
-            backgroundColor: { red: 0.9, green: 0.9, blue: 0.9 }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const requests: any[] = [];
+
+    Object.entries(sheetIds).forEach(([, sheetId]) => {
+      // 1. Format header row (bold, dark blue background, white text)
+      requests.push({
+        repeatCell: {
+          range: {
+            sheetId,
+            startRowIndex: 0,
+            endRowIndex: 1,
+          },
+          cell: {
+            userEnteredFormat: {
+              textFormat: { 
+                bold: true,
+                foregroundColor: { red: 1, green: 1, blue: 1 } // White text
+              },
+              backgroundColor: { red: 0.26, green: 0.52, blue: 0.96 }, // Blue header
+              horizontalAlignment: 'CENTER',
+              verticalAlignment: 'MIDDLE'
+            }
+          },
+          fields: 'userEnteredFormat(textFormat,backgroundColor,horizontalAlignment,verticalAlignment)'
+        }
+      });
+
+      // 2. Add borders to all cells in the sheet (first 1000 rows)
+      requests.push({
+        updateBorders: {
+          range: {
+            sheetId,
+            startRowIndex: 0,
+            endRowIndex: 1000,
+            startColumnIndex: 0,
+            endColumnIndex: 26 // Column Z
+          },
+          top: {
+            style: 'SOLID',
+            width: 1,
+            color: { red: 0.8, green: 0.8, blue: 0.8 }
+          },
+          bottom: {
+            style: 'SOLID',
+            width: 1,
+            color: { red: 0.8, green: 0.8, blue: 0.8 }
+          },
+          left: {
+            style: 'SOLID',
+            width: 1,
+            color: { red: 0.8, green: 0.8, blue: 0.8 }
+          },
+          right: {
+            style: 'SOLID',
+            width: 1,
+            color: { red: 0.8, green: 0.8, blue: 0.8 }
+          },
+          innerHorizontal: {
+            style: 'SOLID',
+            width: 1,
+            color: { red: 0.8, green: 0.8, blue: 0.8 }
+          },
+          innerVertical: {
+            style: 'SOLID',
+            width: 1,
+            color: { red: 0.8, green: 0.8, blue: 0.8 }
           }
-        },
-        fields: 'userEnteredFormat(textFormat,backgroundColor)'
-      }
-    }));
+        }
+      });
+
+      // 3. Freeze header row
+      requests.push({
+        updateSheetProperties: {
+          properties: {
+            sheetId,
+            gridProperties: {
+              frozenRowCount: 1
+            }
+          },
+          fields: 'gridProperties.frozenRowCount'
+        }
+      });
+
+      // 4. Auto-resize columns
+      requests.push({
+        autoResizeDimensions: {
+          dimensions: {
+            sheetId,
+            dimension: 'COLUMNS',
+            startIndex: 0,
+            endIndex: 26
+          }
+        }
+      });
+    });
 
     if (requests.length > 0) {
       await sheets.spreadsheets.batchUpdate({
         spreadsheetId,
         requestBody: { requests }
       });
-      console.log("[Sheets] ✅ Headers formatted");
+      console.log("[Sheets] ✅ All sheets formatted (headers, borders, colors)");
     }
   } catch (error) {
-    console.warn("[Sheets] Could not format headers (non-critical):", error);
+    console.warn("[Sheets] Could not format sheets (non-critical):", error);
   }
 }
 
@@ -536,9 +618,9 @@ export async function initialFullSync(): Promise<InitialSyncResult> {
       console.log(`[Sheets] ✅ Synced ${payments.length} payments`);
     }
 
-    // Format headers for all sheets
+    // Format all sheets (headers, borders, colors)
     const sheetIds = await getSheetIds(sheets, spreadsheetId);
-    await formatHeaders(sheets, spreadsheetId, sheetIds);
+    await formatSheets(sheets, spreadsheetId, sheetIds);
 
     console.log("[Sheets] ✅ Initial sync completed");
     return { 

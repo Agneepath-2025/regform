@@ -545,16 +545,11 @@ If event-driven sync has issues:
 
 ### Potential Improvements
 
-1. **Update/Delete Handling**
-   - Currently only handles inserts (new submissions)
-   - Add handlers for form updates and deletions
+1. **Delete Handling**
+   - Add handlers for form/payment deletions
+   - Remove rows from sheet when records are deleted
 
-2. **Duplicate Prevention**
-   - Track synced IDs in MongoDB
-   - Skip if already synced
-   - Or: find and update existing row instead of append
-
-3. **Batch API**
+2. **Batch API**
    - Endpoint to sync multiple items at once
    - Useful for backfills or bulk operations
 
