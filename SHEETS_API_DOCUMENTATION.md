@@ -185,6 +185,11 @@ curl -X POST http://localhost:3000/api/sync/event \
 ### Form Submission
 **Triggered:** When `POST /api/form/saveForm` succeeds with `isDraft: false`
 
+**Behavior:** 
+- Checks if form ID already exists in column A of the sheet
+- If exists: **Updates** the existing row with new data
+- If not exists: **Appends** a new row
+
 **Synced Data:**
 - Form ID
 - Owner ID
@@ -199,10 +204,17 @@ curl -X POST http://localhost:3000/api/sync/event \
 
 **Sheet Tab:** `Sheet1`
 
+**No Duplicates:** Re-submitting the same form will update the existing row, not create duplicates.
+
 ---
 
 ### Payment Submission
 **Triggered:** When `POST /api/payments/submit` succeeds
+
+**Behavior:** 
+- Checks if payment ID already exists in column A of the sheet
+- If exists: **Updates** the existing row with new data
+- If not exists: **Appends** a new row
 
 **Synced Data:**
 - Payment ID
@@ -218,10 +230,17 @@ curl -X POST http://localhost:3000/api/sync/event \
 
 **Sheet Tab:** `Payments`
 
+**No Duplicates:** Re-submitting the same payment will update the existing row, not create duplicates.
+
 ---
 
 ### User Registration
 **Triggered:** (Call `syncUserRegistration(userId)` when users are created)
+
+**Behavior:** 
+- Checks if user ID already exists in column A of the sheet
+- If exists: **Updates** the existing row with new data
+- If not exists: **Appends** a new row
 
 **Synced Data:**
 - User ID
@@ -234,6 +253,8 @@ curl -X POST http://localhost:3000/api/sync/event \
 - Created At
 
 **Sheet Tab:** `Users`
+
+**No Duplicates:** Re-syncing the same user will update the existing row, not create duplicates.
 
 ---
 

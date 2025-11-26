@@ -66,7 +66,7 @@ function formatDate(dateValue: unknown): string {
 
 /**
  * Sync a single form submission to Google Sheets
- * Called when a form is submitted
+ * Updates existing row if form ID exists, otherwise appends new row
  */
 export async function syncFormSubmission(formId: string): Promise<SyncResult> {
   if (!SHEETS_SYNC_ENABLED) {
@@ -100,8 +100,8 @@ export async function syncFormSubmission(formId: string): Promise<SyncResult> {
       String(coachFields.contact || coachFields.phone || "")
     ];
 
-    // Append to Google Sheet
-    await appendToSheet(SHEET_CONFIGS.forms.name, [row]);
+    // Update or append to Google Sheet
+    await updateOrAppendToSheet(SHEET_CONFIGS.forms.name, formId, row);
 
     console.log(`[Sheets] ✅ Synced form submission: ${formId}`);
     return { success: true };
@@ -115,7 +115,7 @@ export async function syncFormSubmission(formId: string): Promise<SyncResult> {
 
 /**
  * Sync a user registration to Google Sheets
- * Called when a new user registers
+ * Updates existing row if user ID exists, otherwise appends new row
  */
 export async function syncUserRegistration(userId: string): Promise<SyncResult> {
   if (!SHEETS_SYNC_ENABLED) {
@@ -142,7 +142,8 @@ export async function syncUserRegistration(userId: string): Promise<SyncResult> 
       formatDate(user.createdAt)
     ];
 
-    await appendToSheet(SHEET_CONFIGS.users.name, [row]);
+    // Update or append to Google Sheet
+    await updateOrAppendToSheet(SHEET_CONFIGS.users.name, userId, row);
 
     console.log(`[Sheets] ✅ Synced user registration: ${userId}`);
     return { success: true };
@@ -156,7 +157,7 @@ export async function syncUserRegistration(userId: string): Promise<SyncResult> 
 
 /**
  * Sync a payment submission to Google Sheets
- * Called when a payment is submitted
+ * Updates existing row if payment ID exists, otherwise appends new row
  */
 export async function syncPaymentSubmission(paymentId: string): Promise<SyncResult> {
   if (!SHEETS_SYNC_ENABLED) {
@@ -185,7 +186,8 @@ export async function syncPaymentSubmission(paymentId: string): Promise<SyncResu
       formatDate(payment.createdAt)
     ];
 
-    await appendToSheet(SHEET_CONFIGS.payments.name, [row]);
+    // Update or append to Google Sheet
+    await updateOrAppendToSheet(SHEET_CONFIGS.payments.name, paymentId, row);
 
     console.log(`[Sheets] ✅ Synced payment: ${paymentId}`);
     return { success: true };
@@ -222,7 +224,104 @@ function createSheetsClient() {
 }
 
 /**
+ * Find row index for a given ID in column A
+ * Returns null if not found
+ */
+async function findRowByIdInSheet(sheetName: string, id: string): Promise<number | null> {
+  try {
+    const { sheets, spreadsheetId } = createSheetsClient();
+
+    // Get all values in column A (IDs)
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: `${sheetName}!A:A`,
+    });
+
+    const values = response.data.values;
+    if (!values || values.length === 0) {
+      return null;
+    }
+
+    // Find the row index (1-based, accounting for header row)
+    for (let i = 0; i < values.length; i++) {
+      if (values[i][0] === id) {
+        return i + 1; // Sheets API uses 1-based indexing
+      }
+    }
+
+    return null;
+  } catch (error) {
+    console.warn(`[Sheets] Could not search for ID ${id}:`, error);
+    return null; // If search fails, fall back to append
+  }
+}
+
+/**
+ * Update existing row or append new row to sheet
+ * Prevents duplicates by checking if ID exists in column A
+ */
+async function updateOrAppendToSheet(sheetName: string, id: string, row: string[], maxRetries = 3): Promise<void> {
+  let lastError: Error | undefined;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const { sheets, spreadsheetId } = createSheetsClient();
+
+      // Check if row already exists
+      const existingRowIndex = await findRowByIdInSheet(sheetName, id);
+
+      if (existingRowIndex !== null) {
+        // Update existing row
+        const range = `${sheetName}!A${existingRowIndex}:Z${existingRowIndex}`;
+        await sheets.spreadsheets.values.update({
+          spreadsheetId,
+          range,
+          valueInputOption: 'RAW',
+          requestBody: {
+            values: [row]
+          },
+        });
+        console.log(`[Sheets] Updated existing row ${existingRowIndex} for ID: ${id}`);
+      } else {
+        // Append new row
+        await sheets.spreadsheets.values.append({
+          spreadsheetId,
+          range: `${sheetName}!A:Z`,
+          valueInputOption: 'RAW',
+          requestBody: {
+            values: [row]
+          },
+        });
+        console.log(`[Sheets] Appended new row for ID: ${id}`);
+      }
+
+      return; // Success
+
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      
+      // Don't retry on credential/configuration errors
+      if (lastError.message.includes('credentials') || 
+          lastError.message.includes('not found') ||
+          lastError.message.includes('permission')) {
+        throw lastError;
+      }
+
+      // Retry with exponential backoff for transient errors
+      if (attempt < maxRetries) {
+        const backoffMs = Math.pow(2, attempt - 1) * 1000;
+        console.warn(`[Sheets] Attempt ${attempt}/${maxRetries} failed, retrying in ${backoffMs}ms...`);
+        await new Promise(resolve => setTimeout(resolve, backoffMs));
+      }
+    }
+  }
+
+  throw lastError || new Error("Failed to update/append to sheet after retries");
+}
+
+/**
  * Helper function to append rows to a specific sheet with retry logic
+ * Used only for initial sync where we know rows don't exist yet
  */
 async function appendToSheet(sheetName: string, rows: string[][], maxRetries = 3): Promise<void> {
   let lastError: Error | undefined;
