@@ -135,7 +135,7 @@ export async function syncUserRegistration(userId: string): Promise<SyncResult> 
       user._id.toString(),
       String(user.name || ""),
       String(user.email || ""),
-      String(user.university || ""),
+      String(user.universityName || ""),
       user.emailVerified ? "Yes" : "No",
       user.registrationDone ? "Yes" : "No",
       user.paymentDone ? "Yes" : "No",
