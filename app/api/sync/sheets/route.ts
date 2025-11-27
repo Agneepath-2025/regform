@@ -204,8 +204,8 @@ function formatUserData(documents: Record<string, unknown>[]) {
     (doc._id as { toString: () => string }).toString(),
     doc.name || "",
     doc.email || "",
-    doc.university || "",
-    doc.verified ? "Yes" : "No",
+    doc.universityName || "",
+    doc.emailVerified ? "Yes" : "No",
     doc.registrationDone ? "Yes" : "No",
     doc.paymentDone ? "Yes" : "No",
     doc.createdAt ? new Date(doc.createdAt as string).toLocaleString() : ""

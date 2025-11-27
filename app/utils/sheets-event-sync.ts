@@ -560,8 +560,8 @@ export async function initialFullSync(): Promise<InitialSyncResult> {
         doc._id.toString(),
         String(doc.name || ""),
         String(doc.email || ""),
-        String(doc.university || ""),
-        doc.verified ? "Yes" : "No",
+        String(doc.universityName || ""),
+        doc.emailVerified ? "Yes" : "No",
         doc.registrationDone ? "Yes" : "No",
         doc.paymentDone ? "Yes" : "No",
         formatDate(doc.createdAt)
