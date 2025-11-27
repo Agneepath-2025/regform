@@ -31,7 +31,7 @@ interface SheetConfig {
 const SHEET_CONFIGS: Record<string, SheetConfig> = {
   forms: {
     name: "Registrations",
-    headers: ["Form ID", "Owner ID", "Sport/Event", "Status", "Created At", "Updated At", "Player Count", "Player Names", "Coach Name", "Coach Contact"]
+    headers: ["Form ID", "User ID", "Sport/Event", "Status", "University Name", "User Email", "User Phone", "Created At", "Updated At", "Player Count", "Player Names", "Player Emails", "Player Phones", "POC/Coach Name", "POC/Coach Email", "POC/Coach Phone"]
   },
   users: {
     name: "Users",
@@ -39,7 +39,7 @@ const SHEET_CONFIGS: Record<string, SheetConfig> = {
   },
   payments: {
     name: "Payments",
-    headers: ["Payment ID", "Owner ID", "Amount (Numbers)", "Amount (Words)", "Payment Mode", "Transaction ID", "Payee Name", "Payment Date", "Status", "Created At"]
+    headers: ["Payment ID", "User ID", "Amount (Numbers)", "Amount (Words)", "Payment Mode", "Transaction ID", "Payee Name", "Payment Date", "Status", "Created At"]
   }
 };
 
@@ -82,22 +82,46 @@ export async function syncFormSubmission(formId: string): Promise<SyncResult> {
       return { success: false, error: "Form not found" };
     }
 
+    // Fetch owner data to get university name, email, phone
+    let ownerUniversity = "";
+    let ownerEmail = "";
+    let ownerPhone = "";
+    if (form.ownerId) {
+      const owner = await db.collection("users").findOne({ _id: new ObjectId(form.ownerId) });
+      if (owner) {
+        ownerUniversity = String(owner.universityName || "");
+        ownerEmail = String(owner.email || "");
+        ownerPhone = String(owner.phone || "");
+      }
+    }
+
     // Format single form data
     const fields = form.fields as Record<string, unknown> | undefined;
     const playerFields = (fields?.playerFields as Record<string, unknown>[]) || [];
     const coachFields = (fields?.coachFields as Record<string, unknown>) || {};
+
+    // Extract player details
+    const playerNames = playerFields.map((p: Record<string, unknown>) => String(p.name || p.playerName || "")).join(" | ");
+    const playerEmails = playerFields.map((p: Record<string, unknown>) => String(p.email || "")).join(" | ");
+    const playerPhones = playerFields.map((p: Record<string, unknown>) => String(p.phone || "")).join(" | ");
 
     const row = [
       form._id.toString(),
       form.ownerId ? form.ownerId.toString() : "",
       String(form.title || ""),
       String(form.status || ""),
+      ownerUniversity,
+      ownerEmail,
+      ownerPhone,
       formatDate(form.createdAt),
       formatDate(form.updatedAt),
       playerFields.length.toString(),
-      playerFields.map((p: Record<string, unknown>) => String(p.name || p.playerName || "")).join(", "),
+      playerNames,
+      playerEmails,
+      playerPhones,
       String(coachFields.name || ""),
-      String(coachFields.contact || coachFields.phone || "")
+      String(coachFields.email || ""),
+      String(coachFields.phone || coachFields.contact || "")
     ];
 
     // Update or append to Google Sheet
@@ -515,23 +539,46 @@ export async function initialFullSync(): Promise<InitialSyncResult> {
     // Sync forms
     console.log("[Sheets] Syncing forms...");
     const forms = await db.collection("form").find({}).toArray();
+    
+    // Fetch all owners in one query for efficiency
+    const ownerIds = forms.map(f => f.ownerId).filter(Boolean);
+    const owners = await db.collection("users").find({ _id: { $in: ownerIds } }).toArray();
+    const ownerMap = new Map(owners.map(o => [o._id.toString(), o]));
+    
     if (forms.length > 0) {
       const formRows = forms.map(doc => {
         const fields = doc.fields as Record<string, unknown> | undefined;
         const playerFields = (fields?.playerFields as Record<string, unknown>[]) || [];
         const coachFields = (fields?.coachFields as Record<string, unknown>) || {};
         
+        // Get owner data
+        const owner = doc.ownerId ? ownerMap.get(doc.ownerId.toString()) : null;
+        const ownerUniversity = owner ? String(owner.universityName || "") : "";
+        const ownerEmail = owner ? String(owner.email || "") : "";
+        const ownerPhone = owner ? String(owner.phone || "") : "";
+        
+        // Extract player details
+        const playerNames = playerFields.map((p: Record<string, unknown>) => String(p.name || p.playerName || "")).join(" | ");
+        const playerEmails = playerFields.map((p: Record<string, unknown>) => String(p.email || "")).join(" | ");
+        const playerPhones = playerFields.map((p: Record<string, unknown>) => String(p.phone || "")).join(" | ");
+        
         return [
           doc._id.toString(),
           doc.ownerId ? doc.ownerId.toString() : "",
           String(doc.title || ""),
           String(doc.status || ""),
+          ownerUniversity,
+          ownerEmail,
+          ownerPhone,
           formatDate(doc.createdAt),
           formatDate(doc.updatedAt),
           playerFields.length.toString(),
-          playerFields.map((p: Record<string, unknown>) => String(p.name || p.playerName || "")).join(", "),
+          playerNames,
+          playerEmails,
+          playerPhones,
           String(coachFields.name || ""),
-          String(coachFields.contact || coachFields.phone || "")
+          String(coachFields.email || ""),
+          String(coachFields.phone || coachFields.contact || "")
         ];
       });
 
