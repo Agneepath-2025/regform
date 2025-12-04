@@ -20,7 +20,7 @@ export default function RootLayout({
           height={38}
           priority
         />
-            <GoogleOAuthProvider clientId={process.env.GOOGLE_CLIENT_ID!}>
+            <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!}>
 
         <Suspense>{children}</Suspense>
         </GoogleOAuthProvider>
