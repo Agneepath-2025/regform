@@ -1,7 +1,0 @@
-const nextConfig = {
-    assetPrefix: 'https://cdn.agneepath.co.in',    reactStrictMode: true,
-    // Optional: Adjust output for performance if needed
-    output: 'standalone', // Optimize for standalone deployments
-
-module.exports = nextConfig;
-
