@@ -11,6 +11,10 @@ echo "🧹 Cleaning build artifacts..."
 rm -rf .next
 rm -rf package-lock.json
 
+# Stash or restore local changes before pulling
+echo "📋 Handling local changes..."
+git restore deploy.sh pnpm-lock.yaml 2>/dev/null || true
+
 # Pull latest changes
 echo "📥 Fetching and pulling latest changes..."
 git fetch
