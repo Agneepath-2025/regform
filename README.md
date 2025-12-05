@@ -1,8 +1,22 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# RegForm - Event Registration System
+
+Next.js application for managing event registrations with Google Sheets integration, OAuth authentication, and automated backups.
+
+## Quick Start
+
+### Local Development
+```bash
+cd scripts && ./setup-local.sh
+```
+
+### Production Deployment
+```bash
+cd scripts && ./deploy.sh
+```
 
 ## Getting Started
 
-First, run the development server:
+Run the development server:
 
 ```bash
 npm run dev
