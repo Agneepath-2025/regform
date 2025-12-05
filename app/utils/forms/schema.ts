@@ -74,14 +74,23 @@ export const playerFields = z.object({
         (phone) => /^[0-9]{10,15}$/.test(phone),
         { message: "Phone number must be atleast 10 digits" }
     ),
-    photo: z
-      .instanceof(File)
-      .refine((file) => ["image/jpeg", "image/png"].includes(file.type), {
-        message: "Only JPEG or PNG images allowed",
-      })
-      .refine((file) => file.size <= 5 * 1024 * 1024, {
-          message: "File must be smaller than 5MB",
-      })
+        photo: z
+            .any()
+            .optional()
+            .refine(
+                (file) =>
+                    file == null ||
+                    (typeof file === "object" &&
+                        ("type" in file ? ["image/jpeg", "image/png"].includes((file as any).type) : true)),
+                { message: "Only JPEG or PNG images allowed" }
+            )
+            .refine(
+                (file) =>
+                    file == null ||
+                    (typeof file === "object" &&
+                        ("size" in file ? (file as any).size <= 5 * 1024 * 1024 : true)),
+                { message: "File must be smaller than 5MB" }
+            ),
 });
 export const playerFieldsDraft = z.object({
     name: z.string().min(1, "Name is required").optional(),
@@ -102,7 +111,8 @@ export const playerFieldsDraft = z.object({
         (phone) => /^[0-9]{10,15}$/.test(phone),
         { message: "Phone number must be atleast 10 digits" }
     ).optional(),
-    photo: z.instanceof(File).optional(),
+    photo: z.any().optional(),
+
 });
 
 export const playerMeta: formMeta = {
@@ -174,10 +184,6 @@ export const sportFieldMeta: formMeta = {
 // ---------- Event Schema ----------
 
 
-
-
-
-
 const generatePageWithPlayerFields = (minPlayers: number, maxPlayers: number) => {
     return {
         pageName: "Coach Details",
@@ -210,9 +216,8 @@ const swimmingCategories = [
     "50m Breaststroke (Individual)",
     "50m Backstroke (Individual)",
     "100m Freestyle (Individual)",
-    "100m Individual Medley (Individual)",
-    "200m Freestyle Relay (mixed)",
-    "200m Medley Relay (mixed)"
+    "200m Freestyle Relay",
+    "200m Freestyle Relay (Mixed)",
 ] as const;
 
 export const ShootingCategories =

@@ -40,6 +40,16 @@ import { formMeta } from "@/app/utils/forms/schema";
 import { post } from "@/app/utils/PostGetData";
 import Image from "next/image";
 
+import {
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogTitle,
+  AlertDialogCancel,
+  AlertDialogAction
+} from "@/components/ui/alert-dialog";
+
+
 interface FormSelectProps {
   name: string;
   options: { value: string; label: string }[];
@@ -61,6 +71,7 @@ const RenderForm: React.FC<{ schema: ZodObject<ZodRawShape>, draftSchema: ZodObj
   const formSchema = isSaveDraft ? draftSchema : schema;
   const [hasReset, setHasReset] = useState(false);
   const router = useRouter();
+  const [agree, setAgree] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -624,7 +635,7 @@ const maxDate = new Date(2009, 1, 1); // On or before 1 Feb 2009
 
       if (baseSchema instanceof ZodEffects) {
         baseSchema = baseSchema._def.schema;
-        const metaType = getNestedMetaValue(meta, metafieldpath, "type");
+        /*const metaType = getNestedMetaValue(meta, metafieldpath, "type");
         if (metaType === "photo" || fieldPath.endsWith("photo")) {
           return (
             <FormFile
@@ -634,7 +645,7 @@ const maxDate = new Date(2009, 1, 1); // On or before 1 Feb 2009
               accept={getNestedMetaValue(meta, metafieldpath, "accept") as string}
             />
           );
-        }
+        }*/
       }
 
       if (baseSchema instanceof ZodString) {
@@ -788,19 +799,67 @@ const maxDate = new Date(2009, 1, 1); // On or before 1 Feb 2009
             )}
           </Button>
           
-          <Button
-            onClick={handleSubmitClick}
+          {/* SUBMIT WITH AGREEMENT POPUP */}
+<AlertDialog>
+  <AlertDialogTrigger asChild>
+    <Button
+      onClick={handleSubmitClick}
+      type="button"
+      disabled={isSubmitting}
+      className="font-semibold py-2.5 px-6 duration-200"
+    >
+      {isSubmitting ? (
+        <div className="spinner-border animate-spin inline-block w-4 h-4 border-2 rounded-full"></div>
+      ) : (
+        "Submit"
+      )}
+    </Button>
+  </AlertDialogTrigger>
 
-            type="submit"
-            disabled={isSubmitting}
-            className=" font-semibold py-2.5 px-6  duration-200"
-          >
-            {isSubmitting ? (
-              <div>Uploading files <div className="spinner-border animate-spin inline-block w-4 h-4 border-2 rounded-full"></div></div>
-            ) : (
-              "Submit"
-            )}
-          </Button>
+  <AlertDialogContent>
+    <AlertDialogTitle>Before You Submit</AlertDialogTitle>
+
+    <p className="mt-2 text-sm text-gray-700">
+      Please confirm that you agree to the following:
+    </p>
+
+    <div className="mt-4 flex items-start gap-3">
+      <input
+        type="checkbox"
+        id="agreement"
+        className="h-4 w-4 border-gray-400 rounded"
+        checked={agree}
+        onChange={(e) => setAgree(e.target.checked)}
+      />
+      <label htmlFor="agreement" className="text-sm leading-tight">
+        I understand that my participation in Agneepath is voluntary and at my own risk, and that the organisers will not be liable for any injury, loss, or damage that may
+        occur during or in connection with the event.
+      </label>
+    </div>
+
+    <div className="flex justify-end gap-3 mt-6">
+      <AlertDialogCancel
+        className="px-4 py-2 border rounded-md"
+        onClick={() => setAgree(false)}
+      >
+        Cancel
+      </AlertDialogCancel>
+
+      <AlertDialogAction
+        disabled={!agree || isSubmitting}
+        onClick={() => form.handleSubmit(onSubmit)()}
+        className={!agree ? "opacity-50 pointer-events-none" : ""}
+      >
+        {isSubmitting ? (
+          <div className="spinner-border animate-spin inline-block w-4 h-4 border-2 rounded-full"></div>
+        ) : (
+          "Confirm & Submit"
+        )}
+      </AlertDialogAction>
+    </div>
+  </AlertDialogContent>
+</AlertDialog>
+
           </div>
         </div>
         {memoizedFormFields}
@@ -819,19 +878,67 @@ const maxDate = new Date(2009, 1, 1); // On or before 1 Feb 2009
             )}
           </Button>
           
-          <Button
-            onClick={handleSubmitClick}
+          {/* SUBMIT WITH AGREEMENT POPUP */}
+<AlertDialog>
+  <AlertDialogTrigger asChild>
+    <Button
+      onClick={handleSubmitClick}
+      type="button"
+      disabled={isSubmitting}
+      className="font-semibold py-2.5 px-6 duration-200"
+    >
+      {isSubmitting ? (
+        <div className="spinner-border animate-spin inline-block w-4 h-4 border-2 rounded-full"></div>
+      ) : (
+        "Submit"
+      )}
+    </Button>
+  </AlertDialogTrigger>
 
-            type="submit"
-            disabled={isSubmitting}
-            className=" font-semibold py-2.5 px-6  duration-200"
-          >
-            {isSubmitting ? (
-              <div>Uploading files <div className="spinner-border animate-spin inline-block w-4 h-4 border-2 rounded-full"></div></div>
-            ) : (
-              "Submit"
-            )}
-          </Button>
+  <AlertDialogContent>
+    <AlertDialogTitle>Before You Submit</AlertDialogTitle>
+
+    <p className="mt-2 text-sm text-gray-700">
+      Please confirm that you agree to the following:
+    </p>
+
+    <div className="mt-4 flex items-start gap-3">
+      <input
+        type="checkbox"
+        id="agreement"
+        className="h-4 w-4 border-gray-400 rounded"
+        checked={agree}
+        onChange={(e) => setAgree(e.target.checked)}
+      />
+      <label htmlFor="agreement" className="text-sm leading-tight">
+        I understand that <strong>Agneepath is not liable for any injury, loss, or damage </strong> 
+        that may occur during my participation in the event.
+      </label>
+    </div>
+
+    <div className="flex justify-end gap-3 mt-6">
+      <AlertDialogCancel
+        className="px-4 py-2 border rounded-md"
+        onClick={() => setAgree(false)}
+      >
+        Cancel
+      </AlertDialogCancel>
+
+      <AlertDialogAction
+        disabled={!agree || isSubmitting}
+        onClick={() => form.handleSubmit(onSubmit)()}
+        className={!agree ? "opacity-50 pointer-events-none" : ""}
+      >
+        {isSubmitting ? (
+          <div className="spinner-border animate-spin inline-block w-4 h-4 border-2 rounded-full"></div>
+        ) : (
+          "Confirm & Submit"
+        )}
+      </AlertDialogAction>
+    </div>
+  </AlertDialogContent>
+</AlertDialog>
+
         </div>
       </form>
     </Form>

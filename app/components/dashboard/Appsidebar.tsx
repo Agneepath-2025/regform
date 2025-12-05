@@ -7,7 +7,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { post } from "@/app/utils/PostGetData"
+import { usePathname } from "next/navigation";
 import RegistrationProgress from "@/app/components/dashboard/RegistrationProgress";
+
 
 import {
   Sidebar,
@@ -36,23 +38,43 @@ const getAuthToken = (): string | null => {
   return authToken ? authToken.split("=")[1] : null
 }
 
-export function AppSidebar() {
 
-  const [items, setItems] = useState<MenuItem[]>([
-    // { title: "Home Page", url: "https://agneepath.co.in/", icon: Home, external: true }, // Added Home item - removed till main site is up
-    { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, disabled: false },
-    { title: "Registration Form", url: "/dashboard/regForm", icon: BookText, disabled: true  },
-    { title: "Payments", url: "/dashboard/Payments", icon: CreditCard, disabled: true },
-    // { title: "Accomodations", url: "/dashboard/Accomodation", icon: Hotel }, // Hide accomodations temporarily till updation
-
-  ]);
+  export function AppSidebar() {
+   
 
   const router = useRouter();
+
+
+  const pathname = usePathname();
+  const forceStep4 =
+  typeof window !== "undefined" &&
+  sessionStorage.getItem("forceStep4") === "true";
+
+
+  const currentStep = (() => {
+  if (forceStep4) return 4;
+  if (pathname === "/dashboard") return 1;
+  if (pathname.startsWith("/dashboard/regForm")) return 2;
+  if (pathname.startsWith("/dashboard/Payments")) return 3;
+  return 1;
+})();
+
+
+
+
+  const [items, setItems] = useState<MenuItem[]>([
+    { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, disabled: false },
+    { title: "Registration Form", url: "/dashboard/regForm", icon: BookText, disabled: false },
+    { title: "Payments", url: "/dashboard/Payments", icon: CreditCard, disabled: true },
+  ]);
   const [loading, setLoading] = useState(false)
   const [registrationDone, setRegistrationDone] = useState<boolean | null>(null)
   const [paymentDone, setPaymentDone] = useState<boolean | null>(null)
   const [hasAnyForm, setHasAnyForm] = useState<boolean>(false)
   const [hasSubmitted, setHasSubmitted] = useState<boolean>(false)
+  
+  const [faqOpen, setFaqOpen] = useState(false)
+  const [faqContent, setFaqContent] = useState<string>("")
 
   const handleLogout = () => {
     document.cookie = "authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;";
@@ -89,11 +111,23 @@ export function AppSidebar() {
               `/api/form/getAllForms`,
               { cookies: token }
             );
-            if (formsRes?.data?.success && Array.isArray(formsRes.data.data)) {
-              const list = formsRes.data.data;
-              setHasAnyForm(list.length > 0);
-              setHasSubmitted(list.some((f) => f.status === "submitted"));
-            } else {
+            if (formsRes.data?.success && Array.isArray(formsRes.data.data)) {
+  const list = formsRes.data.data;
+
+  // You already check number of forms
+  setHasAnyForm(list.length > 0);
+
+  // NEW FIX: enable payments if form status is confirmed OR not_confirmed OR submitted
+  setHasSubmitted(
+    list.some(
+      (f) =>
+        f.status &&
+        ["confirmed", "not_confirmed", "submitted"].includes(
+          f.status.toLowerCase()
+        )
+    )
+  );
+} else {
               setHasAnyForm(false);
               setHasSubmitted(false);
             }
@@ -117,20 +151,24 @@ export function AppSidebar() {
     }, [])
 
     useEffect(() => {
-      // derive items so we can toggle disabled based on fetched user flags
-      setItems(items.map((it) => {
-        if (it.title === "Registration Form") {
-          // enable registration route when registrationDone is false (i.e. not completed)
-          return { ...it, disabled: registrationDone === null ? false : !!registrationDone };
-        }
-        if (it.title === "Payments") {
-          // enable payments when registration is done but payment not done
-          // adjust logic as needed; here we enable Payments only when registrationDone is true
-          return { ...it, disabled: registrationDone === null || registrationDone === false ? true : paymentDone === null ? false : !!paymentDone  };
-        }
-        return it;
-      }))
-    }, [registrationDone, paymentDone]);
+  setItems((prevItems) =>
+    prevItems.map((it) => {
+      if (it.title === "Payments") {
+        return {
+          ...it,
+          disabled:
+            registrationDone === null ||
+            registrationDone === false
+              ? true
+              : paymentDone === null
+              ? false
+              : !!paymentDone,
+        };
+      }
+      return it;
+    })
+  );
+}, [registrationDone, paymentDone]);
 
   return (
     <Sidebar>
@@ -142,58 +180,100 @@ export function AppSidebar() {
       <SidebarContent>
         {/* Registration Progress */}
         <SidebarGroup>
-          <SidebarGroupLabel>Progress</SidebarGroupLabel>
-          <SidebarGroupContent>
-            {(() => {
-              const steps = ["Select sport", "Submit forms", "Finalise", "Payment"];
-              const completed =
-                (hasAnyForm ? 1 : 0) +
-                (hasSubmitted ? 1 : 0) +
-                (registrationDone ? 1 : 0) +
-                (paymentDone ? 1 : 0);
-              const current = paymentDone
-                ? 4
-                : registrationDone
-                ? 4
-                : hasSubmitted
-                ? 3
-                : hasAnyForm
-                ? 2
-                : 1;
+  <SidebarGroupLabel>Progress</SidebarGroupLabel>
+  <SidebarGroupContent>
 
-              return (
-                <RegistrationProgress
-                  steps={steps}
-                  current={current}
-                  completed={completed}
-                  compact
-                  className="px-2"
-                />
-              );
-            })()}
-          </SidebarGroupContent>
-        </SidebarGroup>
+    <div className="flex items-center justify-between px-3 py-2 w-full">
+
+      {/* STEP 1 */}
+      <button
+        onClick={() => {
+          sessionStorage.removeItem("forceStep4");
+          router.push("/dashboard");
+        }}
+        className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-400 hover:bg-gray-200"
+      >
+        1
+      </button>
+
+      <div className="flex-1 h-px bg-gray-300 mx-2"></div>
+
+      {/* STEP 2 */}
+      <button
+        onClick={() => {
+          sessionStorage.removeItem("forceStep4");
+          router.push("/dashboard/regForm");
+        }}
+        className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-400 hover:bg-gray-200"
+      >
+        2
+      </button>
+
+      <div className="flex-1 h-px bg-gray-300 mx-2"></div>
+
+      {/* STEP 3 */}
+      <button
+        onClick={() => {
+          sessionStorage.removeItem("forceStep4");
+          router.push("/dashboard/Payments");
+        }}
+        className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-400 hover:bg-gray-200"
+      >
+        3
+      </button>
+
+      <div className="flex-1 h-px bg-gray-300 mx-2"></div>
+
+      {/* STEP 4 */}
+      <button
+        onClick={() => {
+          sessionStorage.setItem("forceStep4", "true");
+          router.push("/dashboard");
+        }}
+        className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-400 hover:bg-gray-200"
+      >
+        4
+      </button>
+
+    </div>
+
+   
+    
+      <div className="relative w-full h-3 bg-gray-200 rounded-full overflow-hidden">
+        <div
+  className="absolute top-0 left-0 h-full bg-black transition-all duration-500"
+  style={{
+    width:
+      currentStep === 1 ? "0%" :      // Step 1 → 0%
+      currentStep === 2 ? "30%" :     // Step 2 → 30%
+      currentStep === 3 ? "60%" :     // Step 3 → 60%
+      "100%"                          // Step 4 → 100%
+  }}
+/>
+    </div>
+
+  </SidebarGroupContent>
+</SidebarGroup>
+
+
         <SidebarGroup>
           <SidebarGroupLabel>Menu</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {items.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild disabled={item.disabled} className={item.disabled ? "cursor-not-allowed opacity-50" : ""}>
-                    <Link
-                      href={item.url}
-                      className="flex items-center space-x-2 text-lg font-medium {disabled ? 'pointer-events-none opacity-50' : ''}"
-                      target={(item as MenuItem).external ? "_blank" : "_self"}
-                      aria-disabled={item.disabled} 
-                      tabIndex={item.disabled ? -1 : undefined}
-                    >
-                      <item.icon className="h-5 w-5" />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
+  {items.map((item) => (
+    <SidebarMenuItem key={item.title}>
+      <Link 
+        href={item.disabled ? "#" : item.url}
+        className={`flex items-center space-x-2 text-lg font-medium px-3 py-2 rounded-md 
+          hover:bg-gray-200
+          ${item.disabled ? "cursor-not-allowed opacity-50 pointer-events-none" : ""}`}
+      >
+        <item.icon className="h-5 w-5" />
+        <span>{item.title}</span>
+      </Link>
+    </SidebarMenuItem>
+  ))}
+</SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>

@@ -1,6 +1,6 @@
 # **Volleyball** 
 
-*Men and Women*
+*Men and Women* (All final decisions in the game will be taken by the Referee)
 
 # **Format:**
 

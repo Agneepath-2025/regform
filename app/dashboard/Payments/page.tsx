@@ -426,7 +426,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ sportsTotal = 0, onCompleted 
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-lg font-bold">Mode of Payment</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <Select onValueChange={field.onChange} value={"bank"}>
                     <SelectTrigger>
                       <SelectValue placeholder="Choose payment method" />
                     </SelectTrigger>

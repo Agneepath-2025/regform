@@ -126,10 +126,19 @@ export async function POST(req: NextRequest) {
     const uploadedFiles: Record<string, File> = {};
 
     for (const [key, value] of data.entries()) {
-      if (value instanceof File && value.size > 0) {
-        uploadedFiles[key] = value;
-      }
-    }
+  // Detect file-like objects (Next.js FormData File)
+  const isFileLike =
+    typeof value === "object" &&
+    value !== null &&
+    "arrayBuffer" in value &&
+    "size" in value &&
+    typeof value.arrayBuffer === "function";
+
+  if (isFileLike && value.size > 0) {
+    uploadedFiles[key] = value;
+  }
+}
+
 
     //const { formId, fields, isDraft } = data;
     const formId = data.get("formId") as string;

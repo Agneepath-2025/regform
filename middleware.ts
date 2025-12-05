@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { post } from "@/app/utils/PostGetData";
+import jwt from "jsonwebtoken";
+import { decrypt } from "@/app/utils/encryption";
+
+// Force middleware to use Node.js runtime instead of Edge
+export const runtime = 'nodejs';
+
+const JWT_SECRET = process.env.JWT_SECRET;
 
 export async function middleware(req: NextRequest) {
   const token = req.cookies.get("authToken")?.value;
@@ -32,27 +38,20 @@ export async function middleware(req: NextRequest) {
   return NextResponse.redirect(new URL("/SignIn", req.url), { status: 302 });
 }
 
-// Token validation function
+// Token validation function - validates directly without HTTP request
 async function validateToken(token: string): Promise<boolean> {
   try {
-    const response = await post<{ success: boolean }>(`${process.env.ROOT_URL}api/auth/middleware`, { tokene: token });
-
-
-    if (response.error) {
-// console.error("Error during token validation:", response.error);
-
+    if (!JWT_SECRET) {
       return false;
     }
 
-    if (response.data) {
-      const data = response.data;
-      return data.success ?? false;
-    }
-
-    return false;
+    // Decrypt and verify the token directly
+    const decryptedToken = decrypt(token).jwt;
+    jwt.verify(decryptedToken, JWT_SECRET as jwt.Secret);
+    
+    return true;
   } catch (error) {
-// console.error("Exception during token validation:", error);
-
+    // Token is invalid or expired
     return false;
   }
 }

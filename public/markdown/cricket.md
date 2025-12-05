@@ -20,7 +20,7 @@
    2. Super overs continue till a winner is determined.  
    3. In case of a super over, captains of both teams must submit a list of 3 batsmen and 1 bowler to the umpires before the super over begins. In case of a subsequent super over, this list can be renewed or changed.  
 7. Powerplay  
-   1. The batting team will have a powerplay for the first 5 overs of the innings (regardless of whether it is a 15 or 20 over format)  
+   1. The number of overs for the batting powerplay is contingent on the number of total overs in the match.
    2. For the duration of the powerplay, the fielding team can only have up to 2 fielders outside the 30-yard circle.  
    3. After the powerplay, the fielding team can have up to 5 fielders outside the 30-yard circle.  
    4. Failure to comply with these fielding regulations will result in a no-ball being called.  
