@@ -6,26 +6,22 @@ echo "🚀 Starting deployment..."
 # Navigate to project directory
 cd /mnt/HC_Volume_103871510/host/regform || exit 1
 
-# Pull latest changes (if using git)
-echo "📥 Fetching latest changes from repository..."
-git fetch origin || echo "⚠️  Git fetch failed"
+# Clean build artifacts and lock files
+echo "🧹 Cleaning build artifacts..."
+rm -rf .next
+rm -rf package-lock.json
 
-echo "📥 Pulling latest changes..."
-git pull origin main || echo "⚠️  No git repository or pull failed"
+# Pull latest changes
+echo "📥 Fetching and pulling latest changes..."
+git fetch
+git pull
 
-# Clean and reinstall dependencies
-echo "📦 Cleaning node_modules..."
-rm -rf node_modules package-lock.json
-
+# Install dependencies
 echo "📦 Installing dependencies..."
 npm install
 
-echo "🔧 Rebuilding native modules..."
-npm rebuild bcrypt
-
-# Build the application with increased memory
+# Build application
 echo "🔨 Building application..."
-export NODE_OPTIONS="--max-old-space-size=4096"
 npm run build
 
 # Restart with PM2
