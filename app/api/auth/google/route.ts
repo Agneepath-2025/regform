@@ -5,6 +5,7 @@ import { connectToDatabase } from "@/lib/mongodb";
 import jwt from "jsonwebtoken";
 import { encrypt } from "@/app/utils/encryption";
 import { NextRequest, NextResponse } from "next/server";
+import { syncUserRegistration } from "@/app/utils/sheets-event-sync";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-256-bit-secret"; // Your JWT secret
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID); // Google OAuth2 client initialization
@@ -50,6 +51,11 @@ export async function POST(req: NextRequest) {
       if (!existingUser) {
         return NextResponse.json({ success: false, message: "Failed to fetch user after insert." }, { status: 500 });
       }
+
+      // Sync new user to Google Sheets (non-blocking)
+      syncUserRegistration(result.insertedId.toString()).catch(err => {
+        console.error("[Sheets] Failed to sync user registration:", err);
+      });
 
       // Note: Signup email will be sent after university is saved in SaveUniversity route
     }

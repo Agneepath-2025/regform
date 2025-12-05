@@ -13,9 +13,15 @@ git fetch origin || echo "⚠️  Git fetch failed"
 echo "📥 Pulling latest changes..."
 git pull origin main || echo "⚠️  No git repository or pull failed"
 
-# Install dependencies
+# Clean and reinstall dependencies
+echo "📦 Cleaning node_modules..."
+rm -rf node_modules package-lock.json
+
 echo "📦 Installing dependencies..."
-npm install --omit=dev
+npm install
+
+echo "🔧 Rebuilding native modules..."
+npm rebuild bcrypt
 
 # Build the application
 echo "🔨 Building application..."

@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { fetchUserData } from "@/app/utils/GetUpdateUser";
 import { createErrorResponse, User } from "@/app/utils/interfaces";
 import sendConfirmationEmail from "@/app/utils/mailer/ConfirmationMail";
+import { syncFormSubmission } from "@/app/utils/sheets-event-sync";
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
 interface FormObj {
@@ -243,6 +244,7 @@ export async function POST(req: NextRequest) {
       { _id: new ObjectId(formId) },
       { $set: updatedData }
     );
+    
     // In your POST function, where you're calling sendConfirmationEmail:
 if (!isDraft) {
   try {
@@ -262,6 +264,12 @@ if (!isDraft) {
     // console.error("Failed to send confirmation email:", error);
     // Continue with the response even if email fails
   }
+
+  // Sync to Google Sheets (event-driven, non-blocking)
+  syncFormSubmission(formId).catch(err => {
+    console.error("[Sheets] Form sync failed (non-blocking):", err.message || err);
+    // Don't throw - allow form submission to succeed even if sheets sync fails
+  });
 }
 
     // Now, call updateUserData to update the user collection

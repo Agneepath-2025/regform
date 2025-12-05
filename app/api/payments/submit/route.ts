@@ -5,6 +5,7 @@ import { getEmailFromToken } from "@/app/utils/forms/getEmail";
 import { fetchUserData } from "@/app/utils/GetUpdateUser";
 // unused imports removed
 import { sendPaymentConfirmationEmail } from "@/app/utils/mailer/PaymentEmail";
+import { syncPaymentSubmission } from "@/app/utils/sheets-event-sync";
 
 // (removed unused helper `addFileToStrapiDatabase`)
 
@@ -131,6 +132,12 @@ export async function POST(req: NextRequest) {
 
     const result = await paymentCollection.insertOne(paymentData);
     const insertedId = result.insertedId.toString()
+
+    // Sync to Google Sheets (event-driven, non-blocking)
+    syncPaymentSubmission(insertedId).catch(err => {
+      console.error("[Sheets] Payment sync failed (non-blocking):", err.message || err);
+      // Don't throw - allow payment submission to succeed even if sheets sync fails
+    });
 
     // Prepare email data
     const formDataObj: PaymentFormData = {

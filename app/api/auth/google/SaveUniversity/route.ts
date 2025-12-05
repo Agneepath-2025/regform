@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
 import { getEmailFromToken } from "@/app/utils/forms/getEmail"; // Utility to extract email from JWT
 import { sendSignupConfirmationEmail } from "@/app/utils/mailer/SignupEmail";
+import { syncUserRegistration } from "@/app/utils/sheets-event-sync";
 export async function POST(req: NextRequest) {
     try {
         // Step 1: Extract the token from the request cookies
@@ -58,6 +59,11 @@ export async function POST(req: NextRequest) {
                 universityName,
                 signupMethod: "google",
             }).catch((err) => console.error("Sending signup email failed:", err));
+
+            // Sync updated user to Google Sheets (non-blocking)
+            syncUserRegistration(user._id.toString()).catch(err => {
+                console.error("[Sheets] Failed to sync user after university update:", err);
+            });
 
             return NextResponse.json({
                 success: true,
