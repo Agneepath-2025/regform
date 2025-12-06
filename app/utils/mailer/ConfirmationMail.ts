@@ -1,11 +1,8 @@
 import nodemailer from "nodemailer";
-import dotenv from "dotenv";
 import { sports } from "../forms/schema";
 import fs from "fs";
 import path from "path";
 /* eslint-disable @typescript-eslint/no-explicit-any */
-
-dotenv.config();
 
 interface PlayerField {
     name: string;

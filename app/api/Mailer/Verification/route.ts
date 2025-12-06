@@ -1,12 +1,9 @@
 import { encrypt } from "@/app/utils/encryption";
 import { connectToDatabase } from "@/lib/mongodb";
 import nodemailer from "nodemailer";
-import dotenv from "dotenv";
 import fs from "fs";
 import path from "path";
 /* eslint-disable @typescript-eslint/no-unused-vars */
-
-dotenv.config();
 
 async function getVerificationId(email: string): Promise<string | null> {
   const { db } = await connectToDatabase();
