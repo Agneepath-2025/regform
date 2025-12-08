@@ -17,7 +17,7 @@ DB_NAME="production"
 UPLOAD_PATH="/mnt/HC_Volume_103871510/host/StrapiMongoDB/public/uploads"
 
 # Google Drive (using rclone)
-GDRIVE_REMOTE="gdrive:Backups/RegForm"  # Configure rclone remote named 'gdrive'
+GDRIVE_REMOTE="agneepath-gdrive:Backups/RegForm"  # Configure rclone remote named 'agneepath-gdrive'
 
 # Retention (days)
 LOCAL_RETENTION_DAYS=30
