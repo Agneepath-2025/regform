@@ -1,8 +1,22 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# RegForm - Event Registration System
+
+Next.js application for managing event registrations with Google Sheets integration, OAuth authentication, and automated backups.
+
+## Quick Start
+
+### Local Development
+```bash
+cd scripts && ./setup-local.sh
+```
+
+### Production Deployment
+```bash
+cd scripts && ./deploy.sh
+```
 
 ## Getting Started
 
-First, run the development server:
+Run the development server:
 
 ```bash
 npm run dev
@@ -34,3 +48,23 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Scripts
+
+All automation scripts are in [`scripts/`](./scripts/):
+
+| Script | Purpose |
+|--------|---------|
+| `setup-local.sh` | Local development environment setup |
+| `deploy.sh` | Production deployment automation |
+| `backup.sh` | Automated backup (MongoDB + files) |
+| `restore.sh` | Interactive backup restoration |
+| `setup-backup.sh` | One-time backup automation setup |
+
+**Quick start:** See [`scripts/README.md`](./scripts/README.md)
+
+## Documentation
+
+- [`BACKUP_SYSTEM.md`](./BACKUP_SYSTEM.md) - Complete backup system guide
+- [`RAILWAY_MYSQL_SETUP.md`](./RAILWAY_MYSQL_SETUP.md) - Database setup
+- [`VERCEL_DEPLOYMENT.md`](./VERCEL_DEPLOYMENT.md) - Alternative deployment options
