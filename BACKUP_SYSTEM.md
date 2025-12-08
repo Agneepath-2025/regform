@@ -111,7 +111,7 @@ Backups/RegForm/
 ### View Backup Logs:
 ```bash
 # Latest backup log
-tail -f /mnt/HC_Volume_103871510/backups/regform/logs/backup_*.log | tail -1
+tail -f "$(ls -1t /mnt/HC_Volume_103871510/backups/regform/logs/backup_*.log | head -1)"
 
 # Cron execution log
 tail -f /mnt/HC_Volume_103871510/backups/regform/logs/cron.log
