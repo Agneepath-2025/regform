@@ -105,8 +105,8 @@ restore_uploads() {
     fi
     
     # Extract uploads
-    mkdir -p "$(dirname $UPLOAD_PATH)"
-    if tar -xzf "$backup_file" -C "$(dirname $UPLOAD_PATH)"; then
+    mkdir -p "$(dirname "$UPLOAD_PATH")"
+    if tar -xzf "$backup_file" -C "$(dirname "$UPLOAD_PATH")"; then
         echo "✅ Uploads restored successfully"
     else
         echo "❌ Uploads restoration failed"
