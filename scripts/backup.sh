@@ -20,8 +20,8 @@ UPLOAD_PATH="$HOME/regform/public/uploads"
 GDRIVE_REMOTE="agneepath-gdrive:server-backups"  # Configure rclone remote named 'agneepath-gdrive'
 
 # Retention (days)
-LOCAL_RETENTION_DAYS=30
-GDRIVE_RETENTION_DAYS=90
+# LOCAL_RETENTION_DAYS=30
+# GDRIVE_RETENTION_DAYS=90
 
 # Timestamp
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
