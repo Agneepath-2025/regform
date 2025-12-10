@@ -31,11 +31,11 @@ interface SheetConfig {
 const SHEET_CONFIGS: Record<string, SheetConfig> = {
   forms: {
     name: "Registrations",
-    headers: ["Form ID", "User ID", "Sport/Event", "Status", "University Name", "User Email", "User Phone", "Created At", "Updated At", "Player Count", "Player Names", "Player Emails", "Player Phones", "POC/Coach Name", "POC/Coach Email", "POC/Coach Phone"]
+    headers: ["Sport/Event", "Status", "University Name", "User Email", "User Phone", "Created At", "Updated At", "Player Count", "Player Names", "Player Emails", "Player Phones", "POC/Coach Name", "POC/Coach Email", "POC/Coach Phone"]
   },
   users: {
     name: "Users",
-    headers: ["Name", "Email", "University", "Verified", "Registration Done", "Payment Done", "Created At"]
+    headers: ["Name", "Email", "Contact Number", "University", "Verified", "Registration Done", "Payment Done", "Created At"]
   },
   payments: {
     name: "Payments",
@@ -106,8 +106,6 @@ export async function syncFormSubmission(formId: string): Promise<SyncResult> {
     const playerPhones = playerFields.map((p: Record<string, unknown>) => String(p.phone || "")).join(" | ");
 
     const row = [
-      form._id.toString(),
-      form.ownerId ? form.ownerId.toString() : "",
       String(form.title || ""),
       String(form.status || ""),
       ownerUniversity,
@@ -158,6 +156,7 @@ export async function syncUserRegistration(userId: string): Promise<SyncResult> 
     const row = [
       String(user.name || ""),
       String(user.email || ""),
+      String(user.phone || ""),
       String(user.universityName || ""),
       user.emailVerified ? "Yes" : "No",
       user.registrationDone ? "Yes" : "No",
@@ -562,8 +561,6 @@ export async function initialFullSync(): Promise<InitialSyncResult> {
         const playerPhones = playerFields.map((p: Record<string, unknown>) => String(p.phone || "")).join(" | ");
         
         return [
-          doc._id.toString(),
-          doc.ownerId ? doc.ownerId.toString() : "",
           String(doc.title || ""),
           String(doc.status || ""),
           ownerUniversity,
@@ -605,6 +602,7 @@ export async function initialFullSync(): Promise<InitialSyncResult> {
       const userRows = users.map(doc => [
         String(doc.name || ""),
         String(doc.email || ""),
+        String(doc.phone || ""),
         String(doc.universityName || ""),
         doc.emailVerified ? "Yes" : "No",
         doc.registrationDone ? "Yes" : "No",
