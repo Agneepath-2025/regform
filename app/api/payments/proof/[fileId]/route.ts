@@ -35,23 +35,31 @@ export async function GET(
 
     const file = files[0];
 
-    // Stream the file
+    // Stream the file directly without loading into memory
     const downloadStream = bucket.openDownloadStream(new ObjectId(fileId));
 
-    // Convert stream to buffer
-    const chunks: Uint8Array[] = [];
-    for await (const chunk of downloadStream) {
-      chunks.push(chunk);
-    }
-    const buffer = Buffer.concat(chunks);
+    // Convert GridFS stream to ReadableStream for NextResponse
+    const readableStream = new ReadableStream({
+      start(controller) {
+        downloadStream.on("data", (chunk: Buffer) => {
+          controller.enqueue(new Uint8Array(chunk));
+        });
+        downloadStream.on("end", () => {
+          controller.close();
+        });
+        downloadStream.on("error", (err) => {
+          controller.error(err);
+        });
+      },
+    });
 
     // Return file with appropriate headers
-    return new NextResponse(buffer, {
+    return new NextResponse(readableStream, {
       status: 200,
       headers: {
         "Content-Type": file.contentType || "application/octet-stream",
         "Content-Disposition": `inline; filename="${file.filename || 'payment-proof'}"`,
-        "Content-Length": buffer.length.toString(),
+        "Content-Length": file.length?.toString() || "",
       },
     });
 
