@@ -35,7 +35,7 @@ const SHEET_CONFIGS: Record<string, SheetConfig> = {
   },
   users: {
     name: "Users",
-    headers: ["User ID", "Name", "Email", "University", "Verified", "Registration Done", "Payment Done", "Created At"]
+    headers: ["Name", "Email", "University", "Verified", "Registration Done", "Payment Done", "Created At"]
   },
   payments: {
     name: "Payments",
@@ -156,7 +156,6 @@ export async function syncUserRegistration(userId: string): Promise<SyncResult> 
     }
 
     const row = [
-      user._id.toString(),
       String(user.name || ""),
       String(user.email || ""),
       String(user.universityName || ""),
@@ -604,7 +603,6 @@ export async function initialFullSync(): Promise<InitialSyncResult> {
     const users = await db.collection("users").find({}).toArray();
     if (users.length > 0) {
       const userRows = users.map(doc => [
-        doc._id.toString(),
         String(doc.name || ""),
         String(doc.email || ""),
         String(doc.universityName || ""),
