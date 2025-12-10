@@ -232,9 +232,9 @@ export async function syncPaymentSubmission(paymentId: string): Promise<SyncResu
     
     if (forms.length > 0) {
       // Get all sports/events
-      sports = forms.map((f: any) => String(f.title || "")).filter(Boolean).join(", ");
+      sports = forms.map((f: { title?: string }) => String(f.title || "")).filter(Boolean).join(", ");
       // Count total players across all forms
-      numberOfPeople = forms.reduce((total: number, form: any) => {
+      numberOfPeople = forms.reduce((total: number, form: { fields?: Record<string, unknown> }) => {
         const fields = form.fields as Record<string, unknown> | undefined;
         const playerFields = (fields?.playerFields as Record<string, unknown>[]) || [];
         return total + playerFields.length;
@@ -409,7 +409,9 @@ async function updateOrAppendToSheet(sheetName: string, id: string, row: string[
 /**
  * Helper function to append rows to a specific sheet with retry logic
  * Used only for initial sync where we know rows don't exist yet
+ * @deprecated - Currently unused, kept for future batch operations
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function appendToSheet(sheetName: string, rows: string[][], maxRetries = 3): Promise<void> {
   let lastError: Error | undefined;
 
