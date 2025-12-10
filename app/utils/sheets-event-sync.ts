@@ -217,12 +217,12 @@ export async function syncPaymentSubmission(paymentId: string): Promise<SyncResu
         sports = forms.map(f => String(f.title || "")).filter(Boolean).join(", ");
         // Count total players across all forms
         numberOfPeople = forms.reduce((total, form) => {
-          const fields = form.fields as Record<string, unknown> | undefined;
-          const playerFields = (fields?.playerFields as Record<string, unknown>[]) || [];
-          return total + playerFields.length;
-        }, 0);
-        // Category can be derived from status or set as "Team" for now
-        category = "Team";
+        const fields = form.fields as Record<string, unknown> | undefined;
+        const playerFields = (fields?.playerFields as Record<string, unknown>[]) || [];
+        return total + playerFields.length;
+      }, 0);
+        // Derive category based on player count: Individual (1) or Team (multiple)
+        category = numberOfPeople === 1 ? "Individual" : "Team";
       }
     }
 
@@ -710,6 +710,9 @@ export async function initialFullSync(): Promise<InitialSyncResult> {
           return total + playerFields.length;
         }, 0);
         
+        // Derive category based on player count: Individual (1) or Team (multiple)
+        const category = numberOfPeople === 1 ? "Individual" : "Team";
+        
         // Format date and time
         const paymentDate = doc.paymentDate ? new Date(doc.paymentDate) : new Date();
         const date = paymentDate.toLocaleDateString('en-IN', { 
@@ -733,7 +736,7 @@ export async function initialFullSync(): Promise<InitialSyncResult> {
           String(doc.amountInNumbers || ""),
           String(doc.payeeName || ""),
           sports,
-          "Team",
+          category,
           numberOfPeople.toString(),
           owner ? String(owner.phone || "") : "",
           owner ? String(owner.email || "") : "",
