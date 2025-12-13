@@ -1,40 +1,27 @@
 # Payment Verification Dropdown Setup Guide
 
-This guide explains how to set up the "Status" dropdown column in Google Sheets with automatic email triggering when registration is confirmed.
+This guide explains how to set up the "Verified?" dropdown column in Google Sheets with automatic email triggering.
 
-## 1. Add Data Validation to "Status" Column
+## 1. Add Data Validation to "Verified?" Column
 
-After deploying the updated code, both "Verified?" and "Status" columns will appear in your Payments sheet with "In Progress" as the default value.
+After deploying the updated code, the "Verified?" column will appear in your Payments sheet with "In Progress" as the default value.
 
-- **"Verified?" (Column N)**: For internal payment verification tracking
-- **"Status" (Column O)**: When changed to "Yes", triggers automatic confirmation email to the registrant
-
-### Dropdown setup (done automatically):
-
-The dropdowns are automatically configured when you run the initial sync. Both columns will have these options:
-- `Yes`
-- `No` 
-- `In Progress`
-- `Not Started`
-
-If you need to manually add or fix the dropdown validation:
+### To add dropdown with colored cells:
 
 1. Open your Google Sheet (Payments tab)
-2. Select the entire "Status" column (column O, starting from row 2)
+2. Select the entire "Verified?" column (column N, starting from row 2)
 3. Click **Data** → **Data validation**
 4. Set:
    - **Criteria**: List of items
-   - **Values**: `Yes, No, In Progress, Not Started`
+   - **Values**: `Yes, No, In Progress`
    - Check "Show dropdown list in cell"
    - Click **Save**
 
-### To add conditional formatting (colors) - Optional:
+### To add conditional formatting (colors):
 
-You can add colored formatting to make the status visually clear:
-
-1. Select the "Status" column (O2:O)
+1. Select the "Verified?" column (N2:N)
 2. Click **Format** → **Conditional formatting**
-3. Add four rules:
+3. Add three rules:
 
 **Rule 1 - Yes (Light Green):**
 - Format cells if: **Text is exactly** `Yes`
@@ -49,11 +36,6 @@ You can add colored formatting to make the status visually clear:
 **Rule 3 - In Progress (Yellow):**
 - Format cells if: **Text is exactly** `In Progress`
 - Formatting style: Background color `#fff2cc` (yellow)
-- Click **Done**
-
-**Rule 4 - Not Started (Light Gray):**
-- Format cells if: **Text is exactly** `Not Started`
-- Formatting style: Background color `#e0e0e0` (light gray)
 - Click **Done**
 
 ## 2. Set Up Google Apps Script Trigger
@@ -77,9 +59,9 @@ const WEBHOOK_URL = "https://register.agneepath.co.in/api/payments/verify";
 const SHEET_NAME = "Payments";
 
 /**
- * Column index for "Status" (O = 15) - This triggers the confirmation email
+ * Column index for "Verified?" (N = 14)
  */
-const STATUS_COLUMN = 15;
+const VERIFIED_COLUMN = 14;
 
 /**
  * Column index for "Payment ID" (D = 4)
