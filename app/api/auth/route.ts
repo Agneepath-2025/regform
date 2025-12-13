@@ -4,6 +4,7 @@ import crypto from "crypto";
 import { createErrorResponse } from "@/app/utils/interfaces";
 import { sendSignupConfirmationEmail } from "@/app/utils/mailer/SignupEmail";
 import { rateLimit, rateLimitPresets } from "@/app/utils/rateLimit";
+import { handleCors, addCorsHeaders } from "@/app/utils/cors";
 import { NextRequest } from "next/server";
 function generateVerificationId() {
   return crypto.randomBytes(32).toString("hex"); // Generates a 64-character token
@@ -12,10 +13,18 @@ function generateVerificationId() {
 
 // Handle POST requests for user registration
 export async function POST(req: NextRequest) {
+  const origin = req.headers.get("origin");
+  
+  // Handle CORS
+  const corsResult = handleCors(req);
+  if (corsResult) {
+    return corsResult;
+  }
+  
   // Apply rate limiting - 5 registration attempts per minute per IP
   const rateLimitResult = rateLimit(req, rateLimitPresets.auth);
   if (rateLimitResult) {
-    return rateLimitResult;
+    return addCorsHeaders(rateLimitResult, origin);
   }
 
   const { name, universityName, email,password,phone } = await req.json();

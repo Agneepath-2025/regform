@@ -9,6 +9,7 @@ import { createErrorResponse, User } from "@/app/utils/interfaces";
 import sendConfirmationEmail from "@/app/utils/mailer/ConfirmationMail";
 import { syncFormSubmission } from "@/app/utils/sheets-event-sync";
 import { rateLimit, rateLimitPresets } from "@/app/utils/rateLimit";
+import { handleCors, addCorsHeaders } from "@/app/utils/cors";
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
 interface FormObj {
@@ -112,10 +113,18 @@ async function updateUserData(email: string, data: Partial<User>) {
 }
 
 export async function POST(req: NextRequest) {
+  const origin = req.headers.get("origin");
+  
+  // Handle CORS
+  const corsResult = handleCors(req);
+  if (corsResult) {
+    return corsResult;
+  }
+  
   // Apply rate limiting - 20 form submissions per minute per IP
   const rateLimitResult = rateLimit(req, rateLimitPresets.formSubmit);
   if (rateLimitResult) {
-    return rateLimitResult;
+    return addCorsHeaders(rateLimitResult, origin);
   }
 
   const { db } = await connectToDatabase();
@@ -302,23 +311,26 @@ if (!isDraft) {
   }
 
 
-    return NextResponse.json(
+    const successResponse = NextResponse.json(
       { success: true, message: "Form updated successfully" },
       { status: 200 }
     );
+    return addCorsHeaders(successResponse, origin);
   } catch (error) {
     console.error("Error in API handler:", error);
 
     if (error instanceof SyntaxError) {
-      return NextResponse.json(
+      const syntaxErrorResponse = NextResponse.json(
         { success: false, message: "Invalid JSON format" },
         { status: 400 }
       );
+      return addCorsHeaders(syntaxErrorResponse, origin);
     }
 
-    return NextResponse.json(
+    const errorResponse = NextResponse.json(
       { success: false, message: "Internal Server Error" },
       { status: 500 }
     );
+    return addCorsHeaders(errorResponse, origin);
   }
 }
