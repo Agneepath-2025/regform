@@ -583,12 +583,66 @@ async function formatSheets(sheets: ReturnType<typeof google.sheets>, spreadshee
       });
     });
 
+    // 5. Add dropdown validation for "Status" and "Send Email?" columns in Finance sheet
+    const financeSheetId = sheetIds[SHEET_CONFIGS.payments.name];
+    if (financeSheetId !== undefined) {
+      // Column N (index 13): "Status" dropdown
+      requests.push({
+        setDataValidation: {
+          range: {
+            sheetId: financeSheetId,
+            startRowIndex: 1, // Skip header
+            endRowIndex: 1000,
+            startColumnIndex: 13, // Column N (Status)
+            endColumnIndex: 14
+          },
+          rule: {
+            condition: {
+              type: 'ONE_OF_LIST',
+              values: [
+                { userEnteredValue: 'Confirmed' },
+                { userEnteredValue: 'Rejected' },
+                { userEnteredValue: 'In Progress' },
+                { userEnteredValue: 'Not Started' }
+              ]
+            },
+            showCustomUi: true,
+            strict: true
+          }
+        }
+      });
+
+      // Column O (index 14): "Send Email?" dropdown  
+      requests.push({
+        setDataValidation: {
+          range: {
+            sheetId: financeSheetId,
+            startRowIndex: 1, // Skip header
+            endRowIndex: 1000,
+            startColumnIndex: 14, // Column O (Send Email?)
+            endColumnIndex: 15
+          },
+          rule: {
+            condition: {
+              type: 'ONE_OF_LIST',
+              values: [
+                { userEnteredValue: 'Yes' },
+                { userEnteredValue: 'No' }
+              ]
+            },
+            showCustomUi: true,
+            strict: true
+          }
+        }
+      });
+    }
+
     if (requests.length > 0) {
       await sheets.spreadsheets.batchUpdate({
         spreadsheetId,
         requestBody: { requests }
       });
-      console.log("[Sheets] ✅ All sheets formatted (headers, borders, colors)");
+      console.log("[Sheets] ✅ All sheets formatted (headers, borders, colors, dropdowns)");
     }
   } catch (error) {
     console.warn("[Sheets] Could not format sheets (non-critical):", error);

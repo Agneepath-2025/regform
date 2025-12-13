@@ -4,16 +4,16 @@ import { ObjectId } from "mongodb";
 import { sendPaymentConfirmedEmail } from "@/app/utils/mailer/PaymentConfirmedEmail";
 
 /**
- * POST endpoint to handle payment verification webhook from Google Sheets
- * When "Verified?" column is changed to "Yes", this sends confirmation email
+ * POST endpoint to handle registration confirmation webhook from Google Sheets
+ * When "Send Email?" column is changed to "Yes", this sends confirmation email using registration-confirmed.html
  * 
  * Usage: POST /api/payments/verify
- * Body: { paymentId: string, status: "Yes" | "No" | "In Progress" }
+ * Body: { paymentId: string, sendEmail: "Yes" | "No" }
  */
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { paymentId, status } = body;
+    const { paymentId, sendEmail } = body;
 
     // Validate input
     if (!paymentId) {
@@ -30,10 +30,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Only send email when status changes to "Yes"
-    if (status !== "Yes") {
+    // Only send email when sendEmail is "Yes"
+    if (sendEmail !== "Yes") {
       return NextResponse.json(
-        { success: true, message: "Status updated, no email sent" },
+        { success: true, message: "Send Email status updated, no email sent" },
         { status: 200 }
       );
     }
@@ -93,17 +93,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         success: true,
-        message: "Payment verification email sent successfully",
+        message: "Registration confirmation email sent successfully",
         email: user.email
       },
       { status: 200 }
     );
 
   } catch (error) {
-    console.error("❌ Error in payment verification webhook:", error);
+    console.error("❌ Error in registration confirmation webhook:", error);
     return NextResponse.json(
       {
-        error: "Failed to process payment verification",
+        error: "Failed to send registration confirmation email",
         details: error instanceof Error ? error.message : String(error)
       },
       { status: 500 }
