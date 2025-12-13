@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import { fetchUserData } from "@/app/utils/GetUpdateUser";
 import { compareHash } from "@/app/utils/hashing";
 import { encrypt } from "@/app/utils/encryption";
+import { rateLimit, rateLimitPresets } from "@/app/utils/rateLimit";
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -12,6 +13,12 @@ if (!JWT_SECRET) {
 }
 
 export async function POST(req: NextRequest) {
+  // Apply rate limiting - 5 login attempts per minute per IP
+  const rateLimitResult = rateLimit(req, rateLimitPresets.auth);
+  if (rateLimitResult) {
+    return rateLimitResult;
+  }
+
   try {
     const { emaile, passworde } = await req.json();
     const email = emaile.toLowerCase();

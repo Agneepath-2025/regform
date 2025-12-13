@@ -3,13 +3,21 @@ import { connectToDatabase } from "@/lib/mongodb";
 import crypto from "crypto";
 import { createErrorResponse } from "@/app/utils/interfaces";
 import { sendSignupConfirmationEmail } from "@/app/utils/mailer/SignupEmail";
+import { rateLimit, rateLimitPresets } from "@/app/utils/rateLimit";
+import { NextRequest } from "next/server";
 function generateVerificationId() {
   return crypto.randomBytes(32).toString("hex"); // Generates a 64-character token
 }
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
 // Handle POST requests for user registration
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  // Apply rate limiting - 5 registration attempts per minute per IP
+  const rateLimitResult = rateLimit(req, rateLimitPresets.auth);
+  if (rateLimitResult) {
+    return rateLimitResult;
+  }
+
   const { name, universityName, email,password,phone } = await req.json();
 
   try {

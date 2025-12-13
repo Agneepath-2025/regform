@@ -6,6 +6,7 @@ import { fetchUserData } from "@/app/utils/GetUpdateUser";
 // unused imports removed
 import { sendPaymentConfirmationEmail } from "@/app/utils/mailer/PaymentEmail";
 import { syncPaymentSubmission } from "@/app/utils/sheets-event-sync";
+import { rateLimit, rateLimitPresets } from "@/app/utils/rateLimit";
 
 // (removed unused helper `addFileToStrapiDatabase`)
 
@@ -45,6 +46,12 @@ interface PaymentData {
 }
 
 export async function POST(req: NextRequest) {
+  // Apply rate limiting - 20 payment submissions per minute per IP
+  const rateLimitResult = rateLimit(req, rateLimitPresets.formSubmit);
+  if (rateLimitResult) {
+    return rateLimitResult;
+  }
+
   try {
     const formData = await req.formData();
 

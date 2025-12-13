@@ -8,6 +8,7 @@ import { fetchUserData } from "@/app/utils/GetUpdateUser";
 import { createErrorResponse, User } from "@/app/utils/interfaces";
 import sendConfirmationEmail from "@/app/utils/mailer/ConfirmationMail";
 import { syncFormSubmission } from "@/app/utils/sheets-event-sync";
+import { rateLimit, rateLimitPresets } from "@/app/utils/rateLimit";
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
 interface FormObj {
@@ -111,6 +112,12 @@ async function updateUserData(email: string, data: Partial<User>) {
 }
 
 export async function POST(req: NextRequest) {
+  // Apply rate limiting - 20 form submissions per minute per IP
+  const rateLimitResult = rateLimit(req, rateLimitPresets.formSubmit);
+  if (rateLimitResult) {
+    return rateLimitResult;
+  }
+
   const { db } = await connectToDatabase();
   const bucket = new GridFSBucket(db, { bucketName: "player-image" });
   try {
