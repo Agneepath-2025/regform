@@ -115,8 +115,8 @@ const getAuthToken = (): string | null => {
   const [loading, setLoading] = useState(false)
   const [registrationDone, setRegistrationDone] = useState<boolean | null>(null)
   const [paymentDone, setPaymentDone] = useState<boolean | null>(null)
-  const [hasAnyForm, setHasAnyForm] = useState<boolean>(false)
-  const [hasSubmitted, setHasSubmitted] = useState<boolean>(false)
+  const [_hasAnyForm, setHasAnyForm] = useState<boolean>(false)
+  const [_hasSubmitted, setHasSubmitted] = useState<boolean>(false)
   
   const [faqOpen, setFaqOpen] = useState(false)
   const [faqContent, setFaqContent] = useState<string>("")
@@ -224,7 +224,7 @@ const getAuthToken = (): string | null => {
 
     useEffect(() => {
       // derive items so we can toggle disabled based on fetched user flags
-      setItems(items.map((it) => {
+      setItems((prevItems) => prevItems.map((it) => {
         
         if (it.title === "Payments") {
           // enable payments when registration is done but payment not done

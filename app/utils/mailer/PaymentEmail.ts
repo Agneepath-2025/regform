@@ -141,7 +141,7 @@ export async function sendPaymentConfirmationEmail(
 
         console.log(`✅ Payment confirmation email sent successfully to ${formData.email} (Transaction: ${formData.transactionId})`);
     } catch (error) {
-        const logData: Record<string, any> = {
+        const logData: Record<string, string | undefined> = {
             email: formData.email,
             transactionId: formData.transactionId,
             error: error instanceof Error ? error.message : String(error),
