@@ -14,8 +14,11 @@ async function getVerificationId(email: string): Promise<string | null> {
 
 async function sendEmail(to: string, id: string): Promise<void> {
   // Validate email address
-  if (!to || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
-    throw new Error(`Invalid email address: ${to}`);
+  if (!to) {
+    throw new Error("Email address is required and must be valid");
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
+    throw new Error(`Invalid email address format: ${to}`);
   }
 
   const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, ROOT_URL } = process.env;
