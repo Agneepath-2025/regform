@@ -44,8 +44,11 @@ function formatFieldName(key: string): string {
 
 async function sendConfirmationEmail(formData: FormData) {
     // Validate email address
-    if (!formData.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-        throw new Error(`Invalid email address: ${formData.email}`);
+    if (!formData.email) {
+        throw new Error("Email address is required and must be valid.");
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+        throw new Error(`Invalid email address format${formData.email ? `: ${formData.email}` : ""}`);
     }
 
     const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS } = process.env;
