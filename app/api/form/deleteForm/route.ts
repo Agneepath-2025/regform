@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-wrapper-object-types */
-
 import { getEmailFromToken } from "@/app/utils/forms/getEmail";
 import { connectToDatabase } from "@/lib/mongodb";
 import { Collection, ObjectId } from "mongodb";

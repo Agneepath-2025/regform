@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Collection, ObjectId } from "mongodb";
+import { ObjectId } from "mongodb";
 import { connectToDatabase } from "@/lib/mongodb";
 import { getEmailFromToken } from "@/app/utils/forms/getEmail";
 import { fetchUserData } from "@/app/utils/GetUpdateUser";

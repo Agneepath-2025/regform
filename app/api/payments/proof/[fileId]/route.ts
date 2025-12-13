@@ -2,7 +2,6 @@ import { connectToDatabase } from "@/lib/mongodb";
 import { GridFSBucket, ObjectId } from "mongodb";
 import { NextRequest, NextResponse } from "next/server";
 import { getEmailFromToken } from "@/app/utils/forms/getEmail";
-import { fetchUserData } from "@/app/utils/GetUpdateUser";
 
 /**
  * GET endpoint to download payment proof files from GridFS
