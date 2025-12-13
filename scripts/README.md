@@ -2,6 +2,15 @@
 
 Automation scripts for deployment, backup, and maintenance.
 
+## 📚 Complete Documentation
+
+**Backup & Restore System:** See [../documentation/BACKUP_RESTORE_SYSTEM.md](../documentation/BACKUP_RESTORE_SYSTEM.md) for:
+- Complete setup guide
+- Usage examples
+- Security best practices
+- Troubleshooting
+- Disaster recovery procedures
+
 ## Quick Reference
 
 ```bash

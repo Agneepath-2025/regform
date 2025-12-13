@@ -9,19 +9,21 @@ set -e  # Exit on error
 # Configuration
 # ============================================
 
-# Paths
-PROJECT_DIR="$HOME/regform"
-BACKUP_DIR="$HOME/backups/regform"
-MONGODB_URI="mongodb://127.0.0.1:27017/production"
-DB_NAME="production"
-UPLOAD_PATH="$HOME/regform/public/uploads"
+# Get script directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+
+# Paths - work with both production and local
+BACKUP_DIR="${BACKUP_DIR:-$HOME/backups/regform}"
+MONGODB_URI="${MONGODB_URI:-mongodb://127.0.0.1:27017/production}"
+DB_NAME="${DB_NAME:-production}"
+UPLOAD_PATH="${UPLOAD_PATH:-$PROJECT_DIR/public/uploads}"
 
 # Google Drive (using rclone)
-GDRIVE_REMOTE="agneepath-gdrive:server-backups"  # Configure rclone remote named 'agneepath-gdrive'
+GDRIVE_REMOTE="${GDRIVE_REMOTE:-agneepath-gdrive:server-backups}"
 
-# Retention (days)
-# LOCAL_RETENTION_DAYS=30
-# GDRIVE_RETENTION_DAYS=90
+# Keep only N most recent backups
+KEEP_COUNT=2
 
 # Timestamp
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
@@ -96,22 +98,42 @@ fi
 log "⚙️  Backing up configuration files"
 
 CONFIG_BACKUP_PATH="$BACKUP_DIR/config_${TIMESTAMP}.tar.gz.gpg"
-cd "$PROJECT_DIR"
+
+# Collect config files that exist
+CONFIG_FILES=""
+for file in .env.production .env.local package.json next.config.ts tsconfig.json; do
+    if [ -f "$PROJECT_DIR/$file" ]; then
+        CONFIG_FILES="$CONFIG_FILES $file"
+    fi
+done
 
 if command -v gpg &> /dev/null; then
     if [ -z "$CONFIG_BACKUP_PASSPHRASE" ]; then
         log "⚠️  CONFIG_BACKUP_PASSPHRASE not set. Skipping encrypted config backup."
     else
-        tar -cz .env.production package.json next.config.ts 2>/dev/null | \
+        cd "$PROJECT_DIR"
+        tar -cz $CONFIG_FILES 2>/dev/null | \
             gpg --batch --yes --passphrase "$CONFIG_BACKUP_PASSPHRASE" --symmetric --cipher-algo AES256 -o "$CONFIG_BACKUP_PATH"
         if [ $? -eq 0 ]; then
-            log "✅ Encrypted config backup completed: $(basename "$CONFIG_BACKUP_PATH")"
+            CONFIG_SIZE=$(du -h "$CONFIG_BACKUP_PATH" | cut -f1)
+            log "✅ Encrypted config backup completed: $(basename "$CONFIG_BACKUP_PATH") ($CONFIG_SIZE)"
         else
             log "⚠️  Encrypted config backup failed"
         fi
     fi
 else
     log "⚠️  gpg not found, skipping encrypted config backup"
+fi
+
+# Validate MongoDB backup
+log "🔍 Validating MongoDB backup..."
+if [ -f "$BACKUP_DIR/mongodb/$DATE_DIR/mongodb_${TIMESTAMP}.tar.gz" ]; then
+    if tar -tzf "$BACKUP_DIR/mongodb/$DATE_DIR/mongodb_${TIMESTAMP}.tar.gz" >/dev/null 2>&1; then
+        log "✅ MongoDB backup validated"
+    else
+        log "❌ MongoDB backup is corrupted!"
+        exit 1
+    fi
 fi
 
 # ============================================
@@ -121,31 +143,40 @@ fi
 log "☁️  Uploading backups to Google Drive"
 
 if command -v rclone &> /dev/null; then
-    # Upload MongoDB backup
-    if rclone copy "$BACKUP_DIR/mongodb/$DATE_DIR/mongodb_${TIMESTAMP}.tar.gz" \
-        "$GDRIVE_REMOTE/mongodb/$DATE_DIR/" --progress 2>&1 | tail -1 | tee -a "$LOG_FILE"; then
-        log "✅ MongoDB backup uploaded to Google Drive"
+    # Check if remote is configured
+    if ! rclone listremotes | grep -q "^${GDRIVE_REMOTE%%:*}:"; then
+        log "⚠️  rclone remote '$GDRIVE_REMOTE' not configured. Skipping Google Drive upload."
+        log "💡 Configure: rclone config"
     else
-        log "❌ Failed to upload MongoDB backup to Google Drive"
-    fi
-    
-    # Upload files backup
-    if [ -f "$UPLOADS_BACKUP_PATH" ]; then
-        if rclone copy "$UPLOADS_BACKUP_PATH" \
-            "$GDRIVE_REMOTE/uploads/$DATE_DIR/" --progress 2>&1 | tail -1 | tee -a "$LOG_FILE"; then
-            log "✅ Uploads backup uploaded to Google Drive"
+        # Upload MongoDB backup
+        log "📤 Uploading MongoDB backup..."
+        if rclone copy "$BACKUP_DIR/mongodb/$DATE_DIR/mongodb_${TIMESTAMP}.tar.gz" \
+            "$GDRIVE_REMOTE/mongodb/$DATE_DIR/" --transfers 4 --checkers 8 2>&1 | tee -a "$LOG_FILE" | tail -1; then
+            log "✅ MongoDB backup uploaded to Google Drive"
         else
-            log "❌ Failed to upload files backup to Google Drive"
+            log "❌ Failed to upload MongoDB backup to Google Drive"
         fi
-    fi
-    
-    # Upload config backup
-    if [ -f "$CONFIG_BACKUP_PATH" ]; then
-        if rclone copy "$CONFIG_BACKUP_PATH" \
-            "$GDRIVE_REMOTE/config/" --progress 2>&1 | tail -1 | tee -a "$LOG_FILE"; then
-            log "✅ Config backup uploaded to Google Drive"
-        else
-            log "❌ Failed to upload config backup to Google Drive"
+        
+        # Upload files backup
+        if [ -f "$UPLOADS_BACKUP_PATH" ]; then
+            log "📤 Uploading uploads backup..."
+            if rclone copy "$UPLOADS_BACKUP_PATH" \
+                "$GDRIVE_REMOTE/uploads/$DATE_DIR/" --transfers 4 --checkers 8 2>&1 | tee -a "$LOG_FILE" | tail -1; then
+                log "✅ Uploads backup uploaded to Google Drive"
+            else
+                log "❌ Failed to upload files backup to Google Drive"
+            fi
+        fi
+        
+        # Upload config backup
+        if [ -f "$CONFIG_BACKUP_PATH" ]; then
+            log "📤 Uploading config backup..."
+            if rclone copy "$CONFIG_BACKUP_PATH" \
+                "$GDRIVE_REMOTE/config/" --transfers 4 --checkers 8 2>&1 | tee -a "$LOG_FILE" | tail -1; then
+                log "✅ Config backup uploaded to Google Drive"
+            else
+                log "❌ Failed to upload config backup to Google Drive"
+            fi
         fi
     fi
 else
@@ -158,27 +189,32 @@ fi
 # 5. Cleanup Old Backups (Keep only 2 most recent)
 # ============================================
 
-log "🧹 Cleaning up old local backups (keeping only 2 most recent)"
+log "🧹 Cleaning up old local backups (keeping only $KEEP_COUNT most recent)"
 
-# Keep only 2 most recent MongoDB backups
-MONGO_BACKUPS=$(find "$BACKUP_DIR/mongodb" -name "*.tar.gz" -type f -printf "%T@ %p\n" | sort -rn | tail -n +3 | cut -d' ' -f2-)
-if [ -n "$MONGO_BACKUPS" ]; then
-    echo "$MONGO_BACKUPS" | xargs rm -f 2>/dev/null || true
-fi
-MONGO_COUNT=$(find "$BACKUP_DIR/mongodb" -name "*.tar.gz" -type f | wc -l)
+# Function to delete old backups (portable across Linux/macOS)
+cleanup_old_backups() {
+    local dir="$1"
+    local pattern="$2"
+    local keep=$KEEP_COUNT
+    
+    if [ ! -d "$dir" ]; then
+        return
+    fi
+    
+    # Use ls -t for sorting by modification time (works on both Linux and macOS)
+    find "$dir" -name "$pattern" -type f | 
+        xargs ls -t 2>/dev/null | 
+        tail -n +$((keep + 1)) | 
+        xargs rm -f 2>/dev/null || true
+}
 
-# Keep only 2 most recent uploads backups
-UPLOADS_BACKUPS=$(find "$BACKUP_DIR/uploads" -name "*.tar.gz" -type f -printf "%T@ %p\n" | sort -rn | tail -n +3 | cut -d' ' -f2-)
-if [ -n "$UPLOADS_BACKUPS" ]; then
-    echo "$UPLOADS_BACKUPS" | xargs rm -f 2>/dev/null || true
-fi
-UPLOADS_COUNT=$(find "$BACKUP_DIR/uploads" -name "*.tar.gz" -type f | wc -l)
+# Clean each backup type
+cleanup_old_backups "$BACKUP_DIR/mongodb" "*.tar.gz"
+cleanup_old_backups "$BACKUP_DIR/uploads" "*.tar.gz"
+cleanup_old_backups "$BACKUP_DIR" "config_*.tar.gz*"
 
-# Keep only 2 most recent config backups
-CONFIG_BACKUPS=$(find "$BACKUP_DIR" -maxdepth 1 -name "config_*.tar.gz*" -type f -printf "%T@ %p\n" | sort -rn | tail -n +3 | cut -d' ' -f2-)
-if [ -n "$CONFIG_BACKUPS" ]; then
-    echo "$CONFIG_BACKUPS" | xargs rm -f 2>/dev/null || true
-fi
+MONGO_COUNT=$(find "$BACKUP_DIR/mongodb" -name "*.tar.gz" -type f 2>/dev/null | wc -l | tr -d ' ')
+UPLOADS_COUNT=$(find "$BACKUP_DIR/uploads" -name "*.tar.gz" -type f 2>/dev/null | wc -l | tr -d ' ')
 
 log "📊 Local backups retained: $MONGO_COUNT MongoDB, $UPLOADS_COUNT uploads"
 

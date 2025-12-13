@@ -1,11 +1,10 @@
 import { connectToDatabase } from "@/lib/mongodb";
 import { GridFSBucket, ObjectId } from "mongodb";
 import { NextRequest, NextResponse } from "next/server";
-import { getEmailFromToken } from "@/app/utils/forms/getEmail";
 
 /**
  * GET endpoint to download payment proof files from GridFS
- * Requires authentication only - no admin restriction
+ * Publicly accessible - anyone with the link can view
  * Usage: /api/payments/proof/[fileId]
  */
 export async function GET(
@@ -15,16 +14,7 @@ export async function GET(
   try {
     const { fileId } = await params;
 
-    // 1. Authentication check
-    const email = getEmailFromToken(request);
-    if (!email) {
-      return NextResponse.json(
-        { success: false, message: "Unauthorized: Invalid token or not logged in" },
-        { status: 401 }
-      );
-    }
-
-    // 2. Validate fileId
+    // 1. Validate fileId
     if (!fileId || !ObjectId.isValid(fileId)) {
       return NextResponse.json(
         { success: false, message: "Invalid file ID" },
