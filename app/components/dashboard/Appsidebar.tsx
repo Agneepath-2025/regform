@@ -122,7 +122,8 @@ const getAuthToken = (): string | null => {
   const [faqContent, setFaqContent] = useState<string>("")
 
   const handleLogout = () => {
-    document.cookie = "authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;";
+    const isProduction = typeof window !== 'undefined' && window.location.protocol === 'https:';
+    document.cookie = `authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; ${isProduction ? 'Secure; ' : ''}SameSite=Lax`;
     router.push("/SignIn");
   };
 
