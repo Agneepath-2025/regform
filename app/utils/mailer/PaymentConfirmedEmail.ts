@@ -55,7 +55,12 @@ export async function sendPaymentConfirmedEmail(
             submittedForms?: Record<string, SubmittedSport>;
         };
 
-        const payment: PaymentData = JSON.parse(formData.paymentData);
+        let payment: PaymentData;
+        try {
+            payment = JSON.parse(formData.paymentData);
+        } catch (err) {
+            throw new Error(`Failed to parse payment data JSON: ${(err instanceof Error) ? err.message : String(err)}`);
+        }
 
         const calculateSportsTotal = () => {
             if (!payment.submittedForms) return 0;
