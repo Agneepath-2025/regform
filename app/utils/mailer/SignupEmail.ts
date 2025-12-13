@@ -13,10 +13,20 @@ interface SignupEmailData {
 
 export async function sendSignupConfirmationEmail(data: SignupEmailData): Promise<void> {
   try {
+    // Validate email address
+    if (!data.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
+      console.error(`❌ Invalid email address: ${data.email}`);
+      return; // Don't throw - we don't want to block signup
+    }
+
     const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, ROOT_URL } = process.env;
 
     if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) {
       throw new Error("Email configuration missing in environment variables");
+    }
+
+    if (!SMTP_HOST.trim() || !SMTP_USER.trim() || !SMTP_PASS.trim()) {
+      throw new Error("Email configuration contains empty values");
     }
 
     const transporter = nodemailer.createTransport({

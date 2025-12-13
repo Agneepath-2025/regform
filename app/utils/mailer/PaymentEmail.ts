@@ -24,10 +24,19 @@ export async function sendPaymentConfirmationEmail(
     formData: PaymentFormData,
 ): Promise<void> {
     try {
+        // Validate email address
+        if (!formData.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+            throw new Error(`Invalid email address: ${formData.email}`);
+        }
+
         const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS } = process.env;
 
         if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) {
             throw new Error("Email configuration missing in environment variables");
+        }
+
+        if (!SMTP_HOST.trim() || !SMTP_USER.trim() || !SMTP_PASS.trim()) {
+            throw new Error("Email configuration contains empty values");
         }
 
         const transporter = nodemailer.createTransport({
@@ -127,9 +136,14 @@ export async function sendPaymentConfirmationEmail(
             ]
         });
 
-        // res.status(200).json({ message: "Payment confirmation email sent successfully" });
+        console.log(`✅ Payment confirmation email sent successfully to ${formData.email} (Transaction: ${formData.transactionId})`);
     } catch (error) {
-        console.error("Error sending payment confirmation email:", error);
-        // res.status(500).json({ error: "Failed to send payment confirmation email" });
+        console.error("❌ Error sending payment confirmation email:", {
+            email: formData.email,
+            transactionId: formData.transactionId,
+            error: error instanceof Error ? error.message : String(error),
+            stack: error instanceof Error ? error.stack : undefined
+        });
+        throw error; // Re-throw to allow caller to handle
     }
 }

@@ -12,11 +12,20 @@ async function getVerificationId(email: string): Promise<string | null> {
   return user?.VerificationId || null;
 }
 
-async function sendEmail(to: string, id: string) {
+async function sendEmail(to: string, id: string): Promise<void> {
+  // Validate email address
+  if (!to || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
+    throw new Error(`Invalid email address: ${to}`);
+  }
+
   const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, ROOT_URL } = process.env;
 
   if (!SMTP_USER || !SMTP_PASS || !ROOT_URL) {
     throw new Error("Email configuration missing in environment variables");
+  }
+
+  if (!SMTP_USER.trim() || !SMTP_PASS.trim() || !ROOT_URL.trim()) {
+    throw new Error("Email configuration contains empty values");
   }
 
   const transporter = nodemailer.createTransport({
@@ -60,7 +69,8 @@ async function sendEmail(to: string, id: string) {
     },
     html: emailContent,
   });
-    
+
+  console.log(`✅ Verification email sent to ${to}`);
 }
 
 export async function POST(req: Request) {
