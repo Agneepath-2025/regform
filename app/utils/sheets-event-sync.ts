@@ -755,6 +755,7 @@ export async function initialFullSync(): Promise<InitialSyncResult> {
           doc._id.toString(),
           String(doc.amountInNumbers || ""),
           String(doc.payeeName || ""),
+          owner ? String(owner.universityName || "") : "",
           sports,
           category,
           numberOfPeople.toString(),
