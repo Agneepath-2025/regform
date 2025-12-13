@@ -20,11 +20,11 @@ async function sendEmail(to: string, id: string): Promise<void> {
 
   const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, ROOT_URL } = process.env;
 
-  if (!SMTP_USER || !SMTP_PASS || !ROOT_URL) {
+  if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS || !ROOT_URL) {
     throw new Error("Email configuration missing in environment variables");
   }
 
-  if (!SMTP_USER.trim() || !SMTP_PASS.trim() || !ROOT_URL.trim()) {
+  if (!SMTP_HOST.trim() || !SMTP_USER.trim() || !SMTP_PASS.trim() || !ROOT_URL.trim()) {
     throw new Error("Email configuration contains empty values");
   }
 
