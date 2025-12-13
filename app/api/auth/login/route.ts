@@ -5,7 +5,11 @@ import { compareHash } from "@/app/utils/hashing";
 import { encrypt } from "@/app/utils/encryption";
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
-const JWT_SECRET = process.env.JWT_SECRET || "your-256-bit-secret";
+const JWT_SECRET = process.env.JWT_SECRET;
+
+if (!JWT_SECRET) {
+  throw new Error("JWT_SECRET environment variable is not configured. Please set JWT_SECRET in your .env file.");
+}
 
 export async function POST(req: NextRequest) {
   try {
