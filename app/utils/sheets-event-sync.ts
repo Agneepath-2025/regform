@@ -463,6 +463,50 @@ async function appendToSheet(sheetName: string, rows: string[][], maxRetries = 3
 }
 
 /**
+ * Ensure all required sheets exist in the spreadsheet
+ * Creates missing sheets with proper headers
+ */
+async function ensureRequiredSheets(sheets: ReturnType<typeof google.sheets>, spreadsheetId: string): Promise<void> {
+  try {
+    const response = await sheets.spreadsheets.get({ spreadsheetId });
+    const existingSheets = new Set(
+      response.data.sheets?.map(sheet => sheet.properties?.title).filter(Boolean) || []
+    );
+
+    const requests = [];
+
+    // Check each required sheet and create if missing
+    for (const [key, config] of Object.entries(SHEET_CONFIGS)) {
+      if (!existingSheets.has(config.name)) {
+        console.log(`[Sheets] Creating missing sheet: ${config.name}`);
+        requests.push({
+          addSheet: {
+            properties: {
+              title: config.name,
+              gridProperties: {
+                rowCount: 1000,
+                columnCount: config.headers.length
+              }
+            }
+          }
+        });
+      }
+    }
+
+    if (requests.length > 0) {
+      await sheets.spreadsheets.batchUpdate({
+        spreadsheetId,
+        requestBody: { requests }
+      });
+      console.log(`[Sheets] ✅ Created ${requests.length} missing sheet(s)`);
+    }
+  } catch (error) {
+    console.error("[Sheets] Error ensuring sheets exist:", error);
+    throw error;
+  }
+}
+
+/**
  * Get all sheet IDs from the spreadsheet
  */
 async function getSheetIds(sheets: ReturnType<typeof google.sheets>, spreadsheetId: string): Promise<Record<string, number>> {
@@ -663,6 +707,10 @@ export async function initialFullSync(): Promise<InitialSyncResult> {
   try {
     const { db } = await connectToDatabase();
     const { sheets, spreadsheetId } = createSheetsClient();
+
+    // Ensure all required sheets exist
+    console.log("[Sheets] Ensuring all sheets exist...");
+    await ensureRequiredSheets(sheets, spreadsheetId);
 
     // Sync forms (only those with "submitted" status)
     console.log("[Sheets] Syncing forms...");
