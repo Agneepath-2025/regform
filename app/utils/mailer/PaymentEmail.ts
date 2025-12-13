@@ -25,7 +25,10 @@ export async function sendPaymentConfirmationEmail(
 ): Promise<void> {
     try {
         // Validate email address
-        if (!formData.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+        if (!formData.email) {
+            throw new Error("Email address is required and must be valid");
+        }
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
             throw new Error(`Invalid email address: ${formData.email}`);
         }
 
