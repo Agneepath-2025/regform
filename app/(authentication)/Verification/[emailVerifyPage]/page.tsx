@@ -49,7 +49,8 @@ export default function VerifyAccount() {
         }
         setIsLoading(false);
         if (response.data.token) {
-          document.cookie = `authToken=${response.data.token}; path=/;`;
+          const isProduction = window.location.protocol === 'https:';
+          document.cookie = `authToken=${response.data.token}; path=/; ${isProduction ? 'Secure; ' : ''}SameSite=Lax; max-age=172800`;
           // console.("cookie set");
         }
       } else {

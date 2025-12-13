@@ -27,7 +27,8 @@ export default function LoginPage() {
         const { token, universityNameRequired } = data;
 
         // Store the encrypted token in cookies (assuming you are using js-cookie)
-        document.cookie = `authToken=${token}; path=/;`;
+        const isProduction = window.location.protocol === 'https:';
+        document.cookie = `authToken=${token}; path=/; ${isProduction ? 'Secure; ' : ''}SameSite=Lax; max-age=172800`;
 
         if (universityNameRequired) {
           // Redirect to page to enter institution name

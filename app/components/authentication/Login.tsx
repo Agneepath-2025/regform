@@ -85,7 +85,8 @@ export function Login() {
                 if (data.token) {
                     // console.log(data.token);
                     // If email is verified and login is successful, store the token
-                    document.cookie = `authToken=${data.token}; path=/;`;
+                    const isProduction = window.location.protocol === 'https:';
+                    document.cookie = `authToken=${data.token}; path=/; ${isProduction ? 'Secure; ' : ''}SameSite=Lax; max-age=172800`;
                     router.push("/dashboard"); // Redirect to the dashboard or desired page
                 } else {
                     setError(data.error || "Something went wrong.");
