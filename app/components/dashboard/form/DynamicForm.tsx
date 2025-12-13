@@ -852,7 +852,10 @@ const maxDate = new Date(2009, 1, 1); // On or before 1 Feb 2009
 
       <AlertDialogAction
         disabled={!agree || isSubmitting}
-        onClick={() => form.handleSubmit(onSubmit)()}
+        onClick={() => {
+          setIsSaveDraft(false);
+          form.handleSubmit(onSubmit)();
+        }}
         className={!agree ? "opacity-50 pointer-events-none" : ""}
       >
         {isSubmitting ? (
@@ -931,7 +934,10 @@ const maxDate = new Date(2009, 1, 1); // On or before 1 Feb 2009
 
       <AlertDialogAction
         disabled={!agree || isSubmitting}
-        onClick={() => form.handleSubmit(onSubmit)()}
+        onClick={() => {
+          setIsSaveDraft(false);
+          form.handleSubmit(onSubmit)();
+        }}
         className={!agree ? "opacity-50 pointer-events-none" : ""}
       >
         {isSubmitting ? (
