@@ -141,12 +141,15 @@ export async function sendPaymentConfirmationEmail(
 
         console.log(`✅ Payment confirmation email sent successfully to ${formData.email} (Transaction: ${formData.transactionId})`);
     } catch (error) {
-        console.error("❌ Error sending payment confirmation email:", {
+        const logData: Record<string, any> = {
             email: formData.email,
             transactionId: formData.transactionId,
             error: error instanceof Error ? error.message : String(error),
-            stack: error instanceof Error ? error.stack : undefined
-        });
+        };
+        if (process.env.NODE_ENV === 'development' && error instanceof Error && error.stack) {
+            logData.stack = error.stack;
+        }
+        console.error("❌ Error sending payment confirmation email:", logData);
         throw error; // Re-throw to allow caller to handle
     }
 }
