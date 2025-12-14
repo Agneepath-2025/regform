@@ -159,7 +159,12 @@ export async function syncUserRegistration(userId: string): Promise<SyncResult> 
       return { success: false, error: "User not found" };
     }
 
-    // Only sync users with complete registration (phone and university)
+    // Only sync users with verified email and complete registration (phone and university)
+    if (!user.emailVerified) {
+      console.log(`[Sheets] Skipping user ${userId} - email not verified`);
+      return { success: true }; // Return success but don't sync
+    }
+
     if (!user.phone || !user.universityName) {
       console.log(`[Sheets] Skipping user ${userId} - incomplete registration (missing phone or university)`);
       return { success: true }; // Return success but don't sync
@@ -816,9 +821,10 @@ export async function initialFullSync(): Promise<InitialSyncResult> {
       console.log(`[Sheets] ✅ Synced ${forms.length} forms`);
     }
 
-    // Sync users (only those with complete registration - phone and university)
+    // Sync users (only verified users with complete registration - phone and university)
     console.log("[Sheets] Syncing users...");
     const users = await db.collection("users").find({
+      emailVerified: true,
       phone: { $exists: true, $ne: "" },
       universityName: { $exists: true, $ne: "" }
     }).toArray();
