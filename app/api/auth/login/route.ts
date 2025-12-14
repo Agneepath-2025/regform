@@ -7,11 +7,12 @@ import { rateLimit, rateLimitPresets } from "@/app/utils/rateLimit";
 import { handleCors, addCorsHeaders } from "@/app/utils/cors";
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
-if (!process.env.JWT_SECRET) {
-  throw new Error("JWT_SECRET environment variable is not configured. Please set JWT_SECRET in your .env file.");
+function getJwtSecret(): string {
+  if (!process.env.JWT_SECRET) {
+    throw new Error("JWT_SECRET environment variable is not configured. Please set JWT_SECRET in your .env file.");
+  }
+  return process.env.JWT_SECRET;
 }
-
-const JWT_SECRET: string = process.env.JWT_SECRET;
 
 export async function POST(req: NextRequest) {
   const origin = req.headers.get("origin");
@@ -72,7 +73,7 @@ export async function POST(req: NextRequest) {
 
     // Generate JWT
     const payload = { email: user.email };
-    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: "2d" });
+    const token = jwt.sign(payload, getJwtSecret(), { expiresIn: "2d" });
 
     // Encrypt token (optional)
     const encryptedToken = encrypt({ jwt: token });
