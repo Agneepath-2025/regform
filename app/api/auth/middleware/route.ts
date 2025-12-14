@@ -3,7 +3,9 @@ import jwt from "jsonwebtoken";
 import { decrypt } from "@/app/utils/encryption";
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
-const JWT_SECRET = process.env.JWT_SECRET;
+function getJwtSecret(): string {
+  return process.env.JWT_SECRET || "";
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -12,6 +14,7 @@ export async function POST(req: NextRequest) {
     const decryptedToken = decrypt(tokene).jwt;
 
     // Ensure JWT secret is available
+    const JWT_SECRET = getJwtSecret();
     if (!JWT_SECRET) {
       return NextResponse.json(
         { success: false, message: "Server misconfiguration: JWT_SECRET not set" },

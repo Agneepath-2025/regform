@@ -5,7 +5,9 @@ import { decrypt } from "@/app/utils/encryption";
 // Force middleware to use Node.js runtime instead of Edge
 export const runtime = 'nodejs';
 
-const JWT_SECRET = process.env.JWT_SECRET;
+function getJwtSecret(): string {
+  return process.env.JWT_SECRET || "";
+}
 
 export async function middleware(req: NextRequest) {
   const token = req.cookies.get("authToken")?.value;
@@ -55,6 +57,7 @@ export async function middleware(req: NextRequest) {
 // Token validation function - validates directly without HTTP request
 async function validateToken(token: string): Promise<{ valid: boolean; expired: boolean }> {
   try {
+    const JWT_SECRET = getJwtSecret();
     if (!JWT_SECRET) {
       return { valid: false, expired: false };
     }
