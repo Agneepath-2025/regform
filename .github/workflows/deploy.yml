@@ -36,8 +36,14 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd regform
-            chmod +x scripts/deploy.sh
-            ./scripts/deploy.sh
+            git fetch origin
+            git reset --hard origin/main
+            git pull origin
+            npm ci --production
+            npm run build
+            pm2 restart regform || pm2 start npm --name regform -- start
+            pm2 save
+            echo "✅ Deployment completed successfully!"
 
       - name: Notify deployment status
         if: always()
