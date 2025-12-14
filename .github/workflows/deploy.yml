@@ -35,7 +35,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd /var/www/regform
+            cd root/regform
             chmod +x scripts/deploy.sh
             ./scripts/deploy.sh
 

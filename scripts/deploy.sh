@@ -10,7 +10,7 @@ NC='\033[0m' # No Color
 echo -e "${BLUE}🚀 Starting deployment...${NC}"
 
 # Configuration - adjust PROJECT_DIR based on your server
-PROJECT_DIR="${PROJECT_DIR:-/var/www/regform}"
+PROJECT_DIR="${PROJECT_DIR:-root/regform}"
 BRANCH="${BRANCH:-main}"
 
 # Check if we're in the right directory
