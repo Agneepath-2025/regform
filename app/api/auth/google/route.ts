@@ -33,29 +33,43 @@ export async function POST(req: NextRequest) {
     // Check if the user exists in the database
     let existingUser = await collection.findOne({ email: email.toLowerCase() });
 
-    // If the user doesn't exist, create a new one
+    // If the user doesn't exist, create a new one with upsert to prevent race condition duplicates
     if (!existingUser) {
-      const result = await collection.insertOne({
-        email: email.toLowerCase(),
-        name,
-        googleAuth: true,
-        emailVerified: true, // Google has verified the email
-        createdAt: new Date(),
-        universityName: "",
-        Accommodation:{needAccommodation:false}
-    });
+      const updateResult = await collection.findOneAndUpdate(
+        { email: email.toLowerCase() }, // Find by email
+        {
+          $setOnInsert: {
+            email: email.toLowerCase(),
+            name,
+            googleAuth: true,
+            emailVerified: true, // Google has verified the email
+            createdAt: new Date(),
+            universityName: "",
+            Accommodation: { needAccommodation: false }
+          }
+        },
+        {
+          upsert: true, // Create if doesn't exist
+          returnDocument: 'after' // Return the document after update
+        }
+      );
 
-      // After inserting the user, fetch the document with the inserted _id
-      existingUser = await collection.findOne({ _id: result.insertedId });
+      existingUser = updateResult;
 
       if (!existingUser) {
-        return NextResponse.json({ success: false, message: "Failed to fetch user after insert." }, { status: 500 });
+        return NextResponse.json({ success: false, message: "Failed to create or fetch user." }, { status: 500 });
       }
 
-      // Sync new user to Google Sheets (non-blocking)
-      syncUserRegistration(result.insertedId.toString()).catch(err => {
-        console.error("[Sheets] Failed to sync user registration:", err);
-      });
+      // Only sync to sheets if this was a new insert (createdAt within last 5 seconds)
+      const isNewUser = existingUser.createdAt && 
+        (new Date().getTime() - new Date(existingUser.createdAt).getTime()) < 5000;
+
+      if (isNewUser) {
+        // Sync new user to Google Sheets (non-blocking)
+        syncUserRegistration(existingUser._id.toString()).catch(err => {
+          console.error("[Sheets] Failed to sync user registration:", err);
+        });
+      }
 
       // Note: Signup email will be sent after university is saved in SaveUniversity route
     }
