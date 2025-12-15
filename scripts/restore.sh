@@ -14,7 +14,7 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
 # Paths - work with both production and local
 BACKUP_DIR="${BACKUP_DIR:-$HOME/backups/regform}"
-MONGODB_URI="${MONGODB_URI:-mongodb://127.0.0.1:27017/production}"
+MONGODB_URI="${MONGODB_URI:-mongodb://127.0.0.1:27017}"
 DB_NAME="${DB_NAME:-production}"
 UPLOAD_PATH="${UPLOAD_PATH:-$PROJECT_DIR/public/uploads}"
 GDRIVE_REMOTE="${GDRIVE_REMOTE:-agneepath-gdrive:server-backups}"
