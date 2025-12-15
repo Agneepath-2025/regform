@@ -92,7 +92,7 @@ A: Refund policies are set by the event organizers. Please contact the support t
 A: If you have questions/additions/deletions/modifications in registration or encounter issues not covered in this FAQ:
 1. Check the sport-specific guidelines to address them
 2. Try refreshing or using a different browser if guidelines are missing.
-3. Contact the official event support team through the email: support@agneepath.org 
+3. Contact the official event support team through the email: agneepath@ashoka.edu.in or contact - Antara Malhotra (+91 97173 67728)
 
 ### Q: What should I include when contacting support?
 A: When reaching out to support, please include:
