@@ -34,7 +34,7 @@ KEEP_COUNT=2
 
 # Timestamp
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
-DATE_DIR=$(date +"%Y-%m")
+DATE_DIR=$(date +"%Y-%m-%d")
 
 # ============================================
 # Create Backup Directories
@@ -230,43 +230,38 @@ log "📊 Local backups retained: $MONGO_COUNT MongoDB, $UPLOADS_COUNT uploads"
 # ============================================
 
 if command -v rclone &> /dev/null; then
-    log "🧹 Cleaning up old Google Drive backups (keeping only 2 most recent daily folders)"
+    log "🧹 Cleaning up old Google Drive backups (keeping only 2 most recent)"
     
-    # Function to keep only N most recent daily folders in rclone remote
-    cleanup_gdrive_daily_folders() {
-        local base_path="$1"
-        local keep_count=2
-        
-        # List directories (daily folders), sort by name (date format YYYY-MM-DD), keep only recent
-        rclone lsf "$base_path" --dirs-only 2>/dev/null | sort -r | tail -n +$((keep_count + 1)) | while read folder; do
-            if [ -n "$folder" ]; then
-                log "🗑️  Deleting old folder: $base_path/$folder"
-                rclone purge "$base_path/$folder" 2>/dev/null || true
-            fi
-        done
-    }
-    
-    # Function to keep only N most recent files in a flat folder (for config backups)
+    # Function to keep only N most recent files (works recursively)
     cleanup_gdrive_files() {
         local remote_path="$1"
+        local pattern="$2"
         local keep_count=2
         
-        # List files with timestamps, sort, and delete old ones
-        rclone lsf "$remote_path" --format "tp" 2>/dev/null | sort -rn | tail -n +$((keep_count + 1)) | while read line; do
+        # List all matching files recursively with timestamps, sort by modification time, delete old ones
+        rclone lsf "$remote_path" --recursive --files-only --format "tp" 2>/dev/null | \
+            grep "$pattern" | sort -rn | tail -n +$((keep_count + 1)) | while read line; do
             filename=$(echo "$line" | cut -f2-)
             if [ -n "$filename" ]; then
-                log "🗑️  Deleting old file: $remote_path/$filename"
+                log "🗑️  Deleting old backup: $remote_path/$filename"
                 rclone delete "$remote_path/$filename" 2>/dev/null || true
             fi
         done
     }
     
-    # Clean daily folders for MongoDB and uploads (keep only 2 most recent days)
-    cleanup_gdrive_daily_folders "$GDRIVE_REMOTE/mongodb"
-    cleanup_gdrive_daily_folders "$GDRIVE_REMOTE/uploads"
+    # Clean MongoDB backups (keep only 2 most recent .tar.gz files)
+    cleanup_gdrive_files "$GDRIVE_REMOTE/mongodb" "mongodb_.*\.tar\.gz"
     
-    # Clean flat config folder (keep only 2 most recent files)
-    cleanup_gdrive_files "$GDRIVE_REMOTE/config"
+    # Clean uploads backups (keep only 2 most recent .tar.gz files)
+    cleanup_gdrive_files "$GDRIVE_REMOTE/uploads" "uploads_.*\.tar\.gz"
+    
+    # Clean config backups (keep only 2 most recent .tar.gz.gpg files)
+    cleanup_gdrive_files "$GDRIVE_REMOTE/config" "config_.*\.tar\.gz"
+    
+    # Clean up empty daily folders after file deletion
+    log "🧹 Removing empty daily folders..."
+    rclone rmdirs "$GDRIVE_REMOTE/mongodb" --leave-root 2>/dev/null || true
+    rclone rmdirs "$GDRIVE_REMOTE/uploads" --leave-root 2>/dev/null || true
     
     log "✅ Google Drive cleanup completed"
 fi
