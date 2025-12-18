@@ -48,29 +48,18 @@ blockquote: ({ children }) => (
       className="inline-block mt-1 mb-2 text-blue-600 font-medium underline underline-offset-2 hover:text-blue-800"
       {...props}
     >
->>>>>>> ab57e7a (FAQ page formatting)
       {children}
     </a>
   ),
 
-<<<<<<< HEAD
-  ul: ({ children }: MarkdownComponentProps) => (
-    <ul className="list-disc list-inside space-y-2 my-4 ml-4">
-=======
   ul: ({ children }) => (
     <ul className="list-disc list-inside space-y-1 my-2 ml-4">
->>>>>>> ab57e7a (FAQ page formatting)
       {children}
     </ul>
   ),
 
-<<<<<<< HEAD
-  ol: ({ children }: MarkdownComponentProps) => (
-    <ol className="list-decimal list-inside space-y-2 my-4 ml-4">
-=======
   ol: ({ children }) => (
     <ol className="list-decimal list-inside space-y-1 my-2 ml-4">
->>>>>>> ab57e7a (FAQ page formatting)
       {children}
     </ol>
   ),
