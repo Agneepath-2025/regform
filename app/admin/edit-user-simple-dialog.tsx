@@ -57,7 +57,6 @@ export default function EditUserSimpleDialog({ user, onClose, onUpdate }: Props)
     submittedForms: user.submittedForms || {},
   });
   const [saving, setSaving] = useState(false);
-  const [syncing, setSyncing] = useState(false);
   const [selectedSport, setSelectedSport] = useState<string>("");
   const [editingSport, setEditingSport] = useState<string | null>(null);
   const [newPlayer, setNewPlayer] = useState<Player>({ name: "", email: "", phone: "", date: "" });
@@ -78,37 +77,13 @@ export default function EditUserSimpleDialog({ user, onClose, onUpdate }: Props)
         throw new Error("Failed to update user");
       }
 
-      await syncToGoogleSheets();
-
-      alert("User updated successfully!");
+      alert("User updated successfully! Syncing to Google Sheets...");
       onUpdate();
     } catch (error) {
       console.error("Error updating user:", error);
       alert("Failed to update user: " + (error instanceof Error ? error.message : "Unknown error"));
     } finally {
       setSaving(false);
-    }
-  };
-
-  const syncToGoogleSheets = async () => {
-    setSyncing(true);
-    try {
-      await Promise.all([
-        fetch("/api/sync/sheets", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ collection: "users", sheetName: "Users" }),
-        }),
-        fetch("/api/sync/sheets", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ collection: "form", sheetName: "Forms" }),
-        }),
-      ]);
-    } catch (error) {
-      console.error("Error syncing to Google Sheets:", error);
-    } finally {
-      setSyncing(false);
     }
   };
 

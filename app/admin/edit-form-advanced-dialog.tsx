@@ -50,7 +50,6 @@ export default function EditFormAdvancedDialog({ form, onClose, onUpdate }: Prop
     JSON.stringify(form.fields || {}, null, 2)
   );
   const [saving, setSaving] = useState(false);
-  const [syncing, setSyncing] = useState(false);
   const [jsonError, setJsonError] = useState<string>("");
 
   // Player management
@@ -103,31 +102,13 @@ export default function EditFormAdvancedDialog({ form, onClose, onUpdate }: Prop
         throw new Error("Failed to update form");
       }
 
-      // Sync to Google Sheets
-      await syncToGoogleSheets();
-
-      alert("Form updated successfully!");
+      alert("Form updated successfully! Syncing to Google Sheets...");
       onUpdate();
     } catch (error) {
       console.error("Error updating form:", error);
       alert("Failed to update form: " + (error instanceof Error ? error.message : "Unknown error"));
     } finally {
       setSaving(false);
-    }
-  };
-
-  const syncToGoogleSheets = async () => {
-    setSyncing(true);
-    try {
-      await fetch("/api/sync/sheets", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ collection: "form", sheetName: "Forms" }),
-      });
-    } catch (error) {
-      console.error("Error syncing to Google Sheets:", error);
-    } finally {
-      setSyncing(false);
     }
   };
 

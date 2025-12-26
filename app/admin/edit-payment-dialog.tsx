@@ -42,7 +42,6 @@ export default function EditPaymentDialog({ payment, onClose, onUpdate }: Props)
     status: payment.status || "pending",
   });
   const [saving, setSaving] = useState(false);
-  const [syncing, setSyncing] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,37 +60,13 @@ export default function EditPaymentDialog({ payment, onClose, onUpdate }: Props)
         throw new Error("Failed to update payment");
       }
 
-      await syncToGoogleSheets();
-
-      alert("Payment updated successfully!");
+      alert("Payment updated successfully! Syncing to Google Sheets...");
       onUpdate();
     } catch (error) {
       console.error("Error updating payment:", error);
       alert("Failed to update payment: " + (error instanceof Error ? error.message : "Unknown error"));
     } finally {
       setSaving(false);
-    }
-  };
-
-  const syncToGoogleSheets = async () => {
-    setSyncing(true);
-    try {
-      await Promise.all([
-        fetch("/api/sync/sheets", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ collection: "payments", sheetName: "Payments" }),
-        }),
-        fetch("/api/sync/sheets", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ collection: "users", sheetName: "Users" }),
-        }),
-      ]);
-    } catch (error) {
-      console.error("Error syncing to Google Sheets:", error);
-    } finally {
-      setSyncing(false);
     }
   };
 
