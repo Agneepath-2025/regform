@@ -17,15 +17,23 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      allowDangerousEmailAccountLinking: true, // Allow linking Google account to existing email
     }),
   ],
   callbacks: {
-    async signIn({ user }) {
+    async signIn({ user, account }) {
       // Only allow admin emails to sign in
-      if (user.email && ADMIN_EMAILS.includes(user.email)) {
+      if (!user.email || !ADMIN_EMAILS.includes(user.email)) {
+        return false;
+      }
+
+      // Allow OAuth account linking
+      // This allows users who signed up with email/password to also use Google OAuth
+      if (account?.provider === "google") {
         return true;
       }
-      return false;
+
+      return true;
     },
     async session({ session, user }) {
       // Add user id to session
