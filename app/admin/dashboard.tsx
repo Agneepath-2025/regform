@@ -182,7 +182,7 @@ export default function AdminDashboard() {
               <CardDescription className="dark:text-gray-400">Total Users</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold dark:text-white">{stats.totalUsers}</div>
+              <div className="text-2xl font-bold dark:text-white">{stats.totalRegistrations}</div>
             </CardContent>
           </Card>
           <Card className="dark:bg-gray-800 dark:border-gray-700">
