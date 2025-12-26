@@ -7,7 +7,8 @@ const uri = process.env.MONGODB_URI || "";
 const client = new MongoClient(uri);
 
 // List of admin emails who can access the admin panel
-const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "").split(",").map(e => e.trim());
+// Using NEXTAUTH_ADMIN_EMAILS to avoid conflict with ADMIN_EMAILS used by Google Sheets
+const ADMIN_EMAILS = (process.env.NEXTAUTH_ADMIN_EMAILS || "").split(",").map(e => e.trim());
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter: MongoDBAdapter(client, {
