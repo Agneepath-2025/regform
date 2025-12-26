@@ -20,6 +20,8 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import EditUserDialog from "./edit-user-dialog";
 import EditUserAdvancedDialog from "./edit-user-advanced-dialog";
 import EditFormDialog from "./edit-form-dialog";
@@ -416,7 +418,8 @@ export default function AdminDashboard() {
         </Tabs>
       </main>
 
-      {/* Edit Dialogs !advancedMode && (
+      {/* Edit Dialogs */}
+      {selectedUser && !advancedMode && (
         <EditUserDialog
           user={selectedUser}
           onClose={() => setSelectedUser(null)}
@@ -428,8 +431,7 @@ export default function AdminDashboard() {
       )}
 
       {selectedUser && advancedMode && (
-        <EditUserAdvanceder && (
-        <EditUserDialog
+        <EditUserAdvancedDialog
           user={selectedUser}
           onClose={() => setSelectedUser(null)}
           onUpdate={() => {
