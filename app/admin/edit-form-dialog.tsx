@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -20,7 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Trash2, Plus } from "lucide-react";
+import { Trash2, Plus, AlertCircle } from "lucide-react";
 
 interface Form {
   _id: string;
@@ -47,8 +47,9 @@ interface Player {
   email: string;
   phone: string;
   date: string;
-  gender: string;
+  gender?: string;
   category1?: string;
+  category2?: string;
   [key: string]: unknown;
 }
 
@@ -59,6 +60,45 @@ interface CoachFields {
   gender?: string;
   [key: string]: unknown;
 }
+
+// Sport configuration with min/max players and requirements
+const sportConfig: Record<string, { min: number; max: number; requiresGender: boolean; requiresCategory: boolean; categoryType?: 'swimming' | 'shooting' }> = {
+  "Badminton (Men)": { min: 5, max: 7, requiresGender: false, requiresCategory: false },
+  "Badminton (Women)": { min: 5, max: 7, requiresGender: false, requiresCategory: false },
+  "Basketball (Men)": { min: 5, max: 12, requiresGender: false, requiresCategory: false },
+  "Basketball (Women)": { min: 5, max: 12, requiresGender: false, requiresCategory: false },
+  "Cricket (Men)": { min: 12, max: 15, requiresGender: false, requiresCategory: false },
+  "Football (Men)": { min: 11, max: 15, requiresGender: false, requiresCategory: false },
+  "Futsal (Women)": { min: 7, max: 10, requiresGender: false, requiresCategory: false },
+  "Volleyball (Men)": { min: 8, max: 12, requiresGender: false, requiresCategory: false },
+  "Volleyball (Women)": { min: 8, max: 12, requiresGender: false, requiresCategory: false },
+  "Table Tennis (Men)": { min: 4, max: 5, requiresGender: false, requiresCategory: false },
+  "Table Tennis (Women)": { min: 4, max: 5, requiresGender: false, requiresCategory: false },
+  "Squash (Men)": { min: 3, max: 5, requiresGender: false, requiresCategory: false },
+  "Squash (Women)": { min: 3, max: 5, requiresGender: false, requiresCategory: false },
+  "8 Ball Pool (Mixed)": { min: 3, max: 4, requiresGender: true, requiresCategory: false },
+  "Snooker (Mixed)": { min: 3, max: 4, requiresGender: true, requiresCategory: false },
+  "Chess (Mixed)": { min: 4, max: 5, requiresGender: true, requiresCategory: false },
+  "Tennis (Mixed)": { min: 5, max: 9, requiresGender: true, requiresCategory: false },
+  "Swimming (Men)": { min: 1, max: 8, requiresGender: false, requiresCategory: true, categoryType: 'swimming' },
+  "Swimming (Women)": { min: 1, max: 8, requiresGender: false, requiresCategory: true, categoryType: 'swimming' },
+  "Shooting": { min: 1, max: 10, requiresGender: true, requiresCategory: true, categoryType: 'shooting' },
+};
+
+const swimmingCategories = [
+  "50m Freestyle (Individual)",
+  "50m Butterfly (Individual)",
+  "50m Breaststroke (Individual)",
+  "50m Backstroke (Individual)",
+  "100m Freestyle (Individual)",
+  "200m Freestyle Relay",
+  "200m Freestyle Relay (Mixed)",
+];
+
+const shootingCategories = [
+  "10 Meter Air Rifle (Mixed) Individual",
+  "10 Meter Air Pistol (Mixed) Individual"
+];
 
 export default function EditFormDialog({ form, onClose, onUpdate }: Props) {
   const [status, setStatus] = useState(form.status);
@@ -77,6 +117,24 @@ export default function EditFormDialog({ form, onClose, onUpdate }: Props) {
       gender: ""
     }
   );
+
+  // Get sport config
+  const sportTitle = form.title;
+  const config = sportConfig[sportTitle] || { min: 1, max: 20, requiresGender: false, requiresCategory: false };
+
+  // Validation state
+  const [validationError, setValidationError] = useState<string>("");
+
+  useEffect(() => {
+    // Validate player count
+    if (players.length < config.min) {
+      setValidationError(`Minimum ${config.min} players required for ${sportTitle}`);
+    } else if (players.length > config.max) {
+      setValidationError(`Maximum ${config.max} players allowed for ${sportTitle}`);
+    } else {
+      setValidationError("");
+    }
+  }, [players.length, config.min, config.max, sportTitle]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -126,14 +184,26 @@ export default function EditFormDialog({ form, onClose, onUpdate }: Props) {
   };
 
   const addPlayer = () => {
-    setPlayers([...players, {
+    if (players.length >= config.max) {
+      alert(`Maximum ${config.max} players allowed for ${sportTitle}`);
+      return;
+    }
+    const newPlayer: Player = {
       name: "",
       email: "",
       phone: "",
       date: "",
-      gender: "",
-      category1: ""
-    }]);
+    };
+    if (config.requiresGender) {
+      newPlayer.gender = "";
+    }
+    if (config.requiresCategory) {
+      newPlayer.category1 = "";
+      if (config.categoryType === 'swimming') {
+        newPlayer.category2 = "";
+      }
+    }
+    setPlayers([...players, newPlayer]);
   };
 
   const updateCoach = (field: string, value: string) => {
@@ -241,12 +311,31 @@ export default function EditFormDialog({ form, onClose, onUpdate }: Props) {
               {/* Players Section */}
               <div className="space-y-4 border-t dark:border-gray-700 pt-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="font-semibold dark:text-white">Players ({players.length})</h3>
-                  <Button type="button" onClick={addPlayer} size="sm" variant="outline" className="dark:border-gray-600">
+                  <div>
+                    <h3 className="font-semibold dark:text-white">Players ({players.length}/{config.max})</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      Min: {config.min} | Max: {config.max}
+                    </p>
+                  </div>
+                  <Button 
+                    type="button" 
+                    onClick={addPlayer} 
+                    size="sm" 
+                    variant="outline" 
+                    className="dark:border-gray-600"
+                    disabled={players.length >= config.max}
+                  >
                     <Plus className="h-4 w-4 mr-1" />
                     Add Player
                   </Button>
                 </div>
+
+                {validationError && (
+                  <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded">
+                    <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+                    <span className="text-sm text-red-600 dark:text-red-400">{validationError}</span>
+                  </div>
+                )}
                 
                 {players.map((player, idx) => (
                   <div key={idx} className="p-4 bg-gray-50 dark:bg-gray-700 rounded space-y-3">
@@ -297,27 +386,71 @@ export default function EditFormDialog({ form, onClose, onUpdate }: Props) {
                           className="dark:bg-gray-600 dark:border-gray-500 dark:text-white"
                         />
                       </div>
-                      <div className="space-y-1">
-                        <Label className="text-sm dark:text-gray-300">Gender</Label>
-                        <Select value={player.gender} onValueChange={(val) => updatePlayer(idx, "gender", val)}>
-                          <SelectTrigger className="dark:bg-gray-600 dark:border-gray-500 dark:text-white">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent className="dark:bg-gray-700 dark:border-gray-600">
-                            <SelectItem value="Male">Male</SelectItem>
-                            <SelectItem value="Female">Female</SelectItem>
-                            <SelectItem value="Other">Other</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-sm dark:text-gray-300">Category</Label>
-                        <Input
-                          value={player.category1 || ""}
-                          onChange={(e) => updatePlayer(idx, "category1", e.target.value)}
-                          className="dark:bg-gray-600 dark:border-gray-500 dark:text-white"
-                        />
-                      </div>
+                      
+                      {/* Conditional Gender Field */}
+                      {config.requiresGender && (
+                        <div className="space-y-1">
+                          <Label className="text-sm dark:text-gray-300">Gender</Label>
+                          <Select value={player.gender || ""} onValueChange={(val) => updatePlayer(idx, "gender", val)}>
+                            <SelectTrigger className="dark:bg-gray-600 dark:border-gray-500 dark:text-white">
+                              <SelectValue placeholder="Select gender" />
+                            </SelectTrigger>
+                            <SelectContent className="dark:bg-gray-700 dark:border-gray-600">
+                              <SelectItem value="Male">Male</SelectItem>
+                              <SelectItem value="Female">Female</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+
+                      {/* Conditional Category Fields */}
+                      {config.requiresCategory && config.categoryType === 'swimming' && (
+                        <>
+                          <div className="space-y-1">
+                            <Label className="text-sm dark:text-gray-300">Category 1</Label>
+                            <Select value={player.category1 || ""} onValueChange={(val) => updatePlayer(idx, "category1", val)}>
+                              <SelectTrigger className="dark:bg-gray-600 dark:border-gray-500 dark:text-white">
+                                <SelectValue placeholder="Select category" />
+                              </SelectTrigger>
+                              <SelectContent className="dark:bg-gray-700 dark:border-gray-600">
+                                {swimmingCategories.map((cat) => (
+                                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-sm dark:text-gray-300">Category 2 (Optional)</Label>
+                            <Select value={player.category2 || ""} onValueChange={(val) => updatePlayer(idx, "category2", val)}>
+                              <SelectTrigger className="dark:bg-gray-600 dark:border-gray-500 dark:text-white">
+                                <SelectValue placeholder="Select category" />
+                              </SelectTrigger>
+                              <SelectContent className="dark:bg-gray-700 dark:border-gray-600">
+                                <SelectItem value="">None</SelectItem>
+                                {swimmingCategories.map((cat) => (
+                                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </>
+                      )}
+
+                      {config.requiresCategory && config.categoryType === 'shooting' && (
+                        <div className="space-y-1">
+                          <Label className="text-sm dark:text-gray-300">Category</Label>
+                          <Select value={player.category1 || ""} onValueChange={(val) => updatePlayer(idx, "category1", val)}>
+                            <SelectTrigger className="dark:bg-gray-600 dark:border-gray-500 dark:text-white">
+                              <SelectValue placeholder="Select category" />
+                            </SelectTrigger>
+                            <SelectContent className="dark:bg-gray-700 dark:border-gray-600">
+                              {shootingCategories.map((cat) => (
+                                <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
