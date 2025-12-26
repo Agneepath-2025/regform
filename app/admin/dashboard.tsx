@@ -106,14 +106,6 @@ export default function AdminDashboard() {
         const paymentsData = await paymentsRes.json();
         setPayments(paymentsData.data || []);
       }
-        const usersData = await usersRes.json();
-        setUsers(usersData.data || []);
-      }
-
-      if (formsRes.ok) {
-        const formsData = await formsRes.json();
-        setForms(formsData.data || []);
-      }
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
@@ -124,10 +116,12 @@ export default function AdminDashboard() {
   useEffect(() => {
     fetchData();
   }, []);
-  totalPayments: payments.length,
-    verifiedPayments: payments.filter((p) => p.status === "verified").length,
-  
+
   const stats = {
+    totalRegistrations: users.length,
+    verifiedUsers: users.filter((u) => u.emailVerified).length,
+    totalPayments: payments.length,
+    verifiedPayments: payments.filter((p) => p.status === "verified").length,
     totalUsers: users.length,
     verifiedUsers: users.filter((u) => u.emailVerified).length,
     completedRegistrations: users.filter((u) => u.registrationDone).length,
@@ -250,11 +244,7 @@ export default function AdminDashboard() {
 
         {/* Tabs */}
         <Tabs defaultValue="users" className="space-y-4">
-          <d  <TabsTrigger value="payments">
-                <CreditCard className="h-4 w-4 mr-2" />
-                Payments
-              </TabsTrigger>
-            iv className="flex justify-between items-center">
+          <div className="flex justify-between items-center">
             <TabsList className="dark:bg-gray-800 dark:border-gray-700">
               <TabsTrigger value="users">
                 <Users className="h-4 w-4 mr-2" />
@@ -263,6 +253,10 @@ export default function AdminDashboard() {
               <TabsTrigger value="forms">
                 <FileText className="h-4 w-4 mr-2" />
                 Forms
+              </TabsTrigger>
+              <TabsTrigger value="payments">
+                <CreditCard className="h-4 w-4 mr-2" />
+                Payments
               </TabsTrigger>
             </TabsList>
             <Button
