@@ -27,7 +27,8 @@ import EditUserSimpleDialog from "./edit-user-simple-dialog";
 import EditUserAdvancedDialog from "./edit-user-advanced-dialog";
 import EditFormDialog from "./edit-form-dialog";
 import EditFormAdvancedDialog from "./edit-form-advanced-dialog";
-import { LogOut, Users, FileText, RefreshCw, Moon, Sun } from "lucide-react";
+import EditPaymentDialog from "./edit-payment-dialog";
+import { LogOut, Users, FileText, RefreshCw, Moon, Sun, CreditCard } from "lucide-react";
 import { useTheme } from "./theme-provider";
 
 interface User {
@@ -57,25 +58,54 @@ interface Form {
   updatedAt?: string;
 }
 
+interface Payment {
+  _id: string;
+  userId: string;
+  userName?: string;
+  userEmail?: string;
+  universityName?: string;
+  transactionId?: string;
+  amount?: number;
+  status: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export default function AdminDashboard() {
   const { data: session } = useSession();
   const { theme, toggleTheme } = useTheme();
   const [users, setUsers] = useState<User[]>([]);
   const [forms, setForms] = useState<Form[]>([]);
+  const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [selectedForm, setSelectedForm] = useState<Form | null>(null);
+  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [advancedMode, setAdvancedMode] = useState(false);
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [usersRes, formsRes] = await Promise.all([
+      const [usersRes, formsRes, paymentsRes] = await Promise.all([
         fetch("/api/admin/registrations"),
         fetch("/api/admin/forms"),
+        fetch("/api/admin/payments"),
       ]);
 
       if (usersRes.ok) {
+        const usersData = await usersRes.json();
+        setUsers(usersData.data || []);
+      }
+
+      if (formsRes.ok) {
+        const formsData = await formsRes.json();
+        setForms(formsData.data || []);
+      }
+
+      if (paymentsRes.ok) {
+        const paymentsData = await paymentsRes.json();
+        setPayments(paymentsData.data || []);
+      }
         const usersData = await usersRes.json();
         setUsers(usersData.data || []);
       }
@@ -94,7 +124,9 @@ export default function AdminDashboard() {
   useEffect(() => {
     fetchData();
   }, []);
-
+  totalPayments: payments.length,
+    verifiedPayments: payments.filter((p) => p.status === "verified").length,
+  
   const stats = {
     totalUsers: users.length,
     verifiedUsers: users.filter((u) => u.emailVerified).length,
@@ -200,17 +232,29 @@ export default function AdminDashboard() {
           </Card>
           <Card className="dark:bg-gray-800 dark:border-gray-700">
             <CardHeader className="pb-2">
-              <CardDescription className="dark:text-gray-400">Submitted</CardDescription>
+              <CardDescription className="dark:text-gray-400">Total Payments</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold dark:text-white">{stats.submittedForms}</div>
+              <div className="text-2xl font-bold dark:text-white">{stats.totalPayments}</div>
+            </CardContent>
+          </Card>
+          <Card className="dark:bg-gray-800 dark:border-gray-700">
+            <CardHeader className="pb-2">
+              <CardDescription className="dark:text-gray-400">Verified Payments</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold dark:text-white">{stats.verifiedPayments}</div>
             </CardContent>
           </Card>
         </div>
 
         {/* Tabs */}
         <Tabs defaultValue="users" className="space-y-4">
-          <div className="flex justify-between items-center">
+          <d  <TabsTrigger value="payments">
+                <CreditCard className="h-4 w-4 mr-2" />
+                Payments
+              </TabsTrigger>
+            iv className="flex justify-between items-center">
             <TabsList className="dark:bg-gray-800 dark:border-gray-700">
               <TabsTrigger value="users">
                 <Users className="h-4 w-4 mr-2" />
@@ -416,6 +460,89 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* Payments Tab */}
+          <TabsContent value="payments">
+            <Card className="dark:bg-gray-800 dark:border-gray-700">
+              <CardHeader>
+                <CardTitle className="dark:text-white">Payment Records</CardTitle>
+                <CardDescription className="dark:text-gray-400">
+                  Manage all payment transactions and verification
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <div className="flex justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-white"></div>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="dark:border-gray-700">
+                          <TableHead className="dark:text-gray-300">User Name</TableHead>
+                          <TableHead className="dark:text-gray-300">Email</TableHead>
+                          <TableHead className="dark:text-gray-300">University</TableHead>
+                          <TableHead className="dark:text-gray-300">Transaction ID</TableHead>
+                          <TableHead className="dark:text-gray-300">Amount</TableHead>
+                          <TableHead className="dark:text-gray-300">Status</TableHead>
+                          <TableHead className="dark:text-gray-300">Date</TableHead>
+                          <TableHead className="dark:text-gray-300">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {payments.map((payment) => (
+                          <TableRow key={payment._id} className="dark:border-gray-700">
+                            <TableCell className="font-medium dark:text-white">
+                              {payment.userName || "N/A"}
+                            </TableCell>
+                            <TableCell className="dark:text-gray-300">{payment.userEmail || "N/A"}</TableCell>
+                            <TableCell className="max-w-xs truncate dark:text-gray-300">
+                              {payment.universityName || "N/A"}
+                            </TableCell>
+                            <TableCell className="dark:text-gray-300">
+                              {payment.transactionId || "N/A"}
+                            </TableCell>
+                            <TableCell className="dark:text-gray-300">
+                              ₹{payment.amount || 0}
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                variant={
+                                  payment.status === "verified"
+                                    ? "default"
+                                    : payment.status === "pending"
+                                    ? "secondary"
+                                    : "destructive"
+                                }
+                              >
+                                {payment.status}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="dark:text-gray-300">
+                              {payment.createdAt
+                                ? new Date(payment.createdAt).toLocaleDateString()
+                                : "N/A"}
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setSelectedPayment(payment)}
+                                className="dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+                              >
+                                Edit
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
       </main>
 
@@ -459,6 +586,17 @@ export default function AdminDashboard() {
           onClose={() => setSelectedForm(null)}
           onUpdate={() => {
             setSelectedForm(null);
+            fetchData();
+          }}
+        />
+      )}
+      
+      {selectedPayment && (
+        <EditPaymentDialog
+          payment={selectedPayment}
+          onClose={() => setSelectedPayment(null)}
+          onUpdate={() => {
+            setSelectedPayment(null);
             fetchData();
           }}
         />

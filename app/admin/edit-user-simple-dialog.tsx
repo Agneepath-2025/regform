@@ -63,11 +63,6 @@ export default function EditUserSimpleDialog({ user, onClose, onUpdate }: Props)
   const [editingPlayer, setEditingPlayer] = useState<{ sportKey: string; index: number } | null>(null);
   const [newPlayer, setNewPlayer] = useState<Player>({ name: "", email: "", phone: "", date: "" });
 
-  // Payment data
-  const [paymentAmount, setPaymentAmount] = useState<string>("");
-  const [transactionId, setTransactionId] = useState<string>("");
-  const [paymentDate, setPaymentDate] = useState<string>("");
-
   const handleSubmit = async () => {
     setSaving(true);
 
@@ -257,10 +252,9 @@ export default function EditUserSimpleDialog({ user, onClose, onUpdate }: Props)
         </DialogHeader>
 
         <Tabs defaultValue="basic" className="w-full">
-          <TabsList className="dark:bg-gray-700 grid w-full grid-cols-4">
+          <TabsList className="dark:bg-gray-700 grid w-full grid-cols-3">
             <TabsTrigger value="basic">Basic Info</TabsTrigger>
             <TabsTrigger value="sports">Sports ({Object.keys(formData.submittedForms).length})</TabsTrigger>
-            <TabsTrigger value="payment">Payment</TabsTrigger>
             <TabsTrigger value="status">Status</TabsTrigger>
           </TabsList>
 
@@ -503,63 +497,6 @@ export default function EditUserSimpleDialog({ user, onClose, onUpdate }: Props)
           </TabsContent>
 
           {/* Payment Tab */}
-          <TabsContent value="payment" className="space-y-4 mt-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="dark:text-gray-300">Payment Amount (₹)</Label>
-                <Input
-                  type="number"
-                  value={paymentAmount}
-                  onChange={(e) => setPaymentAmount(e.target.value)}
-                  placeholder="Enter amount"
-                  className="dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label className="dark:text-gray-300">Transaction ID</Label>
-                <Input
-                  value={transactionId}
-                  onChange={(e) => setTransactionId(e.target.value)}
-                  placeholder="Enter transaction ID"
-                  className="dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label className="dark:text-gray-300">Payment Date</Label>
-                <Input
-                  type="date"
-                  value={paymentDate}
-                  onChange={(e) => setPaymentDate(e.target.value)}
-                  className="dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label className="dark:text-gray-300">Payment Status</Label>
-                <div className="flex items-center space-x-2 p-3 border dark:border-gray-700 rounded-lg">
-                  <Switch
-                    checked={formData.paymentDone}
-                    onCheckedChange={(checked) =>
-                      setFormData({ ...formData, paymentDone: checked })
-                    }
-                  />
-                  <span className="dark:text-gray-300">
-                    {formData.paymentDone ? "Payment Completed" : "Payment Pending"}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-              <p className="text-sm text-blue-900 dark:text-blue-200">
-                <strong>Note:</strong> Payment data will be synced to Google Sheets when you save changes.
-              </p>
-            </div>
-          </TabsContent>
-
-          {/* Status Tab */}
           <TabsContent value="status" className="space-y-4 mt-4">
             <div className="space-y-4">
               <div className="flex items-center justify-between p-4 border dark:border-gray-700 rounded-lg">
