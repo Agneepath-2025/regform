@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -19,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Trash2, Plus } from "lucide-react";
 
 interface Form {
   _id: string;
@@ -40,24 +42,67 @@ interface Props {
   onUpdate: () => void;
 }
 
+interface Player {
+  name: string;
+  email: string;
+  phone: string;
+  date: string;
+  gender: string;
+  category1?: string;
+  [key: string]: unknown;
+}
+
+interface CoachFields {
+  name: string;
+  email: string;
+  contact: string;
+  gender?: string;
+  [key: string]: unknown;
+}
+
 export default function EditFormDialog({ form, onClose, onUpdate }: Props) {
   const [status, setStatus] = useState(form.status);
   const [saving, setSaving] = useState(false);
+  
+  // Parse fields data
+  const initialFields = form.fields || {};
+  const [players, setPlayers] = useState<Player[]>(
+    Array.isArray(initialFields.playerFields) ? initialFields.playerFields as Player[] : []
+  );
+  const [coach, setCoach] = useState<CoachFields>(
+    initialFields.coachFields ? initialFields.coachFields as CoachFields : {
+      name: "",
+      email: "",
+      contact: "",
+      gender: ""
+    }
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
 
     try {
+      // Reconstruct fields with updated data
+      const updatedFields = {
+        ...form.fields,
+        playerFields: players,
+        coachFields: coach
+      };
+
       const response = await fetch(`/api/admin/forms/${form._id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ 
+          status,
+          fields: updatedFields
+        }),
       });
 
       if (response.ok) {
+        alert("Form updated successfully! Syncing to Google Sheets...");
         onUpdate();
       } else {
         alert("Failed to update form");
@@ -70,6 +115,31 @@ export default function EditFormDialog({ form, onClose, onUpdate }: Props) {
     }
   };
 
+  const updatePlayer = (index: number, field: string, value: string) => {
+    const newPlayers = [...players];
+    newPlayers[index] = { ...newPlayers[index], [field]: value };
+    setPlayers(newPlayers);
+  };
+
+  const removePlayer = (index: number) => {
+    setPlayers(players.filter((_, i) => i !== index));
+  };
+
+  const addPlayer = () => {
+    setPlayers([...players, {
+      name: "",
+      email: "",
+      phone: "",
+      date: "",
+      gender: "",
+      category1: ""
+    }]);
+  };
+
+  const updateCoach = (field: string, value: string) => {
+    setCoach({ ...coach, [field]: value });
+  };
+
   const renderFieldValue = (value: unknown): string => {
     if (value === null || value === undefined) return "N/A";
     if (typeof value === "object") {
@@ -79,52 +149,15 @@ export default function EditFormDialog({ form, onClose, onUpdate }: Props) {
     return String(value);
   };
 
-  const renderFields = (fields: Record<string, unknown>) => {
-    return Object.entries(fields).map(([key, value]) => {
-      if (key === "playerFields" && Array.isArray(value)) {
-        return (
-          <div key={key} className="space-y-2">
-            <h4 className="font-semibold text-sm dark:text-gray-300">Players ({value.length})</h4>
-            {value.map((player, idx) => (
-              <div key={idx} className="ml-4 p-3 bg-gray-50 dark:bg-gray-700 rounded space-y-1">
-                <p className="font-medium text-sm dark:text-gray-300">Player {idx + 1}</p>
-                {Object.entries(player as Record<string, unknown>).map(
-                  ([pKey, pValue]) => (
-                    <div key={pKey} className="text-sm dark:text-gray-400">
-                      <span className="font-medium dark:text-gray-300">{pKey}:</span>{" "}
-                      {renderFieldValue(pValue)}
-                    </div>
-                  )
-                )}
-              </div>
-            ))}
-          </div>
-        );
-      } else if (key === "coachFields" && typeof value === "object") {
-        return (
-          <div key={key} className="space-y-2">
-            <h4 className="font-semibold text-sm dark:text-gray-300">Coach Details</h4>
-            <div className="ml-4 p-3 bg-gray-50 dark:bg-gray-700 rounded space-y-1">
-              {Object.entries(value as Record<string, unknown>).map(
-                ([cKey, cValue]) => (
-                  <div key={cKey} className="text-sm dark:text-gray-400">
-                    <span className="font-medium dark:text-gray-300">{cKey}:</span>{" "}
-                    {renderFieldValue(cValue)}
-                  </div>
-                )
-              )}
-            </div>
-          </div>
-        );
-      } else {
-        return (
-          <div key={key} className="space-y-1">
-            <Label className="text-sm font-medium dark:text-gray-300">{key}</Label>
-            <p className="text-sm text-gray-700 dark:text-gray-400">{renderFieldValue(value)}</p>
-          </div>
-        );
-      }
-    });
+  const renderOtherFields = (fields: Record<string, unknown>) => {
+    return Object.entries(fields)
+      .filter(([key]) => key !== "playerFields" && key !== "coachFields")
+      .map(([key, value]) => (
+        <div key={key} className="space-y-1">
+          <Label className="text-sm font-medium dark:text-gray-300">{key}</Label>
+          <p className="text-sm text-gray-700 dark:text-gray-400">{renderFieldValue(value)}</p>
+        </div>
+      ));
   };
 
   return (
@@ -160,11 +193,142 @@ export default function EditFormDialog({ form, onClose, onUpdate }: Props) {
                 </Select>
               </div>
 
-              {form.fields && (
+              {/* Coach Details Section */}
+              <div className="space-y-4 border-t dark:border-gray-700 pt-4">
+                <h3 className="font-semibold dark:text-white">Coach Details</h3>
+                <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 dark:bg-gray-700 rounded">
+                  <div className="space-y-2">
+                    <Label className="dark:text-gray-300">Name</Label>
+                    <Input
+                      value={coach.name}
+                      onChange={(e) => updateCoach("name", e.target.value)}
+                      className="dark:bg-gray-600 dark:border-gray-500 dark:text-white"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="dark:text-gray-300">Email</Label>
+                    <Input
+                      type="email"
+                      value={coach.email}
+                      onChange={(e) => updateCoach("email", e.target.value)}
+                      className="dark:bg-gray-600 dark:border-gray-500 dark:text-white"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="dark:text-gray-300">Phone</Label>
+                    <Input
+                      value={coach.contact}
+                      onChange={(e) => updateCoach("contact", e.target.value)}
+                      className="dark:bg-gray-600 dark:border-gray-500 dark:text-white"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="dark:text-gray-300">Gender</Label>
+                    <Select value={coach.gender || ""} onValueChange={(val) => updateCoach("gender", val)}>
+                      <SelectTrigger className="dark:bg-gray-600 dark:border-gray-500 dark:text-white">
+                        <SelectValue placeholder="Select gender" />
+                      </SelectTrigger>
+                      <SelectContent className="dark:bg-gray-700 dark:border-gray-600">
+                        <SelectItem value="Male">Male</SelectItem>
+                        <SelectItem value="Female">Female</SelectItem>
+                        <SelectItem value="Other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Players Section */}
+              <div className="space-y-4 border-t dark:border-gray-700 pt-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold dark:text-white">Players ({players.length})</h3>
+                  <Button type="button" onClick={addPlayer} size="sm" variant="outline" className="dark:border-gray-600">
+                    <Plus className="h-4 w-4 mr-1" />
+                    Add Player
+                  </Button>
+                </div>
+                
+                {players.map((player, idx) => (
+                  <div key={idx} className="p-4 bg-gray-50 dark:bg-gray-700 rounded space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-medium text-sm dark:text-gray-300">Player {idx + 1}</h4>
+                      <Button
+                        type="button"
+                        onClick={() => removePlayer(idx)}
+                        size="sm"
+                        variant="ghost"
+                        className="text-red-500 hover:text-red-700 dark:hover:bg-gray-600"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-sm dark:text-gray-300">Name</Label>
+                        <Input
+                          value={player.name}
+                          onChange={(e) => updatePlayer(idx, "name", e.target.value)}
+                          className="dark:bg-gray-600 dark:border-gray-500 dark:text-white"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-sm dark:text-gray-300">Email</Label>
+                        <Input
+                          type="email"
+                          value={player.email}
+                          onChange={(e) => updatePlayer(idx, "email", e.target.value)}
+                          className="dark:bg-gray-600 dark:border-gray-500 dark:text-white"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-sm dark:text-gray-300">Phone</Label>
+                        <Input
+                          value={player.phone}
+                          onChange={(e) => updatePlayer(idx, "phone", e.target.value)}
+                          className="dark:bg-gray-600 dark:border-gray-500 dark:text-white"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-sm dark:text-gray-300">Date of Birth</Label>
+                        <Input
+                          type="date"
+                          value={player.date}
+                          onChange={(e) => updatePlayer(idx, "date", e.target.value)}
+                          className="dark:bg-gray-600 dark:border-gray-500 dark:text-white"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-sm dark:text-gray-300">Gender</Label>
+                        <Select value={player.gender} onValueChange={(val) => updatePlayer(idx, "gender", val)}>
+                          <SelectTrigger className="dark:bg-gray-600 dark:border-gray-500 dark:text-white">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="dark:bg-gray-700 dark:border-gray-600">
+                            <SelectItem value="Male">Male</SelectItem>
+                            <SelectItem value="Female">Female</SelectItem>
+                            <SelectItem value="Other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-sm dark:text-gray-300">Category</Label>
+                        <Input
+                          value={player.category1 || ""}
+                          onChange={(e) => updatePlayer(idx, "category1", e.target.value)}
+                          className="dark:bg-gray-600 dark:border-gray-500 dark:text-white"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Other Fields (read-only) */}
+              {form.fields && Object.keys(form.fields).filter(k => k !== "playerFields" && k !== "coachFields").length > 0 && (
                 <div className="space-y-4 border-t dark:border-gray-700 pt-4">
-                  <h3 className="font-semibold dark:text-white">Form Fields</h3>
+                  <h3 className="font-semibold dark:text-white">Other Form Fields</h3>
                   <div className="space-y-3">
-                    {renderFields(form.fields)}
+                    {renderOtherFields(form.fields)}
                   </div>
                 </div>
               )}

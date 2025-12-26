@@ -27,8 +27,9 @@ import EditUserAdvancedDialog from "./edit-user-advanced-dialog";
 import EditFormDialog from "./edit-form-dialog";
 import EditFormAdvancedDialog from "./edit-form-advanced-dialog";
 import EditPaymentDialog from "./edit-payment-dialog";
-import { LogOut, Users, FileText, RefreshCw, Moon, Sun, CreditCard } from "lucide-react";
+import { LogOut, Users, FileText, RefreshCw, Moon, Sun, CreditCard, Search } from "lucide-react";
 import { useTheme } from "./theme-provider";
+import { Input } from "@/components/ui/input";
 
 interface User {
   _id: string;
@@ -81,6 +82,7 @@ export default function AdminDashboard() {
   const [selectedForm, setSelectedForm] = useState<Form | null>(null);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [advancedMode, setAdvancedMode] = useState(false);
+  const [userSearchQuery, setUserSearchQuery] = useState("");
 
   const fetchData = async () => {
     setLoading(true);
@@ -126,6 +128,18 @@ export default function AdminDashboard() {
     totalForms: forms.length,
     submittedForms: forms.filter((f) => f.status === "submitted").length,
   };
+
+  // Filter users based on search query
+  const filteredUsers = users.filter((user) => {
+    const searchLower = userSearchQuery.toLowerCase();
+    return (
+      user.name.toLowerCase().includes(searchLower) ||
+      user.email.toLowerCase().includes(searchLower) ||
+      user.phone?.toLowerCase().includes(searchLower) ||
+      user.universityName.toLowerCase().includes(searchLower) ||
+      user._id.toLowerCase().includes(searchLower)
+    );
+  });
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
@@ -287,6 +301,17 @@ export default function AdminDashboard() {
                     />
                   </div>
                 </div>
+                {/* Search Bar */}
+                <div className="mt-4 relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    type="text"
+                    placeholder="Search by name, email, phone, university, or ID..."
+                    value={userSearchQuery}
+                    onChange={(e) => setUserSearchQuery(e.target.value)}
+                    className="pl-10 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  />
+                </div>
               </CardHeader>
               <CardContent>
                 {loading ? (
@@ -295,6 +320,11 @@ export default function AdminDashboard() {
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
+                    {filteredUsers.length === 0 ? (
+                      <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                        No users found matching your search.
+                      </div>
+                    ) : (
                     <Table>
                       <TableHeader>
                         <TableRow className="dark:border-gray-700">
@@ -310,7 +340,7 @@ export default function AdminDashboard() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {users.map((user) => (
+                        {filteredUsers.map((user) => (
                           <TableRow key={user._id} className="dark:border-gray-700">
                             <TableCell className="font-medium dark:text-white">
                               {user.name}
@@ -360,6 +390,7 @@ export default function AdminDashboard() {
                         ))}
                       </TableBody>
                     </Table>
+                    )}
                   </div>
                 )}
               </CardContent>
