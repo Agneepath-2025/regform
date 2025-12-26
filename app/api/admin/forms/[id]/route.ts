@@ -92,14 +92,16 @@ export async function PATCH(
       return NextResponse.json({ error: "Form not found" }, { status: 404 });
     }
 
-    // Trigger Google Sheets sync (non-blocking)
+    // Trigger incremental Google Sheets sync (non-blocking)
     try {
-      fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/sync/event`, {
+      // Sync only this specific form record
+      fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/sync/incremental`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
-          type: "form_updated",
-          formId: id,
+          collection: "form",
+          recordId: id,
+          sheetName: "Forms"
         }),
       }).catch(err => console.error("Background sync failed:", err));
     } catch (error) {

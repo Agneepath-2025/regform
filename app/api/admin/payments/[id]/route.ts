@@ -90,16 +90,31 @@ export async function PATCH(
       );
     }
 
-    // Trigger Google Sheets sync (non-blocking)
+    // Trigger incremental Google Sheets sync (non-blocking)
     try {
-      fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/sync/event`, {
+      // Sync the payment record
+      fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/sync/incremental`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
-          type: "payment_updated",
-          paymentId: id,
+          collection: "payments",
+          recordId: id,
+          sheetName: "Payments"
         }),
-      }).catch(err => console.error("Background sync failed:", err));
+      }).catch(err => console.error("Payment sync failed:", err));
+
+      // Also sync the user record if payment status changed
+      if (result.userId) {
+        fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/sync/incremental`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            collection: "users",
+            recordId: result.userId.toString(),
+            sheetName: "Users"
+          }),
+        }).catch(err => console.error("User sync failed:", err));
+      }
     } catch (error) {
       console.error("Error triggering sync:", error);
     }

@@ -119,17 +119,36 @@ export async function PATCH(
       }
     }
 
-    // Trigger Google Sheets sync (non-blocking)
+    // Trigger incremental Google Sheets sync (non-blocking)
     try {
-      // Don't await - let it run in background
-      fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/sync/event`, {
+      // Sync only this specific user record
+      fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/sync/incremental`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
-          type: "user_updated",
-          userId: id,
+          collection: "users",
+          recordId: id,
+          sheetName: "Users"
         }),
       }).catch(err => console.error("Background sync failed:", err));
+
+      // Also sync forms if submittedForms changed
+      if (body.submittedForms) {
+        // Sync all affected form records
+        const formsCollection = db.collection("form");
+        const userForms = await formsCollection.find({ ownerId: new ObjectId(id) }).toArray();
+        userForms.forEach(form => {
+          fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/sync/incremental`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ 
+              collection: "form",
+              recordId: form._id.toString(),
+              sheetName: "Forms"
+            }),
+          }).catch(err => console.error("Form sync failed:", err));
+        });
+      }
     } catch (error) {
       console.error("Error triggering sync:", error);
       // Don't fail the request if sync fails
