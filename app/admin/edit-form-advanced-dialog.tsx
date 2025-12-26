@@ -58,6 +58,11 @@ export default function EditFormAdvancedDialog({ form, onClose, onUpdate }: Prop
   const [playerPhone, setPlayerPhone] = useState("");
   const [playerDOB, setPlayerDOB] = useState("");
 
+  // Coach management
+  const [coachName, setCoachName] = useState("");
+  const [coachContact, setCoachContact] = useState("");
+  const [coachEmail, setCoachEmail] = useState("");
+
   const validateJson = (jsonString: string): boolean => {
     try {
       JSON.parse(jsonString);
@@ -163,6 +168,37 @@ export default function EditFormAdvancedDialog({ form, onClose, onUpdate }: Prop
     }
   };
 
+  const getCoachData = () => {
+    try {
+      const fields = JSON.parse(fieldsJson);
+      return fields.coachFields || {};
+    } catch {
+      return {};
+    }
+  };
+
+  const updateCoach = () => {
+    if (!coachName || !coachContact) {
+      alert("Please fill in coach name and contact");
+      return;
+    }
+
+    try {
+      const fields = JSON.parse(fieldsJson);
+      fields.coachFields = {
+        name: coachName,
+        contact: coachContact,
+        email: coachEmail
+      };
+      setFieldsJson(JSON.stringify(fields, null, 2));
+      setCoachName("");
+      setCoachContact("");
+      setCoachEmail("");
+    } catch (error) {
+      alert("Error updating coach: " + (error instanceof Error ? error.message : "Unknown error"));
+    }
+  };
+
   return (
     <Dialog open={true} onOpenChange={onClose}>
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto dark:bg-gray-800 dark:border-gray-700">
@@ -176,8 +212,9 @@ export default function EditFormAdvancedDialog({ form, onClose, onUpdate }: Prop
         </DialogHeader>
 
         <Tabs defaultValue="players" className="w-full">
-          <TabsList className="dark:bg-gray-700 grid w-full grid-cols-4">
+          <TabsList className="dark:bg-gray-700 grid w-full grid-cols-5">
             <TabsTrigger value="players">Players</TabsTrigger>
+            <TabsTrigger value="coach">Coach</TabsTrigger>
             <TabsTrigger value="json">Raw JSON</TabsTrigger>
             <TabsTrigger value="owner">Owner Info</TabsTrigger>
             <TabsTrigger value="status">Status</TabsTrigger>
@@ -258,6 +295,70 @@ export default function EditFormAdvancedDialog({ form, onClose, onUpdate }: Prop
                     </Button>
                   </div>
                 ))}
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="coach" className="space-y-4 mt-4">
+            <div className="space-y-4">
+              <div className="border dark:border-gray-700 rounded-lg p-4 space-y-3">
+                <h4 className="font-semibold dark:text-white">Edit Coach Details</h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="dark:text-gray-300">Coach Name *</Label>
+                    <Input
+                      value={coachName}
+                      onChange={(e) => setCoachName(e.target.value)}
+                      className="dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                      placeholder="Coach name"
+                    />
+                  </div>
+                  <div>
+                    <Label className="dark:text-gray-300">Contact Number *</Label>
+                    <Input
+                      value={coachContact}
+                      onChange={(e) => setCoachContact(e.target.value)}
+                      className="dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                      placeholder="1234567890"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <Label className="dark:text-gray-300">Coach Email</Label>
+                    <Input
+                      type="email"
+                      value={coachEmail}
+                      onChange={(e) => setCoachEmail(e.target.value)}
+                      className="dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                      placeholder="coach@example.com"
+                    />
+                  </div>
+                </div>
+                <Button onClick={updateCoach} className="w-full">
+                  <Save className="h-4 w-4 mr-2" />
+                  Update Coach
+                </Button>
+              </div>
+
+              <div className="border dark:border-gray-700 rounded-lg p-4">
+                <h4 className="font-semibold dark:text-white mb-3">Current Coach Details</h4>
+                {Object.keys(getCoachData()).length > 0 ? (
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-500 dark:text-gray-400">Name:</span>
+                      <span className="text-sm font-medium dark:text-white">{getCoachData().name || "N/A"}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-500 dark:text-gray-400">Contact:</span>
+                      <span className="text-sm font-medium dark:text-white">{getCoachData().contact || "N/A"}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-500 dark:text-gray-400">Email:</span>
+                      <span className="text-sm font-medium dark:text-white">{getCoachData().email || "N/A"}</span>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">No coach assigned yet</p>
+                )}
               </div>
             </div>
           </TabsContent>
