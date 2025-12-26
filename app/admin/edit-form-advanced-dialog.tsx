@@ -22,7 +22,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { RefreshCw, Save, Plus, Trash2 } from "lucide-react";
+import { Save, Plus, Trash2 } from "lucide-react";
 
 interface Form {
   _id: string;
@@ -354,16 +354,6 @@ export default function EditFormAdvancedDialog({ form, onClose, onUpdate }: Prop
         </Tabs>
 
         <DialogFooter className="flex gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={syncToGoogleSheets}
-            disabled={syncing}
-            className="dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
-          >
-            <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? "animate-spin" : ""}`} />
-            {syncing ? "Syncing..." : "Sync to Sheets"}
-          </Button>
           <Button type="button" variant="outline" onClick={onClose} className="dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
             Cancel
           </Button>

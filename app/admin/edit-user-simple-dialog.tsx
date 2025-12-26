@@ -17,7 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { sports } from "@/app/utils/forms/schema";
-import { Trash2, Plus, Save, RefreshCw, Check, X } from "lucide-react";
+import { Trash2, Plus, Save, Check, X } from "lucide-react";
 
 interface User {
   _id: string;
@@ -497,16 +497,7 @@ export default function EditUserSimpleDialog({ user, onClose, onUpdate }: Props)
         </Tabs>
 
         <DialogFooter className="flex gap-2 border-t dark:border-gray-700 pt-4">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={syncToGoogleSheets}
-            disabled={syncing}
-            className="dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
-          >
-            <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? "animate-spin" : ""}`} />
-            {syncing ? "Syncing..." : "Sync to Sheets"}
-          </Button>
+
           <Button type="button" variant="outline" onClick={onClose} className="dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
             Cancel
           </Button>

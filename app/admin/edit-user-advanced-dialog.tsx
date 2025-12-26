@@ -18,7 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { sports } from "@/app/utils/forms/schema";
-import { Trash2, Plus, Save, RefreshCw } from "lucide-react";
+import { Trash2, Plus, Save } from "lucide-react";
 
 interface User {
   _id: string;
@@ -336,16 +336,6 @@ export default function EditUserAdvancedDialog({ user, onClose, onUpdate }: Prop
         </Tabs>
 
         <DialogFooter className="flex gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={syncToGoogleSheets}
-            disabled={syncing}
-            className="dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
-          >
-            <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? "animate-spin" : ""}`} />
-            {syncing ? "Syncing..." : "Sync to Sheets"}
-          </Button>
           <Button type="button" variant="outline" onClick={onClose} className="dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
             Cancel
           </Button>
