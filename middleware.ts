@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
 import { decrypt } from "@/app/utils/encryption";
+import { auth } from "@/auth";
 
 // Force middleware to use Node.js runtime instead of Edge
 export const runtime = 'nodejs';
@@ -10,6 +11,27 @@ function getJwtSecret(): string {
 }
 
 export async function middleware(req: NextRequest) {
+  // Handle admin routes separately
+  const isAdminRoute = req.nextUrl.pathname.startsWith("/admin");
+  const isAdminLoginPage = req.nextUrl.pathname === "/admin/login";
+  
+  if (isAdminRoute) {
+    const session = await auth();
+    
+    if (!isAdminLoginPage && !session?.user) {
+      // Redirect to login if not authenticated
+      return NextResponse.redirect(new URL("/admin/login", req.url));
+    }
+
+    if (isAdminLoginPage && session?.user) {
+      // Redirect to admin dashboard if already authenticated
+      return NextResponse.redirect(new URL("/admin", req.url));
+    }
+
+    return NextResponse.next();
+  }
+
+  // Regular authentication flow for non-admin routes
   const token = req.cookies.get("authToken")?.value;
 
   const isSignInPage = req.nextUrl.pathname === "/SignIn";
@@ -82,5 +104,6 @@ async function validateToken(token: string): Promise<{ valid: boolean; expired: 
 export const config = {
   matcher: [
     "/dashboard/:path*", // Protect all Dashboard routes
+    "/admin/:path*",     // Protect all Admin routes
   ],
 };

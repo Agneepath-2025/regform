@@ -39,3 +39,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+ADMIN_SETUP_CHECKLIST.md
+ADMIN_ARCHITECTURE.md
+ADMIN_IMPLEMENTATION_SUMMARY.md
+ADMIN_QUICK_START.md
+documentation/ADMIN_PORTAL_SETUP.md
