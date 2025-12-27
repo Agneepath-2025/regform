@@ -203,6 +203,7 @@ function formatPaymentRecord(doc: Record<string, unknown>): unknown[] {
     doc.payeeName || "",
     doc.paymentDate ? new Date(doc.paymentDate as string).toLocaleString() : "",
     doc.status || "",
+    doc.registrationStatus || "Not Started",
     doc.createdAt ? new Date(doc.createdAt as string).toLocaleString() : ""
   ];
 }

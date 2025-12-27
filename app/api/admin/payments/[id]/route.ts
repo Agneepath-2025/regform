@@ -59,12 +59,22 @@ export async function PATCH(
       "transactionId",
       "amount",
       "status",
+      "registrationStatus",
     ];
 
     for (const field of allowedFields) {
       if (field in body) {
         updateData[field] = body[field];
       }
+    }
+
+    // Automatically update registrationStatus when status changes
+    if (body.status === "verified") {
+      updateData.registrationStatus = "Confirmed";
+    } else if (body.status === "rejected") {
+      updateData.registrationStatus = "Rejected";
+    } else if (body.status === "pending") {
+      updateData.registrationStatus = "In Progress";
     }
 
     const result = await paymentsCollection.findOneAndUpdate(
