@@ -27,7 +27,7 @@ import EditUserAdvancedDialog from "./edit-user-advanced-dialog";
 import EditFormDialog from "./edit-form-dialog";
 import EditFormAdvancedDialog from "./edit-form-advanced-dialog";
 import EditPaymentDialog from "./edit-payment-dialog";
-import { LogOut, Users, FileText, RefreshCw, Moon, Sun, CreditCard, Search } from "lucide-react";
+import { LogOut, Users, FileText, Moon, Sun, CreditCard, Search } from "lucide-react";
 import { useTheme } from "./theme-provider";
 import { Input } from "@/components/ui/input";
 
@@ -118,6 +118,14 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     fetchData();
+    
+    // Auto-reload every 2 seconds
+    const interval = setInterval(() => {
+      fetchData();
+    }, 2000);
+    
+    // Cleanup interval on unmount
+    return () => clearInterval(interval);
   }, []);
 
   const stats = {
@@ -298,16 +306,10 @@ export default function AdminDashboard() {
                 Payments
               </TabsTrigger>
             </TabsList>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={fetchData}
-              disabled={loading}
-              className="dark:border-gray-600"
-            >
-              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
-              Refresh
-            </Button>
+            <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+              <div className={`w-2 h-2 rounded-full ${loading ? 'bg-blue-500 animate-pulse' : 'bg-green-500'}`}></div>
+              <span>Auto-refresh every 2s</span>
+            </div>
           </div>
 
           {/* Users Tab */}
