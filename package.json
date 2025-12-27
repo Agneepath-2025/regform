@@ -12,7 +12,16 @@
     "db:logs": "docker logs regform-mongodb-dev -f",
     "db:reset": "docker compose -f docker-compose.dev.yml down -v && docker compose -f docker-compose.dev.yml up -d",
     "local:setup": "./setup-local.sh",
-    "test:build": "npm run build && npm start"
+    "test:build": "npm run build && npm start",
+    "docker:build": "docker-compose build",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "docker:restart": "docker-compose restart",
+    "docker:clean": "docker-compose down -v",
+    "docker:dev": "docker-compose -f docker-compose.dev.full.yml up -d",
+    "docker:dev:down": "docker-compose -f docker-compose.dev.full.yml down",
+    "docker:dev:logs": "docker-compose -f docker-compose.dev.full.yml logs -f app-dev"
   },
   "dependencies": {
     "@auth/mongodb-adapter": "^3.11.1",
