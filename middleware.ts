@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
 import { decrypt } from "@/app/utils/encryption";
 import { auth } from "@/auth";
+import { addSecurityHeaders } from "@/app/utils/security/headers";
+import { rateLimit } from "@/app/utils/rateLimit";
 
 // Force middleware to use Node.js runtime instead of Edge
 export const runtime = 'nodejs';
@@ -11,6 +13,19 @@ function getJwtSecret(): string {
 }
 
 export async function middleware(req: NextRequest) {
+  // Apply rate limiting to API routes
+  if (req.nextUrl.pathname.startsWith("/api/")) {
+    const rateLimitResult = rateLimit(req, {
+      windowMs: 60000, // 1 minute
+      maxRequests: 100,
+      message: "Too many requests from this IP, please try again later."
+    });
+    
+    if (rateLimitResult) {
+      return addSecurityHeaders(rateLimitResult);
+    }
+  }
+
   // Handle admin routes separately
   const isAdminRoute = req.nextUrl.pathname.startsWith("/admin");
   const isAdminLoginPage = req.nextUrl.pathname === "/admin/login";
@@ -20,15 +35,17 @@ export async function middleware(req: NextRequest) {
     
     if (!isAdminLoginPage && !session?.user) {
       // Redirect to login if not authenticated
-      return NextResponse.redirect(new URL("/admin/login", req.url));
+      const response = NextResponse.redirect(new URL("/admin/login", req.url));
+      return addSecurityHeaders(response);
     }
 
     if (isAdminLoginPage && session?.user) {
       // Redirect to admin dashboard if already authenticated
-      return NextResponse.redirect(new URL("/admin", req.url));
+      const response = NextResponse.redirect(new URL("/admin", req.url));
+      return addSecurityHeaders(response);
     }
 
-    return NextResponse.next();
+    return addSecurityHeaders(NextResponse.next());
   }
 
   // Regular authentication flow for non-admin routes
@@ -40,10 +57,11 @@ export async function middleware(req: NextRequest) {
   if (!token) {
     if (isSignInPage) {
       // Allow access to the SignIn page if unauthenticated
-      return NextResponse.next();
+      return addSecurityHeaders(NextResponse.next());
     }
     // Redirect unauthenticated users on protected routes to SignIn
-    return NextResponse.redirect(new URL("/SignIn", req.url), { status: 302 });
+    const response = NextResponse.redirect(new URL("/SignIn", req.url), { status: 302 });
+    return addSecurityHeaders(response);
   }
 
   // Validate the token
@@ -52,10 +70,11 @@ export async function middleware(req: NextRequest) {
   if (validationResult.valid) {
     if (isSignInPage) {
       // Redirect authenticated users away from SignIn to Dashboard
-      return NextResponse.redirect(new URL("/dashboard", req.url), { status: 302 });
+      const response = NextResponse.redirect(new URL("/dashboard", req.url), { status: 302 });
+      return addSecurityHeaders(response);
     }
     // Allow access to protected routes if authenticated
-    return NextResponse.next();
+    return addSecurityHeaders(NextResponse.next());
   }
 
   // Redirect to SignIn with appropriate error message
@@ -73,7 +92,7 @@ export async function middleware(req: NextRequest) {
   const response = NextResponse.redirect(redirectUrl, { status: 302 });
   response.cookies.delete("authToken");
   
-  return response;
+  return addSecurityHeaders(response);
 }
 
 // Token validation function - validates directly without HTTP request
