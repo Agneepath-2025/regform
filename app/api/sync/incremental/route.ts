@@ -451,7 +451,7 @@ function formatPaymentRecord(doc: Record<string, unknown>): unknown[] {
     userEmail,
     paymentProofUrl,
     doc.registrationStatus || "Not Started",
-    "No"
+    doc.sendEmail ? "Yes" : "No"
   ];
 }
 

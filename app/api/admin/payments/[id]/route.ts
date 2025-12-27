@@ -60,6 +60,7 @@ export async function PATCH(
       "amount",
       "status",
       "registrationStatus",
+      "sendEmail",
     ];
 
     for (const field of allowedFields) {

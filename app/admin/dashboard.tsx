@@ -69,6 +69,7 @@ interface Payment {
   transactionId?: string;
   amount?: number;
   status: string;
+  sendEmail?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -173,6 +174,24 @@ export default function AdminDashboard() {
       }
     } catch (error) {
       console.error("Error restoring user:", error);
+    }
+  };
+
+  const handleToggleSendEmail = async (paymentId: string, currentValue: boolean) => {
+    try {
+      const response = await fetch(`/api/admin/payments/${paymentId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sendEmail: !currentValue }),
+      });
+
+      if (response.ok) {
+        fetchData(true);
+      } else {
+        console.error("Failed to update sendEmail");
+      }
+    } catch (error) {
+      console.error("Error updating sendEmail:", error);
     }
   };
 
@@ -662,6 +681,7 @@ export default function AdminDashboard() {
                           <TableHead className="dark:text-gray-300">Transaction ID</TableHead>
                           <TableHead className="dark:text-gray-300">Amount</TableHead>
                           <TableHead className="dark:text-gray-300">Status</TableHead>
+                          <TableHead className="dark:text-gray-300">Send Email?</TableHead>
                           <TableHead className="dark:text-gray-300">Date</TableHead>
                           <TableHead className="dark:text-gray-300">Actions</TableHead>
                         </TableRow>
@@ -694,6 +714,12 @@ export default function AdminDashboard() {
                               >
                                 {payment.status}
                               </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Switch
+                                checked={payment.sendEmail || false}
+                                onCheckedChange={() => handleToggleSendEmail(payment._id, payment.sendEmail || false)}
+                              />
                             </TableCell>
                             <TableCell className="dark:text-gray-300">
                               {payment.createdAt
