@@ -91,7 +91,6 @@ export async function POST(req: NextRequest) {
     // Payments: Payment ID is in column D (4th column)
     // Forms/Users: ID is in column A (1st column)
     const idColumn = collection === "payments" ? "D" : "A";
-    const columnIndex = collection === "payments" ? 3 : 0; // 0-indexed for array access
 
     // Get existing sheet data to find the row
     const existingData = await sheets.spreadsheets.values.get({
