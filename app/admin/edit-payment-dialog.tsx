@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { Save } from "lucide-react";
 
 interface Payment {
@@ -25,6 +26,7 @@ interface Payment {
   transactionId?: string;
   amount?: number;
   status: string;
+  sendEmail?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -40,6 +42,7 @@ export default function EditPaymentDialog({ payment, onClose, onUpdate }: Props)
     transactionId: payment.transactionId || "",
     amount: payment.amount || 0,
     status: payment.status || "pending",
+    sendEmail: payment.sendEmail || false,
   });
   const [saving, setSaving] = useState(false);
 
@@ -133,6 +136,19 @@ export default function EditPaymentDialog({ payment, onClose, onUpdate }: Props)
                   className="dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                   placeholder="Enter amount"
                 />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="dark:text-gray-300">Send Email?</Label>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  checked={formData.sendEmail}
+                  onCheckedChange={(checked) => setFormData({ ...formData, sendEmail: checked })}
+                />
+                <span className="text-sm dark:text-gray-300">
+                  {formData.sendEmail ? "Yes" : "No"}
+                </span>
               </div>
             </div>
 

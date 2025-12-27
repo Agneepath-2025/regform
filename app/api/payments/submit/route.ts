@@ -44,6 +44,7 @@ interface PaymentData {
   ownerId: ObjectId;
   status: string;
   registrationStatus: string;
+  sendEmail: boolean;
   createdAt: Date;
 }
 
@@ -134,6 +135,7 @@ export async function POST(req: NextRequest) {
       paymentDate: new Date(formData.get("paymentDate") as string),
       status: "In review",
       registrationStatus: "Not Started",
+      sendEmail: false,
       createdAt: new Date(),
       paymentProof: paymentProofId
     };
