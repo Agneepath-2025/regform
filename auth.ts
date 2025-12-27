@@ -8,6 +8,8 @@ const ADMIN_EMAILS = (process.env.NEXTAUTH_ADMIN_EMAILS || "").split(",").map(e 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   // No database adapter - admin sessions are JWT-only (not stored in DB)
   // This keeps admin authentication completely separate from regular user data
+  secret: process.env.NEXTAUTH_SECRET,
+  trustHost: true,
   session: {
     strategy: "jwt", // Use JWT tokens instead of database sessions
     maxAge: 24 * 60 * 60, // 24 hours
@@ -16,6 +18,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      authorization: {
+        params: {
+          prompt: "consent",
+          access_type: "offline",
+          response_type: "code"
+        }
+      }
     }),
   ],
   callbacks: {
