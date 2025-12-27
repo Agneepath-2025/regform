@@ -23,15 +23,50 @@ export async function POST(req: NextRequest) {
 
     // Connect to MongoDB and fetch the specific record
     const { db } = await connectToDatabase();
-    const dataCollection = db.collection(collection);
     
-    const document = await dataCollection.findOne({ _id: new ObjectId(recordId) });
-
-    if (!document) {
-      return NextResponse.json(
-        { success: false, message: "Record not found in database" },
-        { status: 404 }
-      );
+    let document;
+    
+    // For payments, use aggregation to include user and form data
+    if (collection === "payments") {
+      const paymentAggregation = await db.collection(collection).aggregate([
+        { $match: { _id: new ObjectId(recordId) } },
+        {
+          $lookup: {
+            from: "users",
+            localField: "ownerId",
+            foreignField: "_id",
+            as: "ownerData"
+          }
+        },
+        {
+          $lookup: {
+            from: "form",
+            localField: "ownerId",
+            foreignField: "ownerId",
+            as: "formsData"
+          }
+        },
+        { $limit: 1 }
+      ]).toArray();
+      
+      if (paymentAggregation.length === 0) {
+        return NextResponse.json(
+          { success: false, message: "Record not found in database" },
+          { status: 404 }
+        );
+      }
+      document = paymentAggregation[0];
+    } else {
+      // For other collections, simple findOne
+      const dataCollection = db.collection(collection);
+      document = await dataCollection.findOne({ _id: new ObjectId(recordId) });
+      
+      if (!document) {
+        return NextResponse.json(
+          { success: false, message: "Record not found in database" },
+          { status: 404 }
+        );
+      }
     }
 
     // Authenticate with Google Sheets API
@@ -52,10 +87,16 @@ export async function POST(req: NextRequest) {
 
     const finalSheetName = sheetName || getSheetNameForCollection(collection);
 
+    // Determine which column contains the ID based on collection
+    // Payments: Payment ID is in column D (4th column)
+    // Forms/Users: ID is in column A (1st column)
+    const idColumn = collection === "payments" ? "D" : "A";
+    const columnIndex = collection === "payments" ? 3 : 0; // 0-indexed for array access
+
     // Get existing sheet data to find the row
     const existingData = await sheets.spreadsheets.values.get({
       spreadsheetId,
-      range: `${finalSheetName}!A:A`, // Get first column (IDs)
+      range: `${finalSheetName}!${idColumn}:${idColumn}`, // Get ID column
     });
 
     const rows = existingData.data.values || [];
@@ -191,20 +232,71 @@ function formatUserRecord(doc: Record<string, unknown>): unknown[] {
 
 /**
  * Format a single payment record
+ * Headers: ["Date", "Time", "Transaction ID", "Payment ID", "Payment Amount", 
+ *           "Account Holder Name", "University", "Sports", "Category", "Player Count", 
+ *           "Contact Number", "Email", "Payment Proof", "Status", "Send Email?"]
  */
 function formatPaymentRecord(doc: Record<string, unknown>): unknown[] {
+  const user = (doc.ownerData as Record<string, unknown>[] | undefined)?.[0];
+  const forms = (doc.formsData as Record<string, unknown>[] | undefined) || [];
+  
+  // Extract user contact info
+  const userEmail = String(user?.email || "");
+  const userPhone = String(user?.phone || "");
+  
+  // Extract sports and calculate player count
+  let sports = "";
+  let numberOfPeople = 0;
+  let category = "";
+  
+  if (forms.length > 0) {
+    // Get all sports/events
+    sports = forms.map((f: Record<string, unknown>) => String(f.title || "")).filter(Boolean).join(", ");
+    // Count total players across all forms
+    numberOfPeople = forms.reduce((total: number, form: Record<string, unknown>) => {
+      const fields = form.fields as Record<string, unknown> | undefined;
+      const playerFields = (fields?.playerFields as Record<string, unknown>[]) || [];
+      return total + playerFields.length;
+    }, 0);
+    // Derive category based on player count: Individual (1) or Team (multiple)
+    category = numberOfPeople === 1 ? "Individual" : "Team";
+  }
+  
+  // Format date and time separately
+  const paymentDate = doc.paymentDate ? new Date(doc.paymentDate as string) : new Date();
+  const date = paymentDate.toLocaleDateString('en-IN', { 
+    timeZone: 'Asia/Kolkata',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  });
+  const time = paymentDate.toLocaleTimeString('en-IN', { 
+    timeZone: 'Asia/Kolkata',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true
+  });
+  
+  const paymentProofUrl = doc.paymentProof 
+    ? `${process.env.NEXTAUTH_URL || process.env.ROOT_URL || "http://localhost:3000"}/api/payments/proof/${doc.paymentProof}`
+    : "";
+  
   return [
+    date,
+    time,
+    String(doc.transactionId || ""),
     (doc._id as { toString: () => string }).toString(),
-    doc.ownerId ? (doc.ownerId as { toString: () => string }).toString() : "",
-    doc.amountInNumbers || "",
-    doc.amountInWords || "",
-    doc.paymentMode || "",
-    doc.transactionId || "",
-    doc.payeeName || "",
-    doc.paymentDate ? new Date(doc.paymentDate as string).toLocaleString() : "",
-    doc.status || "",
+    String(doc.amountInNumbers || ""),
+    String(doc.payeeName || ""),
+    String(user?.universityName || ""),
+    sports,
+    category,
+    numberOfPeople.toString(),
+    userPhone,
+    userEmail,
+    paymentProofUrl,
     doc.registrationStatus || "Not Started",
-    doc.createdAt ? new Date(doc.createdAt as string).toLocaleString() : ""
+    "No"
   ];
 }
 
