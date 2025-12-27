@@ -1,4 +1,4 @@
-name: Deploy to Production (Docker)
+name: Deploy to Production
 
 on:
   push:
@@ -38,7 +38,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            echo "🚀 Starting Docker deployment..."
+            echo "🚀 Starting PM2 deployment..."
             
             # Navigate to deployment directory
             cd ~/regform || cd /var/www/regform
@@ -49,40 +49,22 @@ jobs:
             git reset --hard origin/main
             git pull origin main
             
-            # Ensure .env file exists
-            if [ ! -f .env ]; then
-              echo "⚠️  .env file not found, copying from .env.production"
-              cp .env.production .env
-            fi
+            # Install dependencies
+            echo "📦 Installing dependencies..."
+            npm ci --production
             
-            # Stop old PM2 processes if running
-            echo "🛑 Stopping old PM2 processes..."
-            pm2 delete regform 2>/dev/null || echo "No PM2 process to stop"
+            # Build application
+            echo "🔨 Building application..."
+            npm run build
             
-            # Build and deploy with Docker
-            echo "🐳 Building Docker images..."
-            docker-compose -f docker-compose.host-mongo.yml build --no-cache
+            # Restart with PM2
+            echo "🔄 Restarting PM2 process..."
+            pm2 restart regform || pm2 start npm --name regform -- start
             
-            echo "🔄 Restarting Docker containers..."
-            docker-compose -f docker-compose.host-mongo.yml up -d --force-recreate
+            # Save PM2 process list
+            pm2 save
             
-            # Wait for container to be healthy
-            echo "⏳ Waiting for container to be ready..."
-            sleep 15
-            
-            # Check container status
-            echo "📊 Container status:"
-            docker-compose -f docker-compose.host-mongo.yml ps
-            
-            # Check application health
-            echo "🏥 Checking application health..."
-            curl -f http://localhost:7000/api/health || echo "⚠️  Health check failed, check logs"
-            
-            # Show recent logs
-            echo "📝 Recent logs:"
-            docker-compose -f docker-compose.host-mongo.yml logs --tail=50 app
-            
-            echo "✅ Docker deployment completed successfully!"
+            echo "✅ PM2 deployment completed successfully!"
 
       - name: Verify deployment
         uses: appleboy/ssh-action@master
@@ -93,24 +75,27 @@ jobs:
           script: |
             cd ~/regform || cd /var/www/regform
             
-            # Check if container is running
-            if docker-compose -f docker-compose.host-mongo.yml ps | grep -q "Up"; then
-              echo "✅ Container is running"
+            # Check if PM2 process is running
+            if pm2 list | grep -q "regform.*online"; then
+              echo "✅ PM2 process is running"
               
               # Test application endpoint
-              if curl -f http://localhost:7000/api/health > /dev/null 2>&1; then
+              if curl -f http://localhost:3001 > /dev/null 2>&1; then
                 echo "✅ Application is responding"
                 exit 0
               else
                 echo "❌ Application health check failed"
-                docker-compose -f docker-compose.host-mongo.yml logs --tail=100 app
+                pm2 logs regform --lines 50 --nostream
                 exit 1
               fi
             else
-              echo "❌ Container is not running"
-              docker-compose -f docker-compose.host-mongo.yml logs --tail=100 app
+              echo "❌ PM2 process is not running"
+              pm2 logs regform --lines 50 --nostream
               exit 1
             fi
+            
+            # Show PM2 status
+            pm2 status
 
       - name: Notify deployment status
         if: always()
