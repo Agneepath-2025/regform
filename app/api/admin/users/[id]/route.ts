@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import clientPromise from "@/lib/mongodb";
+import { connectToDatabase } from "@/lib/mongodb";
 import { ObjectId } from "mongodb";
 
 export async function PATCH(
@@ -10,12 +10,11 @@ export async function PATCH(
     const { id } = await context.params;
     const body = await req.json();
 
-    const client = await clientPromise;
-    const db = client.db(process.env.MONGODB_DB);
+    const { db } = await connectToDatabase();
 
     // Support for soft delete and restore
     if (body.deleted !== undefined) {
-      const updateData: any = {
+      const updateData: { deleted: boolean; deletedAt: Date | null } = {
         deleted: body.deleted,
         deletedAt: body.deleted ? new Date() : null,
       };

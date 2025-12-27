@@ -468,14 +468,18 @@ function formatGenericRecord(doc: Record<string, unknown>): unknown[] {
 /**
  * Get the sheet ID for a given sheet name
  */
-async function getSheetId(sheets: any, spreadsheetId: string, sheetName: string): Promise<number> {
+async function getSheetId(
+  sheets: ReturnType<typeof google.sheets>,
+  spreadsheetId: string,
+  sheetName: string
+): Promise<number> {
   const response = await sheets.spreadsheets.get({
     spreadsheetId,
     fields: 'sheets(properties(sheetId,title))'
   });
   
   const sheet = response.data.sheets?.find(
-    (s: any) => s.properties.title === sheetName
+    (s: { properties: { title: string; sheetId: number } }) => s.properties.title === sheetName
   );
   
   if (!sheet) {
