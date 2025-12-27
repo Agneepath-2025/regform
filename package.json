@@ -21,7 +21,11 @@
     "docker:clean": "docker-compose down -v",
     "docker:dev": "docker-compose -f docker-compose.dev.full.yml up -d",
     "docker:dev:down": "docker-compose -f docker-compose.dev.full.yml down",
-    "docker:dev:logs": "docker-compose -f docker-compose.dev.full.yml logs -f app-dev"
+    "docker:dev:logs": "docker-compose -f docker-compose.dev.full.yml logs -f app-dev",
+    "docker:host": "docker-compose -f docker-compose.host-mongo.yml up -d",
+    "docker:host:down": "docker-compose -f docker-compose.host-mongo.yml down",
+    "docker:host:logs": "docker-compose -f docker-compose.host-mongo.yml logs -f",
+    "docker:host:build": "docker-compose -f docker-compose.host-mongo.yml build"
   },
   "dependencies": {
     "@auth/mongodb-adapter": "^3.11.1",
