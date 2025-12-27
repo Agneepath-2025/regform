@@ -59,12 +59,23 @@ export async function PATCH(
       "transactionId",
       "amount",
       "status",
+      "registrationStatus",
+      "sendEmail",
     ];
 
     for (const field of allowedFields) {
       if (field in body) {
         updateData[field] = body[field];
       }
+    }
+
+    // Automatically update registrationStatus when status changes
+    if (body.status === "verified") {
+      updateData.registrationStatus = "Confirmed";
+    } else if (body.status === "rejected") {
+      updateData.registrationStatus = "Rejected";
+    } else if (body.status === "pending") {
+      updateData.registrationStatus = "In Progress";
     }
 
     const result = await paymentsCollection.findOneAndUpdate(
@@ -99,7 +110,7 @@ export async function PATCH(
         body: JSON.stringify({ 
           collection: "payments",
           recordId: id,
-          sheetName: "Payments"
+          sheetName: "**Finance (Do Not Open)**"
         }),
       }).catch(err => console.error("Payment sync failed:", err));
 

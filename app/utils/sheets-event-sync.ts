@@ -129,7 +129,10 @@ export async function syncFormSubmission(formId: string): Promise<SyncResult> {
     ];
 
     // Update or append to Google Sheet
-    await updateOrAppendToSheet(SHEET_CONFIGS.forms.name, formId, row);
+    await updateOrAppendToSheet(SHEET_CONFIGS.forms.name, formId, row, { 
+      email: ownerEmail, 
+      sport: String(form.title || "") 
+    });
 
     console.log(`[Sheets] ✅ Synced form submission: ${formId}`);
     return { success: true };
@@ -182,7 +185,9 @@ export async function syncUserRegistration(userId: string): Promise<SyncResult> 
     ];
 
     // Update or append to Google Sheet
-    await updateOrAppendToSheet(SHEET_CONFIGS.users.name, userId, row);
+    await updateOrAppendToSheet(SHEET_CONFIGS.users.name, userId, row, { 
+      email: String(user.email || "") 
+    });
 
     console.log(`[Sheets] ✅ Synced user registration: ${userId}`);
     return { success: true };
@@ -331,28 +336,101 @@ function createSheetsClient() {
 }
 
 /**
- * Find row index for a given ID in column A
+ * Find row index for a given ID in the appropriate column for each sheet
  * Returns null if not found
+ * 
+ * Search logic:
+ * - Users: Search by email in column B (since column A is Name)
+ * - Registrations: Search by combination of email (D) + sport (A)
+ * - Finance: Search by payment ID in column D
  */
-async function findRowByIdInSheet(sheetName: string, id: string): Promise<number | null> {
+async function findRowByIdInSheet(sheetName: string, id: string, additionalSearchData?: { email?: string; sport?: string }): Promise<number | null> {
   try {
     const { sheets, spreadsheetId } = createSheetsClient();
 
-    // Get all values in column A (IDs)
-    const response = await sheets.spreadsheets.values.get({
-      spreadsheetId,
-      range: `${sheetName}!A:A`,
-    });
+    // Determine search strategy based on sheet
+    if (sheetName === "Users") {
+      // For Users sheet, the "id" is actually the MongoDB user ID
+      // We need to search by email in column B
+      // But we're passed userId, so we need to get the email first
+      // This is a problem - the function receives userId but needs email
+      // For now, search in column B assuming id is email
+      const response = await sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range: `${sheetName}!B:B`, // Column B: Email
+      });
 
-    const values = response.data.values;
-    if (!values || values.length === 0) {
-      return null;
-    }
+      const values = response.data.values;
+      if (!values || values.length === 0) {
+        return null;
+      }
 
-    // Find the row index (1-based, accounting for header row)
-    for (let i = 0; i < values.length; i++) {
-      if (values[i][0] === id) {
-        return i + 1; // Sheets API uses 1-based indexing
+      // If id looks like an email, search by it; otherwise search by additional data
+      const searchValue = id.includes('@') ? id : additionalSearchData?.email;
+      if (!searchValue) return null;
+
+      for (let i = 0; i < values.length; i++) {
+        if (values[i][0] === searchValue) {
+          return i + 1; // Sheets API uses 1-based indexing
+        }
+      }
+    } else if (sheetName === "Registrations") {
+      // For Registrations, need to match both email and sport
+      if (!additionalSearchData?.email || !additionalSearchData?.sport) {
+        return null;
+      }
+
+      const response = await sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range: `${sheetName}!A:D`,
+      });
+
+      const values = response.data.values;
+      if (!values || values.length === 0) {
+        return null;
+      }
+
+      // Match both sport (column A) and email (column D)
+      for (let i = 1; i < values.length; i++) { // Skip header
+        const rowSport = values[i][0] || "";
+        const rowEmail = values[i][3] || "";
+        if (rowSport === additionalSearchData.sport && rowEmail === additionalSearchData.email) {
+          return i + 1;
+        }
+      }
+    } else if (sheetName === "**Finance (Do Not Open)**") {
+      // For Finance sheet, search by payment ID in column D
+      const response = await sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range: `${sheetName}!D:D`, // Column D: Payment ID
+      });
+
+      const values = response.data.values;
+      if (!values || values.length === 0) {
+        return null;
+      }
+
+      for (let i = 0; i < values.length; i++) {
+        if (values[i][0] === id) {
+          return i + 1;
+        }
+      }
+    } else {
+      // Default: search in column A
+      const response = await sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range: `${sheetName}!A:A`,
+      });
+
+      const values = response.data.values;
+      if (!values || values.length === 0) {
+        return null;
+      }
+
+      for (let i = 0; i < values.length; i++) {
+        if (values[i][0] === id) {
+          return i + 1;
+        }
       }
     }
 
@@ -395,9 +473,9 @@ async function ensureHeaders(sheets: ReturnType<typeof google.sheets>, spreadshe
 
 /**
  * Update existing row or append new row to sheet
- * Prevents duplicates by checking if ID exists in column A
+ * Prevents duplicates by checking if ID exists in the appropriate column
  */
-async function updateOrAppendToSheet(sheetName: string, id: string, row: string[], maxRetries = 3): Promise<void> {
+async function updateOrAppendToSheet(sheetName: string, id: string, row: string[], additionalSearchData?: { email?: string; sport?: string }, maxRetries = 3): Promise<void> {
   let lastError: Error | undefined;
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -411,7 +489,7 @@ async function updateOrAppendToSheet(sheetName: string, id: string, row: string[
       }
 
       // Check if row already exists
-      const existingRowIndex = await findRowByIdInSheet(sheetName, id);
+      const existingRowIndex = await findRowByIdInSheet(sheetName, id, additionalSearchData);
 
       if (existingRowIndex !== null) {
         // Update existing row

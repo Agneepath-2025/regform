@@ -16,9 +16,14 @@ export async function GET() {
     const payments = await paymentsCollection
       .aggregate([
         {
+          $addFields: {
+            ownerObjectId: { $toObjectId: "$ownerId" }
+          }
+        },
+        {
           $lookup: {
             from: "users",
-            localField: "userId",
+            localField: "ownerObjectId",
             foreignField: "_id",
             as: "user",
           },
@@ -32,9 +37,9 @@ export async function GET() {
         {
           $project: {
             _id: 1,
-            userId: 1,
+            userId: "$ownerId",
             transactionId: 1,
-            amount: 1,
+            amount: "$amountInNumbers",
             status: 1,
             createdAt: 1,
             updatedAt: 1,

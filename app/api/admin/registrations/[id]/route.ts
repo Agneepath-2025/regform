@@ -144,7 +144,7 @@ export async function PATCH(
             body: JSON.stringify({ 
               collection: "form",
               recordId: form._id.toString(),
-              sheetName: "Forms"
+              sheetName: "Registrations"
             }),
           }).catch(err => console.error("Form sync failed:", err));
         });

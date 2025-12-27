@@ -101,7 +101,7 @@ export async function PATCH(
         body: JSON.stringify({ 
           collection: "form",
           recordId: id,
-          sheetName: "Forms"
+          sheetName: "Registrations"
         }),
       }).catch(err => console.error("Background sync failed:", err));
     } catch (error) {
