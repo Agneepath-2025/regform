@@ -51,6 +51,12 @@ export async function PATCH(
     const usersCollection = db.collection("users");
     const formsCollection = db.collection("form");
 
+    // Fetch existing payment for audit logging
+    const existingPayment = await paymentsCollection.findOne({ _id: new ObjectId(id) });
+    if (!existingPayment) {
+      return NextResponse.json({ error: "Payment not found" }, { status: 404 });
+    }
+
     // Prepare update data
     const updateData: Record<string, unknown> = {
       updatedAt: new Date(),
@@ -76,7 +82,6 @@ export async function PATCH(
       updateData.registrationStatus = "Confirmed";
       
       // Create baseline snapshot for due payments tracking if it doesn't exist
-      const existingPayment = await paymentsCollection.findOne({ _id: new ObjectId(id) });
       if (existingPayment && existingPayment.ownerId) {
         // Check if paymentData snapshot exists
         const hasSnapshot = existingPayment.paymentData && 
