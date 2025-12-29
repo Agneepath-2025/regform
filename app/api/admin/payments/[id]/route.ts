@@ -123,15 +123,60 @@ export async function PATCH(
 
     // Update user's paymentDone status if payment is verified
     if (body.status === "verified" && result.userId) {
+      // Update paymentDone flag
       await usersCollection.updateOne(
         { _id: new ObjectId(result.userId.toString()) },
         { $set: { paymentDone: true } }
       );
+
+      // 🔄 CRITICAL: Update all submittedForms status to 'confirmed' for dashboard
+      // Get all forms for this user to update their status
+      const userForms = await formsCollection
+        .find({ ownerId: new ObjectId(result.userId.toString()) })
+        .toArray();
+
+      if (userForms.length > 0) {
+        const statusUpdates: Record<string, string> = {};
+        for (const form of userForms) {
+          statusUpdates[`submittedForms.${form.title}.status`] = 'confirmed';
+          
+          // Also update the form collection status
+          await formsCollection.updateOne(
+            { _id: form._id },
+            { $set: { status: 'confirmed' } }
+          );
+        }
+
+        // Update all sport statuses in user's submittedForms
+        await usersCollection.updateOne(
+          { _id: new ObjectId(result.userId.toString()) },
+          { $set: statusUpdates }
+        );
+
+        console.log(`✅ Updated ${userForms.length} forms to 'confirmed' status for user ${result.userId}`);
+      }
     } else if (body.status !== "verified" && result.userId) {
       await usersCollection.updateOne(
         { _id: new ObjectId(result.userId.toString()) },
         { $set: { paymentDone: false } }
       );
+
+      // Update submittedForms status back to 'not_confirmed'
+      const userForms = await formsCollection
+        .find({ ownerId: new ObjectId(result.userId.toString()) })
+        .toArray();
+
+      if (userForms.length > 0) {
+        const statusUpdates: Record<string, string> = {};
+        for (const form of userForms) {
+          statusUpdates[`submittedForms.${form.title}.status`] = 'not_confirmed';
+        }
+
+        await usersCollection.updateOne(
+          { _id: new ObjectId(result.userId.toString()) },
+          { $set: statusUpdates }
+        );
+      }
     }
 
     // Trigger incremental Google Sheets sync (non-blocking but with better error handling)

@@ -76,10 +76,12 @@ export async function PATCH(
     // Allow updating specific fields
     if (body.status) {
       updateData.status = body.status;
+      console.log(`📝 Admin updating form ${id} status to: ${body.status}`);
     }
 
     if (body.fields) {
       updateData.fields = body.fields;
+      console.log(`📝 Admin updating form ${id} fields`);
     }
 
     const result = await formsCollection.findOneAndUpdate(
@@ -92,32 +94,47 @@ export async function PATCH(
       return NextResponse.json({ error: "Form not found" }, { status: 404 });
     }
 
-    // 🔄 Update user's submittedForms field to sync with dashboard
-    if (body.fields) {
-      try {
-        const usersCollection = db.collection("users");
-        
-        // Calculate current player count from updated form
-        const playerFields = Object.entries(body.fields).filter(
-          ([key]) => key.startsWith("player") && !key.includes("coach")
-        );
+    // 🔄 CRITICAL: Update user's submittedForms field to sync with dashboard
+    // This ensures all admin changes reflect on user's dashboard
+    try {
+      const usersCollection = db.collection("users");
+      
+      // Get current player count from form
+      const fields = result.fields as Record<string, unknown> | undefined;
+      const playerFieldsArray = fields?.playerFields as Record<string, unknown>[] | undefined;
+      const playerCount = playerFieldsArray?.length || 0;
 
-        // Update user's submittedForms field
-        await usersCollection.updateOne(
-          { _id: result.ownerId },
-          {
-            $set: {
-              [`submittedForms.${result.title}.Players`]: playerFields.length,
-              [`submittedForms.${result.title}.status`]: result.status || "submitted"
-            }
-          }
-        );
+      // Map form collection status to user dashboard status
+      // Form collection: 'submitted', 'confirmed', 'draft', etc.
+      // User submittedForms: 'not_confirmed' or 'confirmed'
+      const formStatus = body.status || result.status || "submitted";
+      const dashboardStatus = formStatus === "confirmed" ? "confirmed" : "not_confirmed";
 
-        console.log(`👤 User submittedForms updated: ${result.ownerId} → ${result.title}: ${playerFields.length} players`);
-      } catch (error) {
-        console.error("⚠️ Failed to update user submittedForms:", error);
-        // Don't fail the entire request if user update fails
+      // Update user's submittedForms field with current data
+      const updatePayload: Record<string, unknown> = {
+        [`submittedForms.${result.title}.Players`]: playerCount,
+        [`submittedForms.${result.title}.status`]: dashboardStatus,
+        updatedAt: new Date()
+      };
+      
+      console.log(`🔄 Status mapping: form='${formStatus}' → dashboard='${dashboardStatus}'`);
+
+      // If this is the first form for this user, ensure submittedForms exists
+      const userUpdateResult = await usersCollection.updateOne(
+        { _id: result.ownerId },
+        { $set: updatePayload },
+        { upsert: false }
+      );
+
+      if (userUpdateResult.matchedCount > 0) {
+        console.log(`👤 User dashboard synced: ${result.ownerId} → ${result.title}: ${playerCount} players (${currentStatus})`);
+      } else {
+        console.warn(`⚠️ User not found for ownerId: ${result.ownerId}`);
       }
+    } catch (error) {
+      console.error("⚠️ Failed to update user submittedForms:", error);
+      // Don't fail the entire request if user update fails
+    }
     }
 
     // 🔄 Automatically update payment record if player count changed
