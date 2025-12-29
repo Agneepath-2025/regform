@@ -166,28 +166,37 @@ export async function GET() {
     }
 
     // PART 2: Track unpaid/unverified registrations
-    const allUsers = await usersCollection
-      .find({ registrationDone: true })
-      .toArray();
+    // Get all forms first, then check their payment status
+    const allForms = await formsCollection.find({}).toArray();
+    
+    // Group forms by ownerId
+    const formsByOwner = new Map<string, typeof allForms>();
+    for (const form of allForms) {
+      if (!form.ownerId) continue;
+      const ownerIdStr = form.ownerId.toString();
+      if (!formsByOwner.has(ownerIdStr)) {
+        formsByOwner.set(ownerIdStr, []);
+      }
+      formsByOwner.get(ownerIdStr)!.push(form);
+    }
 
     const processedUserIds = new Set(payments.map(p => p.ownerId.toString()));
 
-    for (const user of allUsers) {
+    for (const [ownerIdStr, userForms] of formsByOwner.entries()) {
       // Skip if already processed in verified payments
-      if (processedUserIds.has(user._id.toString())) continue;
+      if (processedUserIds.has(ownerIdStr)) continue;
+
+      const ownerId = new ObjectId(ownerIdStr);
+      
+      // Get user details
+      const user = await usersCollection.findOne({ _id: ownerId });
+      if (!user) continue;
 
       // Get user's payment status
-      const userPayment = await paymentsCollection.findOne({ ownerId: user._id });
+      const userPayment = await paymentsCollection.findOne({ ownerId });
       
       // Only include if payment is missing, unverified, or pending
       if (userPayment && userPayment.status === "verified") continue;
-
-      // Get all forms for this user
-      const userForms = await formsCollection
-        .find({ ownerId: user._id })
-        .toArray();
-
-      if (userForms.length === 0) continue;
 
       let totalPlayers = 0;
       let accommodationPrice = 0;
@@ -223,8 +232,8 @@ export async function GET() {
       const totalAmountDue = (totalPlayers * 800) + accommodationPrice;
 
       duePayments.push({
-        _id: user._id.toString(),
-        userId: user._id.toString(),
+        _id: ownerIdStr,
+        userId: ownerIdStr,
         userName: user.name || "N/A",
         userEmail: user.email || "N/A",
         universityName: user.universityName || "N/A",
