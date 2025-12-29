@@ -56,11 +56,6 @@ export default function EditFormAdvancedDialog({ form, onClose, onUpdate }: Prop
   const [saving, setSaving] = useState(false);
   const [jsonError, setJsonError] = useState<string>("");
 
-  // Calendar state for date picker
-  const [calendarMonth, setCalendarMonth] = useState<Date>(new Date(2005, 5, 1));
-  const [selectedYear, setSelectedYear] = useState<number>(2005);
-  const [selectedMonth, setSelectedMonth] = useState<number>(5);
-
   // Player management
   const [playerName, setPlayerName] = useState("");
   const [playerEmail, setPlayerEmail] = useState("");
@@ -277,64 +272,16 @@ export default function EditFormAdvancedDialog({ form, onClose, onUpdate }: Prop
                           {playerDOB ? format(new Date(playerDOB), "PPP") : "Pick a date"}
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-auto p-4" align="start">
-                        <div className="flex gap-2 mb-4">
-                          <Select
-                            onValueChange={(value) => {
-                              const year = parseInt(value);
-                              const newDate = new Date(year, selectedMonth, 1);
-                              setCalendarMonth(newDate);
-                              setSelectedYear(year);
-                            }}
-                            value={String(selectedYear)}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Year" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {Array.from({ length: 9 }, (_, i) => 2001 + i).map((year) => (
-                                <SelectItem key={year} value={String(year)}>
-                                  {year}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <Select
-                            onValueChange={(value) => {
-                              const month = parseInt(value);
-                              const newDate = new Date(selectedYear, month, 1);
-                              setCalendarMonth(newDate);
-                              setSelectedMonth(month);
-                            }}
-                            value={String(selectedMonth)}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Month" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {Array.from({ length: 12 }, (_, i) => ({
-                                value: i,
-                                label: new Date(0, i).toLocaleString("default", { month: "long" }),
-                              })).map((month) => (
-                                <SelectItem key={month.value} value={String(month.value)}>
-                                  {month.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
+                      <PopoverContent className="w-auto p-0" align="start">
                         <Calendar
                           mode="single"
+                          captionLayout="dropdown"
                           selected={playerDOB ? new Date(playerDOB) : undefined}
                           onSelect={(date) => setPlayerDOB(date ? date.toISOString() : "")}
                           disabled={(date) => date < new Date(2001, 1, 2) || date > new Date(2009, 1, 1)}
-                          month={calendarMonth}
-                          onMonthChange={(newMonth) => {
-                            setCalendarMonth(newMonth);
-                            setSelectedYear(newMonth.getFullYear());
-                            setSelectedMonth(newMonth.getMonth());
-                          }}
-                          initialFocus
+                          fromYear={2001}
+                          toYear={2009}
+                          defaultMonth={new Date(2005, 5, 15)}
                         />
                       </PopoverContent>
                     </Popover>
