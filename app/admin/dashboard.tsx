@@ -805,23 +805,10 @@ export default function AdminDashboard() {
           <TabsContent value="due-payments">
             <Card className="dark:bg-gray-800 dark:border-gray-700">
               <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="dark:text-white">Due Payments</CardTitle>
-                    <CardDescription className="dark:text-gray-400">
-                      Track outstanding payments from player count changes (₹800 per additional player)
-                    </CardDescription>
-                  </div>
-                  <Button
-                    onClick={handleSyncDuePayments}
-                    variant="outline"
-                    size="sm"
-                    className="dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
-                  >
-                    <RotateCcw className="h-4 w-4 mr-2" />
-                    Sync to Sheets
-                  </Button>
-                </div>
+                <CardTitle className="dark:text-white">Due Payments</CardTitle>
+                <CardDescription className="dark:text-gray-400">
+                  Track outstanding payments from player count changes (₹800 per additional player)
+                </CardDescription>
                 {/* Search Bar */}
                 <div className="mt-4 relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
