@@ -83,13 +83,8 @@ export async function PATCH(
       
       // Create baseline snapshot for due payments tracking if it doesn't exist
       if (existingPayment && existingPayment.ownerId) {
-        // Check if paymentData snapshot exists
-        const hasSnapshot = existingPayment.paymentData && 
-          (typeof existingPayment.paymentData === 'string' ? 
-            JSON.parse(existingPayment.paymentData) : 
-            existingPayment.paymentData)?.submittedForms;
-
-        if (!hasSnapshot) {
+        // Check if baseline snapshot exists
+        if (!existingPayment.baselineSnapshot) {
           console.log(`📸 Creating payment baseline snapshot for payment ${id}`);
           
           // Get all current forms for this user
@@ -97,18 +92,16 @@ export async function PATCH(
             .find({ ownerId: existingPayment.ownerId })
             .toArray();
 
-          const submittedForms: Record<string, { Players: number }> = {};
+          const baselineSnapshot: Record<string, number> = {};
           for (const form of userForms) {
             const fields = form.fields as Record<string, unknown> | undefined;
             const playerFields = (fields?.playerFields as Record<string, unknown>[]) || [];
-            submittedForms[form.title] = {
-              Players: playerFields.length
-            };
+            baselineSnapshot[form._id.toString()] = playerFields.length;
           }
 
           // Store the baseline snapshot
-          updateData.paymentData = JSON.stringify({ submittedForms });
-          console.log(`✅ Created baseline snapshot:`, submittedForms);
+          updateData.baselineSnapshot = baselineSnapshot;
+          console.log(`✅ Created baseline snapshot:`, baselineSnapshot);
         }
       }
     } else if (body.status === "rejected") {

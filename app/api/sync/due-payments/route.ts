@@ -57,14 +57,26 @@ export async function POST(req: NextRequest) {
         .find({ paymentId: payment._id.toString() })
         .toArray();
 
+      // Skip if no baseline snapshot exists - means payment was just verified with current count
+      if (!payment.baselineSnapshot || Object.keys(snapshot).length === 0) {
+        continue;
+      }
+
       let totalOriginal = 0;
       let totalCurrent = 0;
       const formDetails = [];
+      let hasChanges = false;
 
       for (const form of forms) {
         const fields = form.fields as Record<string, unknown> | undefined;
         const playerFields = (fields?.playerFields as Record<string, unknown>[]) || [];
-        const originalCount = snapshot[form._id.toString()] || 0;
+        const originalCount = snapshot[form._id.toString()];
+        
+        // If this form wasn't in the snapshot, skip it (it's new after payment)
+        if (originalCount === undefined) {
+          continue;
+        }
+        
         const currentCount = playerFields.length;
         const difference = currentCount - originalCount;
 
@@ -72,6 +84,7 @@ export async function POST(req: NextRequest) {
         totalCurrent += currentCount;
 
         if (difference !== 0) {
+          hasChanges = true;
           formDetails.push({
             formId: form._id.toString(),
             sport: form.sport || form.title,
@@ -84,7 +97,8 @@ export async function POST(req: NextRequest) {
 
       const playerDifference = totalCurrent - totalOriginal;
 
-      if (playerDifference !== 0) {
+      // Only add to due payments if there are actual changes
+      if (hasChanges && playerDifference !== 0) {
         const user = await usersCollection.findOne({
           _id: new ObjectId(payment.ownerId),
         });
