@@ -22,7 +22,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Save, Plus, Trash2 } from "lucide-react";
+import { Save, Plus, Trash2, CalendarIcon } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 interface Form {
   _id: string;
@@ -255,12 +259,29 @@ export default function EditFormAdvancedDialog({ form, onClose, onUpdate }: Prop
                   </div>
                   <div>
                     <Label className="dark:text-gray-300">Date of Birth</Label>
-                    <Input
-                      type="date"
-                      value={playerDOB}
-                      onChange={(e) => setPlayerDOB(e.target.value)}
-                      className="dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                    />
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal dark:bg-gray-700 dark:border-gray-600 dark:text-white",
+                            !playerDOB && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {playerDOB ? format(new Date(playerDOB), "PPP") : "Pick a date"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={playerDOB ? new Date(playerDOB) : undefined}
+                          onSelect={(date) => setPlayerDOB(date ? date.toISOString() : "")}
+                          disabled={(date) => date < new Date(2001, 1, 2) || date > new Date(2009, 1, 1)}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
                   </div>
                 </div>
                 <Button onClick={addPlayer} className="w-full">
