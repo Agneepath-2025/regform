@@ -121,16 +121,14 @@ export async function syncRecordToSheet(
     let rowData: (string | number | boolean)[] = [];
     
     if (collection === "payments") {
-      const owner = document.ownerData;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const forms = (document.formsData || []) as any[];
+      const owner = document.ownerData as Record<string, unknown> | undefined;
+      const forms = (document.formsData || []) as Record<string, unknown>[];
       
       // Calculate sports and player count
-      const sports = forms.map((f: any) => f.title || "").filter(Boolean).join(", ");
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const totalPlayers = forms.reduce((sum: number, f: any) => {
-        const fields = f.fields || {};
-        const playerFields = fields.playerFields || [];
+      const sports = forms.map((f: Record<string, unknown>) => String(f.title || "")).filter(Boolean).join(", ");
+      const totalPlayers = forms.reduce((sum: number, f: Record<string, unknown>) => {
+        const fields = (f.fields as Record<string, unknown>) || {};
+        const playerFields = (fields.playerFields as Record<string, unknown>[]) || [];
         return sum + playerFields.length;
       }, 0);
       const category = totalPlayers === 1 ? "Individual" : "Team";
