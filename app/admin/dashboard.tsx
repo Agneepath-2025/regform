@@ -1006,6 +1006,99 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* Logs Tab */}
+          <TabsContent value="logs">
+            <Card className="dark:bg-gray-900 dark:border-gray-800">
+              <CardHeader>
+                <CardTitle className="dark:text-white">Audit Logs</CardTitle>
+                <CardDescription className="dark:text-gray-400">
+                  Track all admin panel changes and form/payment modifications
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-md border dark:border-gray-800 overflow-auto max-h-[600px]">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="dark:border-gray-800 dark:hover:bg-gray-800/50">
+                        <TableHead className="dark:text-gray-300">Timestamp</TableHead>
+                        <TableHead className="dark:text-gray-300">Action</TableHead>
+                        <TableHead className="dark:text-gray-300">Collection</TableHead>
+                        <TableHead className="dark:text-gray-300">User</TableHead>
+                        <TableHead className="dark:text-gray-300">Admin</TableHead>
+                        <TableHead className="dark:text-gray-300">Details</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {logs.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center text-gray-500 dark:text-gray-400">
+                            No audit logs found
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        logs.map((log) => (
+                          <TableRow key={log._id} className="dark:border-gray-800 dark:hover:bg-gray-800/50">
+                            <TableCell className="font-mono text-xs dark:text-gray-300">
+                              {new Date(log.timestamp).toLocaleString()}
+                            </TableCell>
+                            <TableCell className="dark:text-gray-300">
+                              <Badge
+                                variant="outline"
+                                className={
+                                  log.action === "FORM_EDITED"
+                                    ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
+                                    : log.action === "PAYMENT_VERIFIED"
+                                    ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+                                    : log.action === "PAYMENT_STATUS_UPDATED"
+                                    ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
+                                    : "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400"
+                                }
+                              >
+                                {log.action.replace(/_/g, " ")}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="dark:text-gray-300">
+                              <code className="text-xs bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">
+                                {log.collection}
+                              </code>
+                            </TableCell>
+                            <TableCell className="dark:text-gray-300">
+                              <div className="text-sm">
+                                <div className="font-mono text-xs text-gray-500 dark:text-gray-500">
+                                  {log.userId?.substring(0, 8)}...
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-sm text-gray-600 dark:text-gray-400">
+                              {(log.metadata?.adminEmail as string) || log.userEmail || "N/A"}
+                            </TableCell>
+                            <TableCell className="dark:text-gray-300">
+                              <details className="text-xs">
+                                <summary className="cursor-pointer text-blue-600 dark:text-blue-400 hover:underline">
+                                  View Changes
+                                </summary>
+                                <pre className="mt-2 p-2 bg-gray-50 dark:bg-gray-800 rounded text-xs overflow-auto max-w-md">
+                                  {JSON.stringify(
+                                    {
+                                      changes: log.changes,
+                                      metadata: log.metadata,
+                                    },
+                                    null,
+                                    2
+                                  )}
+                                </pre>
+                              </details>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
       </main>
 
@@ -1188,99 +1281,6 @@ export default function AdminDashboard() {
           </DialogContent>
         </Dialog>
       )}
-
-      {/* Logs Tab */}
-      <TabsContent value="logs">
-        <Card className="dark:bg-gray-900 dark:border-gray-800">
-          <CardHeader>
-            <CardTitle className="dark:text-white">Audit Logs</CardTitle>
-            <CardDescription className="dark:text-gray-400">
-              Track all changes made in the admin panel
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="rounded-md border dark:border-gray-800 overflow-auto max-h-[600px]">
-              <Table>
-                <TableHeader>
-                  <TableRow className="dark:border-gray-800 dark:hover:bg-gray-800/50">
-                    <TableHead className="dark:text-gray-300">Timestamp</TableHead>
-                    <TableHead className="dark:text-gray-300">Action</TableHead>
-                    <TableHead className="dark:text-gray-300">Collection</TableHead>
-                    <TableHead className="dark:text-gray-300">User</TableHead>
-                    <TableHead className="dark:text-gray-300">Admin</TableHead>
-                    <TableHead className="dark:text-gray-300">Details</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {logs.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center text-gray-500 dark:text-gray-400">
-                        No audit logs found
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    logs.map((log) => (
-                      <TableRow key={log._id} className="dark:border-gray-800 dark:hover:bg-gray-800/50">
-                        <TableCell className="font-mono text-xs dark:text-gray-300">
-                          {new Date(log.timestamp).toLocaleString()}
-                        </TableCell>
-                        <TableCell className="dark:text-gray-300">
-                          <Badge
-                            variant="outline"
-                            className={
-                              log.action === "FORM_EDITED"
-                                ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
-                                : log.action === "PAYMENT_VERIFIED"
-                                ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-                                : log.action === "PAYMENT_STATUS_UPDATED"
-                                ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
-                                : "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400"
-                            }
-                          >
-                            {log.action.replace(/_/g, " ")}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="dark:text-gray-300">
-                          <code className="text-xs bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">
-                            {log.collection}
-                          </code>
-                        </TableCell>
-                        <TableCell className="dark:text-gray-300">
-                          <div className="text-sm">
-                            <div className="font-mono text-xs text-gray-500 dark:text-gray-500">
-                              {log.userId?.substring(0, 8)}...
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-sm text-gray-600 dark:text-gray-400">
-                          {(log.metadata?.adminEmail as string) || log.userEmail || "N/A"}
-                        </TableCell>
-                        <TableCell className="dark:text-gray-300">
-                          <details className="text-xs">
-                            <summary className="cursor-pointer text-blue-600 dark:text-blue-400 hover:underline">
-                              View Changes
-                            </summary>
-                            <pre className="mt-2 p-2 bg-gray-50 dark:bg-gray-800 rounded text-xs overflow-auto max-w-md">
-                              {JSON.stringify(
-                                {
-                                  changes: log.changes,
-                                  metadata: log.metadata,
-                                },
-                                null,
-                                2
-                              )}
-                            </pre>
-                          </details>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
-      </TabsContent>
     </div>
   );
 }
