@@ -254,6 +254,7 @@ export default function AdminDashboard() {
     verifiedPayments: payments.filter((p) => p.status === "verified").length,
     duePaymentsCount: duePayments.filter(dp => dp.amountDue > 0).length,
     overpaidCount: duePayments.filter(dp => dp.amountDue < 0).length,
+    unpaidCount: duePayments.filter(dp => dp.status === "unpaid" || dp.status === "unverified").length,
     totalAmountDue: duePayments.reduce((sum, dp) => sum + (dp.amountDue > 0 ? dp.amountDue : 0), 0),
     totalOverpaid: Math.abs(duePayments.reduce((sum, dp) => sum + (dp.amountDue < 0 ? dp.amountDue : 0), 0)),
   };
@@ -822,14 +823,24 @@ export default function AdminDashboard() {
                     className="pl-10 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                   />
                 </div>
-                {(stats.duePaymentsCount > 0 || stats.overpaidCount > 0) && (
-                  <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {stats.duePaymentsCount > 0 && (
+                {(stats.duePaymentsCount > 0 || stats.overpaidCount > 0 || stats.unpaidCount > 0) && (
+                  <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {stats.unpaidCount > 0 && (
                       <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
                         <p className="text-sm font-semibold text-red-900 dark:text-red-200">
-                          ⚠️ Amount Due: {stats.duePaymentsCount} {stats.duePaymentsCount === 1 ? 'user' : 'users'}
+                          🚨 Unpaid/Unverified: {stats.unpaidCount} {stats.unpaidCount === 1 ? 'user' : 'users'}
                         </p>
                         <p className="text-xs text-red-700 dark:text-red-300 mt-1">
+                          Full registration amount due
+                        </p>
+                      </div>
+                    )}
+                    {stats.duePaymentsCount > 0 && (
+                      <div className="p-4 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg">
+                        <p className="text-sm font-semibold text-orange-900 dark:text-orange-200">
+                          ⚠️ Additional Due: {stats.duePaymentsCount} {stats.duePaymentsCount === 1 ? 'user' : 'users'}
+                        </p>
+                        <p className="text-xs text-orange-700 dark:text-orange-300 mt-1">
                           Total: ₹{stats.totalAmountDue.toLocaleString()}
                         </p>
                       </div>

@@ -45,6 +45,7 @@ export async function GET() {
 
     const duePayments: DuePaymentRecord[] = [];
 
+    // PART 1: Track verified payments with player count changes
     for (const payment of payments) {
       if (!payment.ownerId) continue;
 
@@ -162,6 +163,81 @@ export async function GET() {
           forms: formDetails
         });
       }
+    }
+
+    // PART 2: Track unpaid/unverified registrations
+    const allUsers = await usersCollection
+      .find({ registrationDone: true })
+      .toArray();
+
+    const processedUserIds = new Set(payments.map(p => p.ownerId.toString()));
+
+    for (const user of allUsers) {
+      // Skip if already processed in verified payments
+      if (processedUserIds.has(user._id.toString())) continue;
+
+      // Get user's payment status
+      const userPayment = await paymentsCollection.findOne({ ownerId: user._id });
+      
+      // Only include if payment is missing, unverified, or pending
+      if (userPayment && userPayment.status === "verified") continue;
+
+      // Get all forms for this user
+      const userForms = await formsCollection
+        .find({ ownerId: user._id })
+        .toArray();
+
+      if (userForms.length === 0) continue;
+
+      let totalPlayers = 0;
+      let accommodationPrice = 0;
+      const formDetails: Array<{
+        formId: string;
+        sport: string;
+        originalPlayers: number;
+        currentPlayers: number;
+        difference: number;
+      }> = [];
+
+      for (const form of userForms) {
+        const fields = form.fields as Record<string, unknown> | undefined;
+        const playerFields = (fields?.playerFields as Record<string, unknown>[]) || [];
+        const currentPlayers = playerFields.length;
+        
+        totalPlayers += currentPlayers;
+        
+        // Get accommodation price from form
+        if (fields?.accommodation_price) {
+          accommodationPrice = Number(fields.accommodation_price) || 0;
+        }
+
+        formDetails.push({
+          formId: form._id.toString(),
+          sport: form.title,
+          originalPlayers: 0, // No payment yet, so original is 0
+          currentPlayers,
+          difference: currentPlayers
+        });
+      }
+
+      const totalAmountDue = (totalPlayers * 800) + accommodationPrice;
+
+      duePayments.push({
+        _id: user._id.toString(),
+        userId: user._id.toString(),
+        userName: user.name || "N/A",
+        userEmail: user.email || "N/A",
+        universityName: user.universityName || "N/A",
+        paymentId: userPayment?._id.toString() || "N/A",
+        transactionId: userPayment?.transactionId || "No Payment",
+        originalPlayerCount: 0,
+        currentPlayerCount: totalPlayers,
+        playerDifference: totalPlayers,
+        amountDue: totalAmountDue,
+        status: userPayment ? "unverified" : "unpaid",
+        lastUpdated: new Date(),
+        forms: formDetails
+      });
     }
 
     return NextResponse.json({ success: true, data: duePayments });
