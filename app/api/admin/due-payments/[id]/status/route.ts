@@ -33,10 +33,12 @@ export async function PATCH(
     const duePaymentsCollection = db.collection("duePayments");
 
     // Store resolution status in a dedicated collection
-    const result = await duePaymentsCollection.updateOne(
-      { _id: id },
+    // Use the id as-is since it could be a payment ID, user ID, or composite key
+    await duePaymentsCollection.updateOne(
+      { recordId: id },
       {
         $set: {
+          recordId: id,
           resolutionStatus,
           lastStatusUpdate: new Date(),
           updatedBy: session.user.email

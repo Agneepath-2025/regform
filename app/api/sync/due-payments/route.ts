@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
 
         // Get resolution status
         const duePaymentRecord = await duePaymentsCollection.findOne({
-          paymentId: payment._id.toString(),
+          recordId: payment._id.toString(),
         });
 
         duePayments.push({
@@ -144,8 +144,7 @@ export async function POST(req: NextRequest) {
       }
 
       const duePaymentRecord = await duePaymentsCollection.findOne({
-        userId: user._id.toString(),
-        status: "unpaid",
+        recordId: `unpaid_${user._id.toString()}`,
       });
 
       duePayments.push({
@@ -200,7 +199,7 @@ export async function POST(req: NextRequest) {
       });
 
       const duePaymentRecord = await duePaymentsCollection.findOne({
-        paymentId: payment._id.toString(),
+        recordId: payment._id.toString(),
       });
 
       duePayments.push({

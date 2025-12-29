@@ -16,6 +16,7 @@ interface DuePaymentRecord {
   playerDifference: number;
   amountDue: number;
   status: string;
+  resolutionStatus?: string;
   lastUpdated: Date;
   forms: Array<{
     formId: string;
@@ -148,7 +149,7 @@ export async function GET() {
       // Show all changes (positive = amount due, negative = overpaid/refund)
       if (playerDifference !== 0) {
         // Get resolution status if exists
-        const statusDoc = await duePaymentsCollection.findOne({ _id: payment._id.toString() });
+        const statusDoc = await duePaymentsCollection.findOne({ recordId: payment._id.toString() });
         
         duePayments.push({
           _id: payment._id.toString(),
@@ -237,7 +238,7 @@ export async function GET() {
       const totalAmountDue = (totalPlayers * 800) + accommodationPrice;
 
       // Get resolution status if exists
-      const statusDoc = await duePaymentsCollection.findOne({ _id: ownerIdStr });
+      const statusDoc = await duePaymentsCollection.findOne({ recordId: `unpaid_${ownerIdStr}` });
 
       duePayments.push({
         _id: ownerIdStr,
