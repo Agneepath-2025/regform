@@ -112,110 +112,77 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // PART 2: Track unpaid registrations
-    const unpaidUsers = await usersCollection
-      .find({
-        paymentId: { $exists: false },
-        submittedForms: { $exists: true, $ne: [] },
-      })
-      .toArray();
+    // PART 2 & 3: Track unpaid and unverified registrations
+    // Get all forms and group by owner
+    const allForms = await formsCollection.find({}).toArray();
+    const formsByOwner = new Map<string, typeof allForms>();
+    
+    for (const form of allForms) {
+      if (!form.ownerId) continue;
+      const ownerIdStr = form.ownerId.toString();
+      if (!formsByOwner.has(ownerIdStr)) {
+        formsByOwner.set(ownerIdStr, []);
+      }
+      formsByOwner.get(ownerIdStr)!.push(form);
+    }
 
-    for (const user of unpaidUsers) {
-      const forms = await formsCollection
-        .find({ ownerId: user._id.toString() })
-        .toArray();
+    const processedUserIds = new Set(payments.map(p => p.ownerId));
 
-      if (forms.length === 0) continue;
+    for (const [ownerIdStr, userForms] of formsByOwner.entries()) {
+      // Skip if already processed in verified payments with changes
+      if (processedUserIds.has(ownerIdStr)) continue;
+
+      const ownerId = new ObjectId(ownerIdStr);
+      
+      // Get user details
+      const user = await usersCollection.findOne({ _id: ownerId });
+      if (!user) continue;
+
+      // Get user's payment status
+      const userPayment = await paymentsCollection.findOne({ ownerId: ownerIdStr });
+      
+      // Only include if payment is missing, unverified, or pending
+      if (userPayment && userPayment.status === "verified") continue;
 
       let totalPlayers = 0;
       const formDetails = [];
 
-      for (const form of forms) {
+      for (const form of userForms) {
         const playerCount = form.players?.length || 0;
         totalPlayers += playerCount;
 
         formDetails.push({
           formId: form._id.toString(),
-          sport: form.sport,
+          sport: form.sport || form.title,
           originalPlayers: 0,
           currentPlayers: playerCount,
           difference: playerCount,
         });
       }
 
+      if (totalPlayers === 0) continue;
+
+      const status = userPayment ? "unverified" : "unpaid";
+      const recordId = userPayment ? userPayment._id.toString() : `unpaid_${ownerIdStr}`;
+      
       const duePaymentRecord = await duePaymentsCollection.findOne({
-        recordId: `unpaid_${user._id.toString()}`,
+        recordId,
       });
 
       duePayments.push({
-        _id: `unpaid_${user._id.toString()}`,
-        userId: user._id.toString(),
+        _id: recordId,
+        userId: ownerIdStr,
         userName: user.name || "Unknown",
         userEmail: user.email || "Unknown",
         universityName: user.university || "Unknown",
-        paymentId: "N/A",
-        transactionId: "N/A",
+        paymentId: userPayment?._id.toString() || "N/A",
+        transactionId: userPayment?.transactionId || "N/A",
         originalPlayerCount: 0,
         currentPlayerCount: totalPlayers,
         playerDifference: totalPlayers,
         amountDue: totalPlayers * 800,
-        status: "unpaid",
-        lastUpdated: new Date(),
-        resolutionStatus: duePaymentRecord?.resolutionStatus || "pending",
-        forms: formDetails,
-      });
-    }
-
-    // PART 3: Track unverified payments
-    const unverifiedPayments = await paymentsCollection
-      .find({ status: { $ne: "verified" } })
-      .toArray();
-
-    for (const payment of unverifiedPayments) {
-      const forms = await formsCollection
-        .find({ paymentId: payment._id.toString() })
-        .toArray();
-
-      if (forms.length === 0) continue;
-
-      let totalPlayers = 0;
-      const formDetails = [];
-
-      for (const form of forms) {
-        const playerCount = form.players?.length || 0;
-        totalPlayers += playerCount;
-
-        formDetails.push({
-          formId: form._id.toString(),
-          sport: form.sport,
-          originalPlayers: 0,
-          currentPlayers: playerCount,
-          difference: playerCount,
-        });
-      }
-
-      const user = await usersCollection.findOne({
-        _id: new ObjectId(payment.ownerId),
-      });
-
-      const duePaymentRecord = await duePaymentsCollection.findOne({
-        recordId: payment._id.toString(),
-      });
-
-      duePayments.push({
-        _id: payment._id.toString(),
-        userId: payment.ownerId,
-        userName: user?.name || "Unknown",
-        userEmail: user?.email || "Unknown",
-        universityName: user?.university || "Unknown",
-        paymentId: payment._id.toString(),
-        transactionId: payment.transactionId || "N/A",
-        originalPlayerCount: 0,
-        currentPlayerCount: totalPlayers,
-        playerDifference: totalPlayers,
-        amountDue: totalPlayers * 800,
-        status: "unverified",
-        lastUpdated: payment.updatedAt || payment.createdAt || new Date(),
+        status,
+        lastUpdated: userPayment?.updatedAt || userPayment?.createdAt || new Date(),
         resolutionStatus: duePaymentRecord?.resolutionStatus || "pending",
         forms: formDetails,
       });
