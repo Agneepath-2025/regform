@@ -74,7 +74,6 @@ export async function GET() {
         const currentPlayers = currentPlayerFields.length;
 
         // Get original player count from payment snapshot (if available)
-        // Otherwise, use current count as baseline
         let originalPlayers = currentPlayers;
         
         // Check if we have a payment snapshot for this specific form
@@ -85,23 +84,61 @@ export async function GET() {
           null;
 
         if (paymentData?.submittedForms?.[form.title]) {
+          // Use snapshot if available
           originalPlayers = paymentData.submittedForms[form.title].Players || currentPlayers;
+        } else {
+          // FALLBACK: Calculate from payment amount for legacy payments
+          // If no snapshot exists, calculate total original players from payment amount
+          const totalAmountPaid = payment.amountInNumbers || payment.amount || 0;
+          const accommodationPrice = payment.accommodationPrice || 0;
+          const sportsPayment = totalAmountPaid - accommodationPrice;
+          const calculatedTotalPlayers = Math.floor(sportsPayment / 800);
+          
+          // For this form, estimate proportionally based on current distribution
+          // This is not perfect but better than using current count as baseline
+          if (calculatedTotalPlayers > 0 && totalCurrentPlayers > 0) {
+            // Don't assign yet, we'll do it after counting all current players
+            originalPlayers = -1; // Flag for later calculation
+          } else {
+            originalPlayers = currentPlayers;
+          }
         }
 
-        const difference = currentPlayers - originalPlayers;
+        const difference = originalPlayers >= 0 ? currentPlayers - originalPlayers : 0;
 
-        if (difference !== 0) {
+        if (difference !== 0 || originalPlayers === -1) {
           formDetails.push({
             formId: form._id.toString(),
             sport: form.title,
-            originalPlayers,
+            originalPlayers: originalPlayers >= 0 ? originalPlayers : 0,
             currentPlayers,
-            difference
+            difference: originalPlayers >= 0 ? difference : 0
           });
         }
 
-        totalOriginalPlayers += originalPlayers;
+        if (originalPlayers >= 0) {
+          totalOriginalPlayers += originalPlayers;
+        }
         totalCurrentPlayers += currentPlayers;
+      }
+
+      // Second pass: Calculate original players for legacy payments
+      if (formDetails.some(f => f.originalPlayers === 0 && totalOriginalPlayers === 0)) {
+        const totalAmountPaid = payment.amountInNumbers || payment.amount || 0;
+        const accommodationPrice = payment.accommodationPrice || 0;
+        const sportsPayment = totalAmountPaid - accommodationPrice;
+        const calculatedTotalPlayers = Math.floor(sportsPayment / 800);
+        
+        if (calculatedTotalPlayers > 0 && totalCurrentPlayers > 0) {
+          // Distribute proportionally
+          totalOriginalPlayers = calculatedTotalPlayers;
+          formDetails.forEach(detail => {
+            if (detail.originalPlayers === 0) {
+              detail.originalPlayers = Math.round((detail.currentPlayers / totalCurrentPlayers) * calculatedTotalPlayers);
+              detail.difference = detail.currentPlayers - detail.originalPlayers;
+            }
+          });
+        }
       }
 
       const playerDifference = totalCurrentPlayers - totalOriginalPlayers;
