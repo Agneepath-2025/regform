@@ -810,7 +810,7 @@ export default function AdminDashboard() {
               <CardHeader>
                 <CardTitle className="dark:text-white">Due Payments</CardTitle>
                 <CardDescription className="dark:text-gray-400">
-                  Track outstanding payments from player count changes (₹800 per additional player)
+                  Track unpaid registrations and outstanding payments from player changes (₹800 per player)
                 </CardDescription>
                 {/* Search Bar */}
                 <div className="mt-4 relative">
@@ -889,6 +889,7 @@ export default function AdminDashboard() {
                             <TableHead className="dark:text-gray-300">Current Players</TableHead>
                             <TableHead className="dark:text-gray-300">Additional Players</TableHead>
                             <TableHead className="dark:text-gray-300">Amount Due</TableHead>
+                            <TableHead className="dark:text-gray-300">Status</TableHead>
                             <TableHead className="dark:text-gray-300">Last Updated</TableHead>
                           </TableRow>
                         </TableHeader>
@@ -932,6 +933,19 @@ export default function AdminDashboard() {
                                 <span className={`font-bold ${duePayment.amountDue > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
                                   {duePayment.amountDue > 0 ? "₹" : "-₹"}{Math.abs(duePayment.amountDue).toLocaleString()}
                                 </span>
+                              </TableCell>
+                              <TableCell>
+                                <Badge 
+                                  variant="default" 
+                                  className={
+                                    duePayment.status === "unpaid" ? "bg-red-600" :
+                                    duePayment.status === "unverified" ? "bg-yellow-600" :
+                                    duePayment.status === "overpaid" ? "bg-green-600" :
+                                    "bg-orange-600"
+                                  }
+                                >
+                                  {duePayment.status}
+                                </Badge>
                               </TableCell>
                               <TableCell className="dark:text-gray-300">
                                 {new Date(duePayment.lastUpdated).toLocaleString()}
