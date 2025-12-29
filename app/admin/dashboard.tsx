@@ -1045,52 +1045,52 @@ export default function AdminDashboard() {
       {/* Due Payment Detail Dialog */}
       {selectedDuePayment && (
         <Dialog open={true} onOpenChange={() => setSelectedDuePayment(null)}>
-          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto dark:bg-gray-900 dark:text-white">
             <DialogHeader>
-              <DialogTitle>Due Payment Details</DialogTitle>
-              <DialogDescription>
+              <DialogTitle className="dark:text-white">Due Payment Details</DialogTitle>
+              <DialogDescription className="dark:text-gray-400">
                 Complete information about outstanding payment
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-6">
               {/* User Information */}
               <div>
-                <h3 className="font-semibold text-lg mb-3">User Information</h3>
-                <div className="grid grid-cols-2 gap-4 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+                <h3 className="font-semibold text-lg mb-3 dark:text-white">User Information</h3>
+                <div className="grid grid-cols-2 gap-4 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
                   <div>
                     <p className="text-sm text-gray-500 dark:text-gray-400">Name</p>
-                    <p className="font-medium">{selectedDuePayment.userName}</p>
+                    <p className="font-medium dark:text-white">{selectedDuePayment.userName}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500 dark:text-gray-400">Email</p>
-                    <p className="font-medium">{selectedDuePayment.userEmail}</p>
+                    <p className="font-medium dark:text-white">{selectedDuePayment.userEmail}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500 dark:text-gray-400">University</p>
-                    <p className="font-medium">{selectedDuePayment.universityName}</p>
+                    <p className="font-medium dark:text-white">{selectedDuePayment.universityName}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500 dark:text-gray-400">Transaction ID</p>
-                    <p className="font-medium">{selectedDuePayment.transactionId}</p>
+                    <p className="font-medium dark:text-white">{selectedDuePayment.transactionId}</p>
                   </div>
                 </div>
               </div>
 
               {/* Payment Summary */}
               <div>
-                <h3 className="font-semibold text-lg mb-3">Payment Summary</h3>
-                <div className="grid grid-cols-3 gap-4 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+                <h3 className="font-semibold text-lg mb-3 dark:text-white">Payment Summary</h3>
+                <div className="grid grid-cols-3 gap-4 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
                   <div>
                     <p className="text-sm text-gray-500 dark:text-gray-400">Original Players</p>
-                    <p className="text-2xl font-bold">{selectedDuePayment.originalPlayerCount}</p>
+                    <p className="text-2xl font-bold dark:text-white">{selectedDuePayment.originalPlayerCount}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500 dark:text-gray-400">Current Players</p>
-                    <p className="text-2xl font-bold">{selectedDuePayment.currentPlayerCount}</p>
+                    <p className="text-2xl font-bold dark:text-white">{selectedDuePayment.currentPlayerCount}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500 dark:text-gray-400">Difference</p>
-                    <p className={`text-2xl font-bold ${selectedDuePayment.playerDifference > 0 ? 'text-orange-600' : 'text-green-600'}`}>
+                    <p className={`text-2xl font-bold ${selectedDuePayment.playerDifference > 0 ? 'text-orange-600 dark:text-orange-400' : 'text-green-600 dark:text-green-400'}`}>
                       {selectedDuePayment.playerDifference > 0 ? "+" : ""}{selectedDuePayment.playerDifference}
                     </p>
                   </div>
@@ -1098,11 +1098,11 @@ export default function AdminDashboard() {
               </div>
 
               {/* Amount Due */}
-              <div className={`p-6 rounded-lg ${selectedDuePayment.amountDue > 0 ? 'bg-red-50 dark:bg-red-900/20' : 'bg-green-50 dark:bg-green-900/20'}`}>
+              <div className={`p-6 rounded-lg border ${selectedDuePayment.amountDue > 0 ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' : 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'}`}>
                 <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
                   {selectedDuePayment.amountDue > 0 ? 'Amount Due' : 'Overpaid Amount'}
                 </p>
-                <p className={`text-4xl font-bold ${selectedDuePayment.amountDue > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                <p className={`text-4xl font-bold ${selectedDuePayment.amountDue > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
                   {selectedDuePayment.amountDue > 0 ? "₹" : "-₹"}{Math.abs(selectedDuePayment.amountDue).toLocaleString()}
                 </p>
                 <p className="text-sm text-gray-600 dark:text-gray-300 mt-2">
@@ -1112,22 +1112,22 @@ export default function AdminDashboard() {
 
               {/* Sports Breakdown */}
               <div>
-                <h3 className="font-semibold text-lg mb-3">Sports Breakdown</h3>
+                <h3 className="font-semibold text-lg mb-3 dark:text-white">Sports Breakdown</h3>
                 <div className="space-y-3">
                   {selectedDuePayment.forms.map((form, idx) => (
-                    <div key={idx} className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+                    <div key={idx} className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
                       <div className="flex justify-between items-center">
                         <div>
-                          <p className="font-medium">{form.sport}</p>
+                          <p className="font-medium dark:text-white">{form.sport}</p>
                           <p className="text-sm text-gray-500 dark:text-gray-400">
                             {form.originalPlayers} → {form.currentPlayers} players
                           </p>
                         </div>
                         <div className="text-right">
-                          <Badge variant="outline" className={form.difference > 0 ? "text-orange-600 border-orange-600" : "text-green-600 border-green-600"}>
+                          <Badge variant="outline" className={form.difference > 0 ? "text-orange-600 border-orange-600 dark:text-orange-400 dark:border-orange-400" : "text-green-600 border-green-600 dark:text-green-400 dark:border-green-400"}>
                             {form.difference > 0 ? "+" : ""}{form.difference}
                           </Badge>
-                          <p className="text-sm font-medium mt-1">
+                          <p className="text-sm font-medium mt-1 dark:text-white">
                             {form.difference > 0 ? "₹" : "-₹"}{Math.abs(form.difference * 800).toLocaleString()}
                           </p>
                         </div>
@@ -1139,7 +1139,7 @@ export default function AdminDashboard() {
 
               {/* Status Information */}
               <div>
-                <h3 className="font-semibold text-lg mb-3">Status</h3>
+                <h3 className="font-semibold text-lg mb-3 dark:text-white">Status</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">Payment Status</p>
@@ -1157,7 +1157,7 @@ export default function AdminDashboard() {
                   </div>
                   <div>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">Last Updated</p>
-                    <p className="text-sm">{new Date(selectedDuePayment.lastUpdated).toLocaleString()}</p>
+                    <p className="text-sm dark:text-white">{new Date(selectedDuePayment.lastUpdated).toLocaleString()}</p>
                   </div>
                 </div>
               </div>
