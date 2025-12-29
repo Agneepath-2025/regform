@@ -237,6 +237,7 @@ export async function PATCH(
       );
 
       if (!paymentSyncResult.success) {
+        console.error(`❌ Payment sync failed:`, paymentSyncResult.message);
       } else {
         console.log("✅ Payment sync successful:", paymentSyncResult.message);
       }
