@@ -92,6 +92,54 @@ export async function PATCH(
       return NextResponse.json({ error: "Form not found" }, { status: 404 });
     }
 
+    // 🔄 Automatically update payment record if player count changed
+    if (body.fields) {
+      try {
+        const paymentsCollection = db.collection("payments");
+        const payment = await paymentsCollection.findOne({
+          ownerId: result.ownerId,
+          status: "verified"
+        });
+
+        if (payment) {
+          // Calculate current player count from updated form
+          const playerFields = Object.entries(body.fields).filter(
+            ([key]) => key.startsWith("player") && !key.includes("coach")
+          );
+
+          // Get accommodation price
+          const accommodationPrice = body.fields.accommodation_price || payment.accommodation || 0;
+          
+          // Calculate new total amount (₹800 per player + accommodation)
+          const newTotalAmount = (playerFields.length * 800) + Number(accommodationPrice);
+
+          // Update payment record
+          const paymentData = payment.paymentData ? JSON.parse(payment.paymentData) : { submittedForms: {} };
+          
+          // Update the snapshot with current player count
+          paymentData.submittedForms = paymentData.submittedForms || {};
+          paymentData.submittedForms[result.title] = { Players: playerFields.length };
+
+          await paymentsCollection.updateOne(
+            { _id: payment._id },
+            {
+              $set: {
+                amount: `₹${newTotalAmount}`,
+                accommodation: accommodationPrice,
+                paymentData: JSON.stringify(paymentData),
+                updatedAt: new Date()
+              }
+            }
+          );
+
+          console.log(`💰 Payment updated: ${payment._id} → ₹${newTotalAmount} (${playerFields.length} players)`);
+        }
+      } catch (error) {
+        console.error("⚠️ Failed to update payment:", error);
+        // Don't fail the entire request if payment update fails
+      }
+    }
+
     // Trigger incremental Google Sheets sync (non-blocking)
     try {
       const baseUrl = process.env.NEXTAUTH_URL || process.env.ROOT_URL || 'http://localhost:3000';
