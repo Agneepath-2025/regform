@@ -68,6 +68,25 @@ export async function PATCH(
     const { db } = await connectToDatabase();
     const formsCollection = db.collection("form");
 
+    // Check if form exists and get current timestamp for concurrency control
+    const existingForm = await formsCollection.findOne({ _id: new ObjectId(id) });
+    if (!existingForm) {
+      return NextResponse.json({ error: "Form not found" }, { status: 404 });
+    }
+
+    // Optional: Check for concurrent modifications
+    if (body.lastUpdatedAt) {
+      const clientLastUpdate = new Date(body.lastUpdatedAt as string);
+      const serverLastUpdate = existingForm.updatedAt ? new Date(existingForm.updatedAt as string) : new Date(0);
+      if (serverLastUpdate > clientLastUpdate) {
+        console.warn(`⚠️ Concurrent modification detected for form ${id}`);
+        return NextResponse.json({ 
+          error: "Form was modified by another user. Please refresh and try again.",
+          conflict: true 
+        }, { status: 409 });
+      }
+    }
+
     // Prepare update data
     const updateData: Record<string, unknown> = {
       updatedAt: new Date(),
@@ -84,6 +103,17 @@ export async function PATCH(
       console.log(`📝 Admin updating form ${id} fields`);
     }
 
+    // Validation: Check if fields update would result in invalid state
+    if (body.fields) {
+      const fields = body.fields as Record<string, unknown>;
+      const playerFieldsArray = fields?.playerFields as Record<string, unknown>[] | undefined;
+      if (playerFieldsArray && playerFieldsArray.length === 0) {
+        return NextResponse.json({ 
+          error: "Cannot save form with zero players. Please add at least one player." 
+        }, { status: 400 });
+      }
+    }
+
     const result = await formsCollection.findOneAndUpdate(
       { _id: new ObjectId(id) },
       { $set: updateData },
@@ -92,6 +122,16 @@ export async function PATCH(
 
     if (!result) {
       return NextResponse.json({ error: "Form not found" }, { status: 404 });
+    }
+
+    // Safety check: Ensure form has an owner
+    if (!result.ownerId) {
+      console.error(`⚠️ Form ${id} has no ownerId - cannot sync to user dashboard`);
+      return NextResponse.json({ 
+        success: true, 
+        data: result,
+        warning: "Form updated but no owner found - user dashboard not synced"
+      });
     }
 
     // 🔄 CRITICAL: Update user's submittedForms field to sync with dashboard
@@ -153,10 +193,22 @@ export async function PATCH(
           );
 
           // Get accommodation price
-          const accommodationPrice = body.fields.accommodation_price || payment.accommodation || 0;
+          const accommodationPrice = Number(body.fields.accommodation_price || payment.accommodation || 0);
+          
+          // Validate accommodation price
+          if (accommodationPrice < 0) {
+            console.error(`⚠️ Invalid accommodation price: ${accommodationPrice}`);
+            throw new Error("Accommodation price cannot be negative");
+          }
           
           // Calculate new total amount (₹800 per player + accommodation)
-          const newTotalAmount = (playerFields.length * 800) + Number(accommodationPrice);
+          const newTotalAmount = (playerFields.length * 800) + accommodationPrice;
+          
+          // Validate total amount
+          if (newTotalAmount <= 0 || playerFields.length === 0) {
+            console.error(`⚠️ Invalid payment calculation: ${playerFields.length} players, ₹${newTotalAmount}`);
+            throw new Error("Invalid payment amount calculated");
+          }
 
           // Update payment record
           const paymentData = payment.paymentData ? JSON.parse(payment.paymentData) : { submittedForms: {} };
@@ -185,26 +237,45 @@ export async function PATCH(
       }
     }
 
-    // Trigger incremental Google Sheets sync (non-blocking)
+    // Trigger incremental Google Sheets sync (non-blocking with retry)
+    const syncWithRetry = async (url: string, body: object, retries = 3) => {
+      for (let attempt = 1; attempt <= retries; attempt++) {
+        try {
+          const response = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          });
+          if (response.ok) {
+            console.log(`✅ Sync successful on attempt ${attempt}`);
+            return;
+          }
+          throw new Error(`HTTP ${response.status}`);
+        } catch (err) {
+          console.error(`❌ Sync attempt ${attempt}/${retries} failed:`, err);
+          if (attempt < retries) {
+            // Exponential backoff: 1s, 2s, 4s
+            await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt - 1)));
+          }
+        }
+      }
+      console.error(`🚨 All sync attempts failed after ${retries} retries`);
+    };
+
     try {
       const baseUrl = process.env.NEXTAUTH_URL || process.env.ROOT_URL || 'http://localhost:3000';
       
-      // Sync only this specific form record
-      fetch(`${baseUrl}/api/sync/incremental`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          collection: "form",
-          recordId: id,
-          sheetName: "Registrations"
-        }),
-      }).catch(err => console.error("Background sync failed:", err));
+      // Sync form record with retry
+      syncWithRetry(
+        `${baseUrl}/api/sync/incremental`,
+        { collection: "form", recordId: id, sheetName: "Registrations" }
+      ).catch(err => console.error("Background sync failed:", err));
 
-      // Also trigger due payments sync to update outstanding amounts
-      fetch(`${baseUrl}/api/sync/due-payments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      }).catch(err => console.error("Due payments sync failed:", err));
+      // Sync due payments with retry
+      syncWithRetry(
+        `${baseUrl}/api/sync/due-payments`,
+        {}
+      ).catch(err => console.error("Due payments sync failed:", err));
     } catch (error) {
       console.error("Error triggering sync:", error);
     }

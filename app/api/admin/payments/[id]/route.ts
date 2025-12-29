@@ -123,37 +123,63 @@ export async function PATCH(
 
     // Update user's paymentDone status if payment is verified
     if (body.status === "verified" && result.userId) {
-      // Update paymentDone flag
-      await usersCollection.updateOne(
-        { _id: new ObjectId(result.userId.toString()) },
-        { $set: { paymentDone: true } }
-      );
+      // Begin transaction-like operations - track success for rollback if needed
+      const operations = {
+        userPaymentDone: false,
+        formsUpdated: false,
+        statusesUpdated: false
+      };
 
-      // 🔄 CRITICAL: Update all submittedForms status to 'confirmed' for dashboard
-      // Get all forms for this user to update their status
-      const userForms = await formsCollection
-        .find({ ownerId: new ObjectId(result.userId.toString()) })
-        .toArray();
-
-      if (userForms.length > 0) {
-        const statusUpdates: Record<string, string> = {};
-        for (const form of userForms) {
-          statusUpdates[`submittedForms.${form.title}.status`] = 'confirmed';
-          
-          // Also update the form collection status
-          await formsCollection.updateOne(
-            { _id: form._id },
-            { $set: { status: 'confirmed' } }
-          );
-        }
-
-        // Update all sport statuses in user's submittedForms
+      try {
+        // Update paymentDone flag
         await usersCollection.updateOne(
           { _id: new ObjectId(result.userId.toString()) },
-          { $set: statusUpdates }
+          { $set: { paymentDone: true } }
         );
+        operations.userPaymentDone = true;
 
-        console.log(`✅ Updated ${userForms.length} forms to 'confirmed' status for user ${result.userId}`);
+        // 🔄 CRITICAL: Update all submittedForms status to 'confirmed' for dashboard
+        // Get all forms for this user to update their status
+        const userForms = await formsCollection
+          .find({ ownerId: new ObjectId(result.userId.toString()) })
+          .toArray();
+
+        if (userForms.length > 0) {
+          const statusUpdates: Record<string, string> = {};
+          const formUpdatePromises = [];
+          
+          for (const form of userForms) {
+            statusUpdates[`submittedForms.${form.title}.status`] = 'confirmed';
+            
+            // Also update the form collection status
+            formUpdatePromises.push(
+              formsCollection.updateOne(
+                { _id: form._id },
+                { $set: { status: 'confirmed' } }
+              )
+            );
+          }
+
+          // Execute form updates in parallel
+          await Promise.all(formUpdatePromises);
+          operations.formsUpdated = true;
+
+          // Update all sport statuses in user's submittedForms
+          await usersCollection.updateOne(
+            { _id: new ObjectId(result.userId.toString()) },
+            { $set: statusUpdates }
+          );
+          operations.statusesUpdated = true;
+
+          console.log(`✅ Updated ${userForms.length} forms to 'confirmed' status for user ${result.userId}`);
+        }
+      } catch (error) {
+        // Log which operations succeeded before failure
+        console.error(`🚨 Payment verification partially failed:`, {
+          operations,
+          error
+        });
+        // Don't throw - payment status was updated, user can retry verification
       }
     } else if (body.status !== "verified" && result.userId) {
       await usersCollection.updateOne(
