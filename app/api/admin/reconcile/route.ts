@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
         
         if (Object.keys(updatePayload).length > 0) {
           await usersCollection.updateOne(
-            { _id: form.ownerId },
+            { _id: userForms[0].ownerId },
             { $set: { ...updatePayload, updatedAt: new Date() } }
           );
           successCount++;
