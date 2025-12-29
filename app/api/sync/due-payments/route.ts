@@ -128,7 +128,7 @@ export async function POST(req: NextRequest) {
       formsByOwner.get(ownerIdStr)!.push(form);
     }
 
-    const processedUserIds = new Set(payments.map(p => p.ownerId));
+    const processedUserIds = new Set(payments.map(p => p.ownerId?.toString() || p.ownerId));
 
     for (const [ownerIdStr, userForms] of formsByOwner.entries()) {
       // Skip if already processed in verified payments with changes
@@ -140,8 +140,13 @@ export async function POST(req: NextRequest) {
       const user = await usersCollection.findOne({ _id: ownerId });
       if (!user) continue;
 
-      // Get user's payment status
-      const userPayment = await paymentsCollection.findOne({ ownerId: ownerIdStr });
+      // Get user's payment status - try both string and ObjectId formats
+      const userPayment = await paymentsCollection.findOne({
+        $or: [
+          { ownerId: ownerIdStr },
+          { ownerId: ownerId }
+        ]
+      });
       
       // Only include if payment is missing, unverified, or pending
       if (userPayment && userPayment.status === "verified") continue;
