@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { connectToDatabase } from "@/lib/mongodb";
 import { ObjectId } from "mongodb";
 import { logAuditEvent } from "@/app/utils/audit-logger";
+import { syncRecordToSheet } from "@/app/utils/incremental-sync";
 
 export async function GET(
   request: Request,
@@ -226,47 +227,33 @@ export async function PATCH(
 
     // Trigger incremental Google Sheets sync (non-blocking but with better error handling)
     try {
-      const baseUrl = process.env.NEXTAUTH_URL || process.env.ROOT_URL || 'http://localhost:3000';
-      console.log(`🔄 Triggering payment sync for record ${id} to Google Sheets...`);
+      console.log(`🔄 Triggering direct payment sync for record ${id} to Google Sheets...`);
       
-      // Sync the payment record
-      const paymentSyncResponse = await fetch(`${baseUrl}/api/sync/incremental`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          collection: "payments",
-          recordId: id,
-          sheetName: "**Finance (Do Not Open)**"
-        }),
-      });
+      // Sync the payment record directly (no HTTP call)
+      const paymentSyncResult = await syncRecordToSheet(
+        "payments",
+        id,
+        "**Finance (Do Not Open)**"
+      );
 
-      if (!paymentSyncResponse.ok) {
-        const errorText = await paymentSyncResponse.text();
-        console.error(`❌ Payment sync failed with status ${paymentSyncResponse.status}:`, errorText);
+      if (!paymentSyncResult.success) {
       } else {
-        const syncResult = await paymentSyncResponse.json();
-        console.log("✅ Payment sync successful:", syncResult);
+        console.log("✅ Payment sync successful:", paymentSyncResult.message);
       }
 
       // Also sync the user record if payment status changed
       if (result.userId) {
-        console.log(`🔄 Triggering user sync for user ${result.userId} to Google Sheets...`);
-        const userSyncResponse = await fetch(`${baseUrl}/api/sync/incremental`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ 
-            collection: "users",
-            recordId: result.userId.toString(),
-            sheetName: "Users"
-          }),
-        });
+        console.log(`🔄 Triggering direct user sync for user ${result.userId} to Google Sheets...`);
+        const userSyncResult = await syncRecordToSheet(
+          "users",
+          result.userId.toString(),
+          "Users"
+        );
 
-        if (!userSyncResponse.ok) {
-          const errorText = await userSyncResponse.text();
-          console.error(`❌ User sync failed with status ${userSyncResponse.status}:`, errorText);
+        if (!userSyncResult.success) {
+          console.error(`❌ User sync failed:`, userSyncResult.message);
         } else {
-          const syncResult = await userSyncResponse.json();
-          console.log("✅ User sync successful:", syncResult);
+          console.log("✅ User sync successful:", userSyncResult.message);
         }
       }
     } catch (error) {

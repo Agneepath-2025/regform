@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { connectToDatabase } from "@/lib/mongodb";
 import { ObjectId } from "mongodb";
+import { syncRecordToSheet } from "@/app/utils/incremental-sync";
 
 export async function GET(
   request: Request,
@@ -120,39 +121,34 @@ export async function PATCH(
     }
 
     // Trigger incremental Google Sheets sync (non-blocking)
-    try {
-      // Sync only this specific user record
-      fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/sync/incremental`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          collection: "users",
-          recordId: id,
-          sheetName: "Users"
-        }),
-      }).catch(err => console.error("Background sync failed:", err));
+    (async () => {
+      try {
+        // Sync only this specific user record
+        const userSyncResult = await syncRecordToSheet("users", id, "Users");
+        if (!userSyncResult.success) {
+          console.error("User sync failed:", userSyncResult.message);
+        }
 
-      // Also sync forms if submittedForms changed
-      if (body.submittedForms) {
-        // Sync all affected form records
-        const formsCollection = db.collection("form");
-        const userForms = await formsCollection.find({ ownerId: new ObjectId(id) }).toArray();
-        userForms.forEach(form => {
-          fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/sync/incremental`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ 
-              collection: "form",
-              recordId: form._id.toString(),
-              sheetName: "Registrations"
-            }),
-          }).catch(err => console.error("Form sync failed:", err));
-        });
+        // Also sync forms if submittedForms changed
+        if (body.submittedForms) {
+          // Sync all affected form records
+          const formsCollection = db.collection("form");
+          const userForms = await formsCollection.find({ ownerId: new ObjectId(id) }).toArray();
+          for (const form of userForms) {
+            const formSyncResult = await syncRecordToSheet(
+              "form",
+              form._id.toString(),
+              "Registrations"
+            );
+            if (!formSyncResult.success) {
+              console.error("Form sync failed:", formSyncResult.message);
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error triggering sync:", error);
       }
-    } catch (error) {
-      console.error("Error triggering sync:", error);
-      // Don't fail the request if sync fails
-    }
+    })();
 
     return NextResponse.json({ success: true, data: result });
   } catch (error) {
