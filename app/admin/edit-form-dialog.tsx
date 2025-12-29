@@ -294,12 +294,12 @@ export default function EditFormDialog({ form, onClose, onUpdate }: Props) {
                   </div>
                   <div className="space-y-2">
                     <Label className="dark:text-gray-300">Gender</Label>
-                    <Select value={coach.gender || ""} onValueChange={(val) => updateCoach("gender", val)}>
+                    <Select value={coach.gender || ""} onValueChange={(val) => updateCoach("gender", val === "none" ? "" : val)}>
                       <SelectTrigger className="dark:bg-gray-600 dark:border-gray-500 dark:text-white">
                         <SelectValue placeholder="Select gender" />
                       </SelectTrigger>
                       <SelectContent className="dark:bg-gray-700 dark:border-gray-600">
-                        <SelectItem value="">None (Remove)</SelectItem>
+                        <SelectItem value="none">None (Remove)</SelectItem>
                         <SelectItem value="Male">Male</SelectItem>
                         <SelectItem value="Female">Female</SelectItem>
                         <SelectItem value="Other">Other</SelectItem>
