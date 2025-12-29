@@ -280,13 +280,13 @@ export const eventSchema: EventSchema = {
         Basketball_Men: {
             eventName: sports.Basketball_Men,
             specificPages: [
-                generatePageWithPlayerFields(5, 12), // 5 to 12 players
+                generatePageWithPlayerFields(7, 12), // 7 to 12 players
             ],
         },
         Basketball_Women: {
             eventName: sports.Basketball_Women,
             specificPages: [
-                generatePageWithPlayerFields(5, 12), // 5 to 12 players
+                generatePageWithPlayerFields(7, 12), // 7 to 12 players
             ],
         },
         Cricket_Men: {

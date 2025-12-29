@@ -14,6 +14,8 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { collection, recordId, sheetName } = body;
 
+    console.log(`📊 Incremental sync requested: collection=${collection}, recordId=${recordId}, sheetName=${sheetName}`);
+
     if (!collection || !recordId) {
       return NextResponse.json(
         { success: false, message: "Missing required fields: collection, recordId" },
@@ -256,12 +258,19 @@ export async function POST(req: NextRequest) {
     }
 
   } catch (error) {
-    console.error("Incremental sync error:", error);
+    console.error("❌ Incremental sync error:", error);
+    console.error("Error details:", {
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      collection: body?.collection,
+      recordId: body?.recordId
+    });
     const errorMessage = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
       { 
         success: false, 
-        message: errorMessage || "Failed to sync record to Google Sheets"
+        message: errorMessage || "Failed to sync record to Google Sheets",
+        details: error instanceof Error ? error.stack : undefined
       },
       { status: 500 }
     );

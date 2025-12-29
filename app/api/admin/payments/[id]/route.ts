@@ -101,10 +101,13 @@ export async function PATCH(
       );
     }
 
-    // Trigger incremental Google Sheets sync (non-blocking)
+    // Trigger incremental Google Sheets sync (non-blocking but with better error handling)
     try {
+      const baseUrl = process.env.NEXTAUTH_URL || process.env.ROOT_URL || 'http://localhost:3000';
+      console.log(`🔄 Triggering payment sync for record ${id} to Google Sheets...`);
+      
       // Sync the payment record
-      fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/sync/incremental`, {
+      const paymentSyncResponse = await fetch(`${baseUrl}/api/sync/incremental`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
@@ -112,11 +115,20 @@ export async function PATCH(
           recordId: id,
           sheetName: "**Finance (Do Not Open)**"
         }),
-      }).catch(err => console.error("Payment sync failed:", err));
+      });
+
+      if (!paymentSyncResponse.ok) {
+        const errorText = await paymentSyncResponse.text();
+        console.error(`❌ Payment sync failed with status ${paymentSyncResponse.status}:`, errorText);
+      } else {
+        const syncResult = await paymentSyncResponse.json();
+        console.log("✅ Payment sync successful:", syncResult);
+      }
 
       // Also sync the user record if payment status changed
       if (result.userId) {
-        fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/sync/incremental`, {
+        console.log(`🔄 Triggering user sync for user ${result.userId} to Google Sheets...`);
+        const userSyncResponse = await fetch(`${baseUrl}/api/sync/incremental`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ 
@@ -124,10 +136,18 @@ export async function PATCH(
             recordId: result.userId.toString(),
             sheetName: "Users"
           }),
-        }).catch(err => console.error("User sync failed:", err));
+        });
+
+        if (!userSyncResponse.ok) {
+          const errorText = await userSyncResponse.text();
+          console.error(`❌ User sync failed with status ${userSyncResponse.status}:`, errorText);
+        } else {
+          const syncResult = await userSyncResponse.json();
+          console.log("✅ User sync successful:", syncResult);
+        }
       }
     } catch (error) {
-      console.error("Error triggering sync:", error);
+      console.error("❌ Error triggering sync:", error);
     }
 
     return NextResponse.json({ success: true, data: result });

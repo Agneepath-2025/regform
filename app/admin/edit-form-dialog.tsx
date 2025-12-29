@@ -65,8 +65,8 @@ interface CoachFields {
 const sportConfig: Record<string, { min: number; max: number; requiresGender: boolean; requiresCategory: boolean; categoryType?: 'swimming' | 'shooting' }> = {
   "Badminton (Men)": { min: 5, max: 7, requiresGender: false, requiresCategory: false },
   "Badminton (Women)": { min: 5, max: 7, requiresGender: false, requiresCategory: false },
-  "Basketball (Men)": { min: 5, max: 12, requiresGender: false, requiresCategory: false },
-  "Basketball (Women)": { min: 5, max: 12, requiresGender: false, requiresCategory: false },
+  "Basketball (Men)": { min: 7, max: 12, requiresGender: false, requiresCategory: false },
+  "Basketball (Women)": { min: 7, max: 12, requiresGender: false, requiresCategory: false },
   "Cricket (Men)": { min: 12, max: 15, requiresGender: false, requiresCategory: false },
   "Football (Men)": { min: 11, max: 15, requiresGender: false, requiresCategory: false },
   "Futsal (Women)": { min: 7, max: 10, requiresGender: false, requiresCategory: false },
@@ -232,7 +232,7 @@ export default function EditFormDialog({ form, onClose, onUpdate }: Props) {
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto dark:bg-gray-800 dark:border-gray-700">
+      <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto dark:bg-gray-800 dark:border-gray-700">
         <DialogHeader>
           <DialogTitle className="dark:text-white">Form Details - {form.title}</DialogTitle>
           <DialogDescription className="dark:text-gray-400">
@@ -299,6 +299,7 @@ export default function EditFormDialog({ form, onClose, onUpdate }: Props) {
                         <SelectValue placeholder="Select gender" />
                       </SelectTrigger>
                       <SelectContent className="dark:bg-gray-700 dark:border-gray-600">
+                        <SelectItem value="">None (Remove)</SelectItem>
                         <SelectItem value="Male">Male</SelectItem>
                         <SelectItem value="Female">Female</SelectItem>
                         <SelectItem value="Other">Other</SelectItem>
@@ -381,7 +382,7 @@ export default function EditFormDialog({ form, onClose, onUpdate }: Props) {
                         <Label className="text-sm dark:text-gray-300">Date of Birth</Label>
                         <Input
                           type="date"
-                          value={player.date}
+                          value={player.date ? (typeof player.date === 'string' ? player.date.split('T')[0] : new Date(player.date).toISOString().split('T')[0]) : ""}
                           onChange={(e) => updatePlayer(idx, "date", e.target.value)}
                           className="dark:bg-gray-600 dark:border-gray-500 dark:text-white"
                         />
