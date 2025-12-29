@@ -92,6 +92,34 @@ export async function PATCH(
       return NextResponse.json({ error: "Form not found" }, { status: 404 });
     }
 
+    // 🔄 Update user's submittedForms field to sync with dashboard
+    if (body.fields) {
+      try {
+        const usersCollection = db.collection("users");
+        
+        // Calculate current player count from updated form
+        const playerFields = Object.entries(body.fields).filter(
+          ([key]) => key.startsWith("player") && !key.includes("coach")
+        );
+
+        // Update user's submittedForms field
+        await usersCollection.updateOne(
+          { _id: result.ownerId },
+          {
+            $set: {
+              [`submittedForms.${result.title}.Players`]: playerFields.length,
+              [`submittedForms.${result.title}.status`]: result.status || "submitted"
+            }
+          }
+        );
+
+        console.log(`👤 User submittedForms updated: ${result.ownerId} → ${result.title}: ${playerFields.length} players`);
+      } catch (error) {
+        console.error("⚠️ Failed to update user submittedForms:", error);
+        // Don't fail the entire request if user update fails
+      }
+    }
+
     // 🔄 Automatically update payment record if player count changed
     if (body.fields) {
       try {
