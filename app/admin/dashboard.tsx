@@ -22,6 +22,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import EditUserSimpleDialog from "./edit-user-simple-dialog";
 import EditUserAdvancedDialog from "./edit-user-advanced-dialog";
 import EditFormDialog from "./edit-form-dialog";
@@ -87,6 +89,7 @@ interface DuePayment {
   playerDifference: number;
   amountDue: number;
   status: string;
+  resolutionStatus?: string; // 'pending' | 'in_progress' | 'resolved'
   lastUpdated: string;
   forms: Array<{
     formId: string;
@@ -108,6 +111,7 @@ export default function AdminDashboard() {
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [selectedForm, setSelectedForm] = useState<Form | null>(null);
+  const [selectedDuePayment, setSelectedDuePayment] = useState<DuePayment | null>(null);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [advancedMode, setAdvancedMode] = useState(false);
   const [userSearchQuery, setUserSearchQuery] = useState("");
@@ -880,59 +884,45 @@ export default function AdminDashboard() {
                       <Table>
                         <TableHeader>
                           <TableRow className="dark:border-gray-700">
-                            <TableHead className="dark:text-gray-300">User Name</TableHead>
-                            <TableHead className="dark:text-gray-300">Email</TableHead>
-                            <TableHead className="dark:text-gray-300">University</TableHead>
-                            <TableHead className="dark:text-gray-300">Transaction ID</TableHead>
-                            <TableHead className="dark:text-gray-300">Sports Modified</TableHead>
-                            <TableHead className="dark:text-gray-300">Original Players</TableHead>
-                            <TableHead className="dark:text-gray-300">Current Players</TableHead>
-                            <TableHead className="dark:text-gray-300">Additional Players</TableHead>
-                            <TableHead className="dark:text-gray-300">Amount Due</TableHead>
-                            <TableHead className="dark:text-gray-300">Status</TableHead>
-                            <TableHead className="dark:text-gray-300">Last Updated</TableHead>
+                            <TableHead className="dark:text-gray-300">User</TableHead>
+                            <TableHead className="dark:text-gray-300">Sports & Changes</TableHead>
+                            <TableHead className="dark:text-gray-300">Amount</TableHead>
+                            <TableHead className="dark:text-gray-300">Payment Status</TableHead>
+                            <TableHead className="dark:text-gray-300">Resolution</TableHead>
+                            <TableHead className="dark:text-gray-300">Actions</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {filteredDuePayments.map((duePayment) => (
                             <TableRow key={duePayment._id} className="dark:border-gray-700">
-                              <TableCell className="font-medium dark:text-white">
-                                {duePayment.userName}
-                              </TableCell>
-                              <TableCell className="dark:text-gray-300">{duePayment.userEmail}</TableCell>
-                              <TableCell className="max-w-xs truncate dark:text-gray-300">
-                                {duePayment.universityName}
-                              </TableCell>
                               <TableCell className="dark:text-gray-300">
-                                {duePayment.transactionId}
+                                <div>
+                                  <p className="font-medium dark:text-white">{duePayment.userName}</p>
+                                  <p className="text-xs text-gray-500 dark:text-gray-400">{duePayment.userEmail}</p>
+                                  <p className="text-xs text-gray-500 dark:text-gray-400">{duePayment.universityName}</p>
+                                </div>
                               </TableCell>
                               <TableCell className="dark:text-gray-300">
                                 <div className="space-y-1">
                                   {duePayment.forms.map((form, idx) => (
-                                    <div key={idx} className="text-xs">
-                                      <span className="font-medium">{form.sport}:</span>{" "}
-                                      <span className={form.difference > 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}>
-                                        {form.difference > 0 ? "+" : ""}{form.difference}
-                                      </span>
+                                    <div key={idx} className="text-sm">
+                                      <span className="font-medium">{form.sport}</span>{" "}
+                                      <Badge variant="outline" className={form.difference > 0 ? "text-green-600" : "text-red-600"}>
+                                        {form.difference > 0 ? "+" : ""}{form.difference} players
+                                      </Badge>
                                     </div>
                                   ))}
                                 </div>
                               </TableCell>
                               <TableCell className="dark:text-gray-300">
-                                {duePayment.originalPlayerCount}
-                              </TableCell>
-                              <TableCell className="dark:text-gray-300">
-                                {duePayment.currentPlayerCount}
-                              </TableCell>
-                              <TableCell>
-                                <Badge variant="default" className={duePayment.playerDifference > 0 ? "bg-orange-500" : "bg-green-500"}>
-                                  {duePayment.playerDifference > 0 ? "+" : ""}{duePayment.playerDifference}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="dark:text-gray-300">
-                                <span className={`font-bold ${duePayment.amountDue > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
-                                  {duePayment.amountDue > 0 ? "₹" : "-₹"}{Math.abs(duePayment.amountDue).toLocaleString()}
-                                </span>
+                                <div>
+                                  <span className={`font-bold text-lg ${duePayment.amountDue > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+                                    {duePayment.amountDue > 0 ? "₹" : "-₹"}{Math.abs(duePayment.amountDue).toLocaleString()}
+                                  </span>
+                                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                                    {duePayment.originalPlayerCount} → {duePayment.currentPlayerCount} players
+                                  </p>
+                                </div>
                               </TableCell>
                               <TableCell>
                                 <Badge 
@@ -947,8 +937,41 @@ export default function AdminDashboard() {
                                   {duePayment.status}
                                 </Badge>
                               </TableCell>
-                              <TableCell className="dark:text-gray-300">
-                                {new Date(duePayment.lastUpdated).toLocaleString()}
+                              <TableCell>
+                                <Select
+                                  value={duePayment.resolutionStatus || "pending"}
+                                  onValueChange={async (value) => {
+                                    try {
+                                      await fetch(`/api/admin/due-payments/${duePayment._id}/status`, {
+                                        method: "PATCH",
+                                        headers: { "Content-Type": "application/json" },
+                                        body: JSON.stringify({ resolutionStatus: value }),
+                                      });
+                                      fetchData(true);
+                                    } catch (error) {
+                                      console.error("Failed to update status:", error);
+                                    }
+                                  }}
+                                >
+                                  <SelectTrigger className="w-32">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="pending">Pending</SelectItem>
+                                    <SelectItem value="in_progress">In Progress</SelectItem>
+                                    <SelectItem value="resolved">Resolved</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </TableCell>
+                              <TableCell>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setSelectedDuePayment(duePayment)}
+                                  className="dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+                                >
+                                  View Details
+                                </Button>
                               </TableCell>
                             </TableRow>
                           ))}
@@ -1017,6 +1040,130 @@ export default function AdminDashboard() {
             fetchData(true);
           }}
         />
+      )}
+
+      {/* Due Payment Detail Dialog */}
+      {selectedDuePayment && (
+        <Dialog open={true} onOpenChange={() => setSelectedDuePayment(null)}>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Due Payment Details</DialogTitle>
+              <DialogDescription>
+                Complete information about outstanding payment
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-6">
+              {/* User Information */}
+              <div>
+                <h3 className="font-semibold text-lg mb-3">User Information</h3>
+                <div className="grid grid-cols-2 gap-4 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+                  <div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Name</p>
+                    <p className="font-medium">{selectedDuePayment.userName}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Email</p>
+                    <p className="font-medium">{selectedDuePayment.userEmail}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">University</p>
+                    <p className="font-medium">{selectedDuePayment.universityName}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Transaction ID</p>
+                    <p className="font-medium">{selectedDuePayment.transactionId}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Payment Summary */}
+              <div>
+                <h3 className="font-semibold text-lg mb-3">Payment Summary</h3>
+                <div className="grid grid-cols-3 gap-4 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+                  <div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Original Players</p>
+                    <p className="text-2xl font-bold">{selectedDuePayment.originalPlayerCount}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Current Players</p>
+                    <p className="text-2xl font-bold">{selectedDuePayment.currentPlayerCount}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Difference</p>
+                    <p className={`text-2xl font-bold ${selectedDuePayment.playerDifference > 0 ? 'text-orange-600' : 'text-green-600'}`}>
+                      {selectedDuePayment.playerDifference > 0 ? "+" : ""}{selectedDuePayment.playerDifference}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Amount Due */}
+              <div className={`p-6 rounded-lg ${selectedDuePayment.amountDue > 0 ? 'bg-red-50 dark:bg-red-900/20' : 'bg-green-50 dark:bg-green-900/20'}`}>
+                <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
+                  {selectedDuePayment.amountDue > 0 ? 'Amount Due' : 'Overpaid Amount'}
+                </p>
+                <p className={`text-4xl font-bold ${selectedDuePayment.amountDue > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                  {selectedDuePayment.amountDue > 0 ? "₹" : "-₹"}{Math.abs(selectedDuePayment.amountDue).toLocaleString()}
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-300 mt-2">
+                  @ ₹800 per player
+                </p>
+              </div>
+
+              {/* Sports Breakdown */}
+              <div>
+                <h3 className="font-semibold text-lg mb-3">Sports Breakdown</h3>
+                <div className="space-y-3">
+                  {selectedDuePayment.forms.map((form, idx) => (
+                    <div key={idx} className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <p className="font-medium">{form.sport}</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                            {form.originalPlayers} → {form.currentPlayers} players
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <Badge variant="outline" className={form.difference > 0 ? "text-orange-600 border-orange-600" : "text-green-600 border-green-600"}>
+                            {form.difference > 0 ? "+" : ""}{form.difference}
+                          </Badge>
+                          <p className="text-sm font-medium mt-1">
+                            {form.difference > 0 ? "₹" : "-₹"}{Math.abs(form.difference * 800).toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Status Information */}
+              <div>
+                <h3 className="font-semibold text-lg mb-3">Status</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">Payment Status</p>
+                    <Badge 
+                      variant="default" 
+                      className={
+                        selectedDuePayment.status === "unpaid" ? "bg-red-600" :
+                        selectedDuePayment.status === "unverified" ? "bg-yellow-600" :
+                        selectedDuePayment.status === "overpaid" ? "bg-green-600" :
+                        "bg-orange-600"
+                      }
+                    >
+                      {selectedDuePayment.status}
+                    </Badge>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">Last Updated</p>
+                    <p className="text-sm">{new Date(selectedDuePayment.lastUpdated).toLocaleString()}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );

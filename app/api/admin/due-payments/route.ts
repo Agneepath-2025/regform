@@ -37,6 +37,7 @@ export async function GET() {
     const paymentsCollection = db.collection("payments");
     const formsCollection = db.collection("form");
     const usersCollection = db.collection("users");
+    const duePaymentsCollection = db.collection("duePayments");
 
     // Get all verified payments
     const payments = await paymentsCollection
@@ -146,6 +147,9 @@ export async function GET() {
 
       // Show all changes (positive = amount due, negative = overpaid/refund)
       if (playerDifference !== 0) {
+        // Get resolution status if exists
+        const statusDoc = await duePaymentsCollection.findOne({ _id: payment._id.toString() });
+        
         duePayments.push({
           _id: payment._id.toString(),
           userId: payment.ownerId.toString(),
@@ -159,6 +163,7 @@ export async function GET() {
           playerDifference,
           amountDue: playerDifference * 800,
           status: playerDifference > 0 ? "pending" : "overpaid",
+          resolutionStatus: statusDoc?.resolutionStatus || "pending",
           lastUpdated: new Date(),
           forms: formDetails
         });
@@ -231,6 +236,9 @@ export async function GET() {
 
       const totalAmountDue = (totalPlayers * 800) + accommodationPrice;
 
+      // Get resolution status if exists
+      const statusDoc = await duePaymentsCollection.findOne({ _id: ownerIdStr });
+
       duePayments.push({
         _id: ownerIdStr,
         userId: ownerIdStr,
@@ -244,6 +252,7 @@ export async function GET() {
         playerDifference: totalPlayers,
         amountDue: totalAmountDue,
         status: userPayment ? "unverified" : "unpaid",
+        resolutionStatus: statusDoc?.resolutionStatus || "pending",
         lastUpdated: new Date(),
         forms: formDetails
       });

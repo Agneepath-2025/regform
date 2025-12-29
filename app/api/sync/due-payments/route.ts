@@ -1,106 +1,69 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectToDatabase } from "@/lib/mongodb";
 import { google } from "googleapis";
 
 /**
  * POST /api/sync/due-payments
  * 
  * Syncs due payments data to Google Sheets "Due Payments" tab
- * This should be called after form modifications to update outstanding payments
+ * Includes unpaid, unverified, pending, and overpaid records
  */
 export async function POST(req: NextRequest) {
   try {
     console.log("📊 Syncing due payments to Google Sheets...");
 
-    const { db } = await connectToDatabase();
-    const paymentsCollection = db.collection("payments");
-    const formsCollection = db.collection("form");
-    const usersCollection = db.collection("users");
+    // Fetch due payments from the admin API
+    const baseUrl = process.env.NEXTAUTH_URL || process.env.ROOT_URL || 'http://localhost:3000';
+    const duePaymentsResponse = await fetch(`${baseUrl}/api/admin/due-payments`, {
+      headers: { 'Content-Type': 'application/json' }
+    });
 
-    // Get all verified payments
-    const payments = await paymentsCollection
-      .find({ status: "verified" })
-      .toArray();
+    if (!duePaymentsResponse.ok) {
+      throw new Error('Failed to fetch due payments');
+    }
+
+    const duePaymentsResult = await duePaymentsResponse.json();
+    const duePayments = duePaymentsResult.data || [];
+
+    console.log(`📊 Found ${duePayments.length} due payment records to sync`);
 
     const duePaymentsData: unknown[][] = [];
 
-    for (const payment of payments) {
-      if (!payment.ownerId) continue;
+    // Format all due payments for Google Sheets
+    for (const duePayment of duePayments) {
+      const currentDate = new Date();
+      const date = currentDate.toLocaleDateString('en-IN', { 
+        timeZone: 'Asia/Kolkata',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      });
+      const time = currentDate.toLocaleTimeString('en-IN', { 
+        timeZone: 'Asia/Kolkata',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      });
 
-      // Get user details
-      const user = await usersCollection.findOne({ _id: payment.ownerId });
-      if (!user) continue;
+      // Format sports with changes
+      const sportsModified = duePayment.forms.map((form: { sport: string; difference: number }) => 
+        `${form.sport} (${form.difference > 0 ? '+' : ''}${form.difference})`
+      ).join(', ');
 
-      // Get all forms for this user
-      const userForms = await formsCollection
-        .find({ ownerId: payment.ownerId })
-        .toArray();
-
-      let totalOriginalPlayers = 0;
-      let totalCurrentPlayers = 0;
-      const sportsModified: string[] = [];
-
-      // Calculate player counts for each form
-      for (const form of userForms) {
-        const fields = form.fields as Record<string, unknown> | undefined;
-        const currentPlayerFields = (fields?.playerFields as Record<string, unknown>[]) || [];
-        const currentPlayers = currentPlayerFields.length;
-
-        let originalPlayers = currentPlayers;
-        
-        const paymentData = payment.paymentData ? 
-          (typeof payment.paymentData === 'string' ? 
-            JSON.parse(payment.paymentData) : 
-            payment.paymentData) : 
-          null;
-
-        if (paymentData?.submittedForms?.[form.title]) {
-          originalPlayers = paymentData.submittedForms[form.title].Players || currentPlayers;
-        }
-
-        const difference = currentPlayers - originalPlayers;
-
-        if (difference !== 0) {
-          sportsModified.push(`${form.title} (${difference > 0 ? '+' : ''}${difference})`);
-        }
-
-        totalOriginalPlayers += originalPlayers;
-        totalCurrentPlayers += currentPlayers;
-      }
-
-      const playerDifference = totalCurrentPlayers - totalOriginalPlayers;
-
-      // Only add to due payments if there's a positive difference
-      if (playerDifference > 0) {
-        const currentDate = new Date();
-        const date = currentDate.toLocaleDateString('en-IN', { 
-          timeZone: 'Asia/Kolkata',
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit'
-        });
-        const time = currentDate.toLocaleTimeString('en-IN', { 
-          timeZone: 'Asia/Kolkata',
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: true
-        });
-
-        duePaymentsData.push([
-          date,
-          time,
-          user.name || "N/A",
-          user.email || "N/A",
-          user.universityName || "N/A",
-          payment.transactionId || "N/A",
-          sportsModified.join(", "),
-          totalOriginalPlayers.toString(),
-          totalCurrentPlayers.toString(),
-          playerDifference.toString(),
-          (playerDifference * 800).toString(),
-          "Pending"
-        ]);
-      }
+      duePaymentsData.push([
+        date,
+        time,
+        duePayment.userName || 'N/A',
+        duePayment.userEmail || 'N/A',
+        duePayment.universityName || 'N/A',
+        duePayment.transactionId || 'No Payment',
+        sportsModified,
+        duePayment.originalPlayerCount.toString(),
+        duePayment.currentPlayerCount.toString(),
+        duePayment.playerDifference.toString(),
+        duePayment.amountDue.toString(),
+        duePayment.status || 'pending',
+        duePayment.resolutionStatus || 'pending'
+      ]);
     }
 
     // Authenticate with Google Sheets API
@@ -109,7 +72,7 @@ export async function POST(req: NextRequest) {
     const spreadsheetId = process.env.GOOGLE_SHEET_ID;
 
     if (!clientEmail || !privateKey) {
-      console.error("❌ Missing Google credentials: GOOGLE_CLIENT_EMAIL or GOOGLE_PRIVATE_KEY");
+      console.error("❌ Missing Google credentials");
       return NextResponse.json(
         { success: false, message: "Google Sheets credentials not configured" },
         { status: 500 }
@@ -133,7 +96,6 @@ export async function POST(req: NextRequest) {
     });
 
     const sheets = google.sheets({ version: 'v4', auth });
-
     const sheetName = "Due Payments";
 
     // Check if sheet exists, create if not
@@ -144,39 +106,26 @@ export async function POST(req: NextRequest) {
       );
 
       if (!sheetExists) {
-        // Create the sheet
         await sheets.spreadsheets.batchUpdate({
           spreadsheetId,
           requestBody: {
             requests: [{
               addSheet: {
-                properties: {
-                  title: sheetName
-                }
+                properties: { title: sheetName }
               }
             }]
           }
         });
 
-        // Add headers
         await sheets.spreadsheets.values.update({
           spreadsheetId,
-          range: `${sheetName}!A1:L1`,
+          range: `${sheetName}!A1:M1`,
           valueInputOption: 'RAW',
           requestBody: {
             values: [[
-              "Date",
-              "Time",
-              "User Name",
-              "Email",
-              "University",
-              "Original Transaction ID",
-              "Sports Modified",
-              "Original Players",
-              "Current Players",
-              "Additional Players",
-              "Amount Due (₹)",
-              "Status"
+              "Date", "Time", "User Name", "Email", "University", "Transaction ID",
+              "Sports Modified", "Original Players", "Current Players", "Player Difference",
+              "Amount Due (₹)", "Payment Status", "Resolution Status"
             ]]
           }
         });
@@ -188,10 +137,10 @@ export async function POST(req: NextRequest) {
     // Clear existing data (except header)
     await sheets.spreadsheets.values.clear({
       spreadsheetId,
-      range: `${sheetName}!A2:L`,
+      range: `${sheetName}!A2:M`,
     });
 
-    // Write new data if there are any due payments
+    // Write new data
     if (duePaymentsData.length > 0) {
       await sheets.spreadsheets.values.update({
         spreadsheetId,
@@ -212,13 +161,11 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error("❌ Error syncing due payments to Google Sheets:", error);
-    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error("❌ Error syncing due payments:", error);
     return NextResponse.json(
       { 
         success: false, 
-        message: errorMessage || "Failed to sync due payments to Google Sheets",
-        details: error instanceof Error ? error.stack : undefined
+        message: error instanceof Error ? error.message : "Failed to sync"
       },
       { status: 500 }
     );
