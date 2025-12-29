@@ -20,7 +20,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Trash2, Plus, AlertCircle } from "lucide-react";
+import { Trash2, Plus, AlertCircle, CalendarIcon } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 interface Form {
   _id: string;
@@ -294,12 +298,12 @@ export default function EditFormDialog({ form, onClose, onUpdate }: Props) {
                   </div>
                   <div className="space-y-2">
                     <Label className="dark:text-gray-300">Gender</Label>
-                    <Select value={coach.gender || ""} onValueChange={(val) => updateCoach("gender", val)}>
+                    <Select value={coach.gender || ""} onValueChange={(val) => updateCoach("gender", val === "none" ? "" : val)}>
                       <SelectTrigger className="dark:bg-gray-600 dark:border-gray-500 dark:text-white">
                         <SelectValue placeholder="Select gender" />
                       </SelectTrigger>
                       <SelectContent className="dark:bg-gray-700 dark:border-gray-600">
-                        <SelectItem value="">None (Remove)</SelectItem>
+                        <SelectItem value="none">None (Remove)</SelectItem>
                         <SelectItem value="Male">Male</SelectItem>
                         <SelectItem value="Female">Female</SelectItem>
                         <SelectItem value="Other">Other</SelectItem>
@@ -380,12 +384,32 @@ export default function EditFormDialog({ form, onClose, onUpdate }: Props) {
                       </div>
                       <div className="space-y-1">
                         <Label className="text-sm dark:text-gray-300">Date of Birth</Label>
-                        <Input
-                          type="date"
-                          value={player.date ? (typeof player.date === 'string' ? player.date.split('T')[0] : new Date(player.date).toISOString().split('T')[0]) : ""}
-                          onChange={(e) => updatePlayer(idx, "date", e.target.value)}
-                          className="dark:bg-gray-600 dark:border-gray-500 dark:text-white"
-                        />
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "w-full justify-start text-left font-normal dark:bg-gray-600 dark:border-gray-500 dark:text-white",
+                                !player.date && "text-muted-foreground"
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {player.date ? format(new Date(player.date), "PPP") : "Pick a date"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              captionLayout="dropdown"
+                              selected={player.date ? new Date(player.date) : undefined}
+                              onSelect={(date) => updatePlayer(idx, "date", date ? date.toISOString() : "")}
+                              disabled={(date) => date < new Date(2001, 1, 2) || date > new Date(2009, 1, 1)}
+                              fromYear={2001}
+                              toYear={2009}
+                              defaultMonth={new Date(2005, 5, 15)}
+                            />
+                          </PopoverContent>
+                        </Popover>
                       </div>
                       
                       {/* Conditional Gender Field */}

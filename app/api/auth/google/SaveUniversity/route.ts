@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
         // Step 5: Update the user's university name
         const updateResult = await usersCollection.updateOne(
             { email },
-            { $set: { universityName,phone } }
+            { $set: { universityName, phone } }
         );
 
         // Step 6: Send signup confirmation email after university is saved
@@ -61,9 +61,12 @@ export async function POST(req: NextRequest) {
             }).catch((err) => console.error("Sending signup email failed:", err));
 
             // Sync updated user to Google Sheets (non-blocking)
-            syncUserRegistration(user._id.toString()).catch(err => {
-                console.error("[Sheets] Failed to sync user after university update:", err);
-            });
+            // Small delay to ensure database write propagation
+            setTimeout(() => {
+                syncUserRegistration(user._id.toString()).catch(err => {
+                    console.error("[Sheets] Failed to sync user after university update:", err);
+                });
+            }, 100);
 
             return NextResponse.json({
                 success: true,

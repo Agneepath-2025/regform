@@ -3,6 +3,7 @@ import { connectToDatabase } from "@/lib/mongodb";
 import { Collection, ObjectId } from "mongodb";
 import { NextRequest, NextResponse } from "next/server";
 import { fetchUserData } from "@/app/utils/GetUpdateUser";
+import { syncUserRegistration } from "@/app/utils/sheets-event-sync";
 
 type UserDoc = {
   _id?: string | { $oid?: string } | { _id?: string };
@@ -126,10 +127,36 @@ export async function POST(req: NextRequest) {
         );
       }
 
+      // Sync updated user to Google Sheets (non-blocking)
+      let fallbackUserId: string | undefined;
+      if (typeof fallback._id === 'string') {
+        fallbackUserId = fallback._id;
+      } else if (fallback._id && typeof fallback._id === 'object') {
+        fallbackUserId = (fallback._id as { $oid?: string }).$oid || (fallback._id as { _id?: string })._id;
+      }
+      if (fallbackUserId) {
+        syncUserRegistration(fallbackUserId).catch(err => {
+          console.error("[Sheets] Failed to sync user after registration completion:", err);
+        });
+      }
+
       return NextResponse.json(
         { success: true, message: "Registration completed (fallback)", data: fallback },
         { status: 200 }
       );
+    }
+
+    // Sync updated user to Google Sheets (non-blocking)
+    let userId: string | undefined;
+    if (typeof updatedDoc._id === 'string') {
+      userId = updatedDoc._id;
+    } else if (updatedDoc._id && typeof updatedDoc._id === 'object') {
+      userId = (updatedDoc._id as { $oid?: string }).$oid || (updatedDoc._id as { _id?: string })._id;
+    }
+    if (userId) {
+      syncUserRegistration(userId).catch(err => {
+        console.error("[Sheets] Failed to sync user after registration completion:", err);
+      });
     }
 
     return NextResponse.json(

@@ -253,6 +253,7 @@ export async function POST(req: NextRequest) {
 
     if (!isDraft) {
       updatedData.status = "submitted"; // Update status to "submitted" if isDraft is false
+      console.log(`✅ Form ${formId} status set to 'submitted'`);
     }
 
     // Update the form in the database

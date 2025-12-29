@@ -150,6 +150,7 @@ export async function syncFormSubmission(formId: string): Promise<SyncResult> {
  */
 export async function syncUserRegistration(userId: string): Promise<SyncResult> {
   if (!SHEETS_SYNC_ENABLED) {
+    console.log(`[Sheets] ⚠️ Sync disabled for user ${userId}`);
     return { success: false, error: "Sheets sync is disabled" };
   }
 
@@ -158,18 +159,18 @@ export async function syncUserRegistration(userId: string): Promise<SyncResult> 
     const user = await db.collection("users").findOne({ _id: new ObjectId(userId) });
 
     if (!user) {
-      console.error("[Sheets] User not found:", userId);
+      console.error(`[Sheets] ❌ User not found: ${userId}`);
       return { success: false, error: "User not found" };
     }
 
     // Only sync users with verified email and complete registration (phone and university)
     if (!user.emailVerified) {
-      console.log(`[Sheets] Skipping user ${userId} - email not verified`);
+      console.log(`[Sheets] ⏭️ Skipping user ${userId} (${user.email}) - email not verified`);
       return { success: true }; // Return success but don't sync
     }
 
     if (!user.phone || !user.universityName) {
-      console.log(`[Sheets] Skipping user ${userId} - incomplete registration (missing phone or university)`);
+      console.log(`[Sheets] ⏭️ Skipping user ${userId} (${user.email}) - incomplete registration (phone: ${!!user.phone}, university: ${!!user.universityName})`);
       return { success: true }; // Return success but don't sync
     }
 
@@ -189,7 +190,7 @@ export async function syncUserRegistration(userId: string): Promise<SyncResult> 
       email: String(user.email || "") 
     });
 
-    console.log(`[Sheets] ✅ Synced user registration: ${userId}`);
+    console.log(`[Sheets] ✅ Synced user registration: ${user.email} (${userId})`);
     return { success: true };
 
   } catch (error) {
