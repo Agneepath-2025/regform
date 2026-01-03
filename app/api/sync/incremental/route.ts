@@ -95,10 +95,20 @@ export async function POST(req: NextRequest) {
     }
 
     // Authenticate with Google Sheets API
+    const clientEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || process.env.GOOGLE_CLIENT_EMAIL;
+    const privateKey = (process.env.GOOGLE_PRIVATE_KEY || "").replace(/\\n/g, '\n');
+    
+    if (!clientEmail || !privateKey) {
+      return NextResponse.json(
+        { success: false, message: "Google Sheets credentials not configured" },
+        { status: 500 }
+      );
+    }
+    
     const auth = new google.auth.GoogleAuth({
       credentials: {
-        client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-        private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+        client_email: clientEmail,
+        private_key: privateKey,
       },
       scopes: ['https://www.googleapis.com/auth/spreadsheets'],
     });

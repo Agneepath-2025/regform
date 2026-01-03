@@ -29,7 +29,7 @@ import EditUserAdvancedDialog from "./edit-user-advanced-dialog";
 import EditFormDialog from "./edit-form-dialog";
 import EditFormAdvancedDialog from "./edit-form-advanced-dialog";
 import EditPaymentDialog from "./edit-payment-dialog";
-import { LogOut, Users, FileText, Moon, Sun, CreditCard, Search, Trash2, RotateCcw, FileText as FileTextIcon } from "lucide-react";
+import { LogOut, Users, FileText, Moon, Sun, CreditCard, Search, Trash2, RotateCcw, FileText as FileTextIcon, Download, Upload } from "lucide-react";
 import { useTheme } from "./theme-provider";
 import { Input } from "@/components/ui/input";
 
@@ -106,6 +106,9 @@ export default function AdminDashboard() {
   const [formSearchQuery, setFormSearchQuery] = useState("");
   const [paymentSearchQuery, setPaymentSearchQuery] = useState("");
   const [showDeletedUsers, setShowDeletedUsers] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncMessage, setSyncMessage] = useState("");
+  const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
 
   const fetchData = async (showLoading = false) => {
     if (showLoading) {
@@ -152,7 +155,26 @@ export default function AdminDashboard() {
   };
 
   useEffect(() => {
-    fetchData(true); // Show loading on initial load
+    // Initial data fetch and pull from sheets on load
+    const initialize = async () => {
+      await fetchData(true); // Show loading on initial load
+      
+      // Auto-pull from sheets on initial load (silent)
+      try {
+        await fetch("/api/sync/pull-from-sheets", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sheetName: "**Finance (Do Not Open)**", collection: "payments" }),
+        });
+        
+        // Refresh data after pulling from sheets
+        await fetchData(false);
+      } catch (error) {
+        console.error("Auto-pull from sheets failed:", error);
+      }
+    };
+    
+    initialize();
     
     // Auto-reload every 2 seconds without showing loading state
     const interval = setInterval(() => {
@@ -220,6 +242,69 @@ export default function AdminDashboard() {
     }
   };
 
+  const handlePullFromSheets = async () => {
+    setIsSyncing(true);
+    setSyncMessage("Pulling data from Google Sheets...");
+    try {
+      const [paymentsRes, usersRes] = await Promise.all([
+        fetch("/api/sync/pull-from-sheets", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sheetName: "**Finance (Do Not Open)**", collection: "payments" }),
+        }),
+        fetch("/api/sync/pull-from-sheets", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sheetName: "Users", collection: "users" }),
+        }),
+      ]);
+
+      const paymentsResult = await paymentsRes.json();
+      const usersResult = await usersRes.json();
+
+      if (paymentsRes.ok && usersRes.ok) {
+        setSyncMessage(`✅ Synced: ${paymentsResult.updated} payments, ${usersResult.updated} users`);
+        setLastSyncTime(new Date());
+        setTimeout(() => fetchData(true), 500);
+      } else {
+        setSyncMessage("❌ Failed to pull from sheets");
+      }
+    } catch (error) {
+      console.error("Error pulling from sheets:", error);
+      setSyncMessage("❌ Error during sync");
+    } finally {
+      setIsSyncing(false);
+      setTimeout(() => setSyncMessage(""), 5000);
+    }
+  };
+
+  const handlePushToSheets = async () => {
+    setIsSyncing(true);
+    setSyncMessage("Pushing data to Google Sheets...");
+    try {
+      const response = await fetch("/api/sync/sheets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ collection: "payments", sheetName: "**Finance (Do Not Open)**" }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        setSyncMessage(`✅ Pushed ${result.count || 0} records to sheets`);
+        setLastSyncTime(new Date());
+      } else {
+        setSyncMessage("❌ Failed to push to sheets");
+      }
+    } catch (error) {
+      console.error("Error pushing to sheets:", error);
+      setSyncMessage("❌ Error during sync");
+    } finally {
+      setIsSyncing(false);
+      setTimeout(() => setSyncMessage(""), 5000);
+    }
+  };
+
   const stats = {
     totalUsersVerified: users.filter((u) => !u.deleted && u.emailVerified).length,
     registered: users.filter((u) => !u.deleted && u.registrationDone).length,
@@ -283,8 +368,40 @@ export default function AdminDashboard() {
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 Agneepath Registration Management
               </p>
+              {syncMessage && (
+                <p className="text-xs mt-1 font-medium text-blue-600 dark:text-blue-400">
+                  {syncMessage}
+                </p>
+              )}
+              {lastSyncTime && !syncMessage && (
+                <p className="text-xs mt-1 text-gray-400">
+                  Last synced: {lastSyncTime.toLocaleTimeString()}
+                </p>
+              )}
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePullFromSheets}
+                disabled={isSyncing}
+                className="dark:border-gray-600"
+                title="Pull data from Google Sheets to update local database"
+              >
+                <Download className="h-4 w-4 mr-1" />
+                Pull from Sheets
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePushToSheets}
+                disabled={isSyncing}
+                className="dark:border-gray-600"
+                title="Push local changes to Google Sheets"
+              >
+                <Upload className="h-4 w-4 mr-1" />
+                Push to Sheets
+              </Button>
               <div className="text-right">
                 <p className="text-sm font-medium text-gray-900 dark:text-white">
                   {session?.user?.name}
