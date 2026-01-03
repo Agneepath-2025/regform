@@ -257,6 +257,15 @@ export async function PATCH(
           console.log("✅ User sync successful:", userSyncResult.message);
         }
       }
+
+      // Sync extra payments (payment changes may affect extra payments)
+      console.log(`🔄 Triggering extra payments sync...`);
+      const baseUrl = process.env.NEXTAUTH_URL || process.env.ROOT_URL || 'http://localhost:3000';
+      fetch(`${baseUrl}/api/sync/extra-payments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      }).catch(err => console.error("Extra payments sync failed:", err));
+      
     } catch (error) {
       console.error("❌ Error triggering sync:", error);
     }

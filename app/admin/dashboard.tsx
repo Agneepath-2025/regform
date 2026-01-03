@@ -192,8 +192,24 @@ export default function AdminDashboard() {
       fetchData(false);
     }, 2000);
     
-    // Cleanup interval on unmount
-    return () => clearInterval(interval);
+    // Auto-sync extra payments every 30 seconds
+    const syncInterval = setInterval(async () => {
+      try {
+        console.log("🔄 Auto-syncing extra payments...");
+        await fetch("/api/sync/extra-payments", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        });
+      } catch (error) {
+        console.error("Auto-sync extra payments failed:", error);
+      }
+    }, 30000); // 30 seconds
+    
+    // Cleanup intervals on unmount
+    return () => {
+      clearInterval(interval);
+      clearInterval(syncInterval);
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
