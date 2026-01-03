@@ -81,30 +81,6 @@ export async function PATCH(
     // Automatically update registrationStatus when status changes
     if (body.status === "verified") {
       updateData.registrationStatus = "Confirmed";
-      
-      // Create baseline snapshot for due payments tracking if it doesn't exist
-      if (existingPayment && existingPayment.ownerId) {
-        // Check if baseline snapshot exists
-        if (!existingPayment.baselineSnapshot) {
-          console.log(`📸 Creating payment baseline snapshot for payment ${id}`);
-          
-          // Get all current forms for this user
-          const userForms = await formsCollection
-            .find({ ownerId: existingPayment.ownerId })
-            .toArray();
-
-          const baselineSnapshot: Record<string, number> = {};
-          for (const form of userForms) {
-            const fields = form.fields as Record<string, unknown> | undefined;
-            const playerFields = (fields?.playerFields as Record<string, unknown>[]) || [];
-            baselineSnapshot[form._id.toString()] = playerFields.length;
-          }
-
-          // Store the baseline snapshot
-          updateData.baselineSnapshot = baselineSnapshot;
-          console.log(`✅ Created baseline snapshot:`, baselineSnapshot);
-        }
-      }
     } else if (body.status === "rejected") {
       updateData.registrationStatus = "Rejected";
     } else if (body.status === "pending") {
@@ -257,6 +233,7 @@ export async function PATCH(
           console.log("✅ User sync successful:", userSyncResult.message);
         }
       }
+      
     } catch (error) {
       console.error("❌ Error triggering sync:", error);
     }

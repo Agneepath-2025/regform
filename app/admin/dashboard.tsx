@@ -76,30 +76,6 @@ interface Payment {
   updatedAt?: string;
 }
 
-interface DuePayment {
-  _id: string;
-  userId: string;
-  userName: string;
-  userEmail: string;
-  universityName: string;
-  paymentId: string;
-  transactionId: string;
-  originalPlayerCount: number;
-  currentPlayerCount: number;
-  playerDifference: number;
-  amountDue: number;
-  status: string;
-  resolutionStatus?: string; // 'pending' | 'in_progress' | 'resolved'
-  lastUpdated: string;
-  forms: Array<{
-    formId: string;
-    sport: string;
-    originalPlayers: number;
-    currentPlayers: number;
-    difference: number;
-  }>;
-}
-
 interface AuditLog {
   _id: string;
   timestamp: string;
@@ -118,20 +94,17 @@ export default function AdminDashboard() {
   const [users, setUsers] = useState<User[]>([]);
   const [forms, setForms] = useState<Form[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
-  const [duePayments, setDuePayments] = useState<DuePayment[]>([]);
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [selectedForm, setSelectedForm] = useState<Form | null>(null);
-  const [selectedDuePayment, setSelectedDuePayment] = useState<DuePayment | null>(null);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
   const [advancedMode, setAdvancedMode] = useState(false);
   const [userSearchQuery, setUserSearchQuery] = useState("");
   const [formSearchQuery, setFormSearchQuery] = useState("");
   const [paymentSearchQuery, setPaymentSearchQuery] = useState("");
-  const [duePaymentSearchQuery, setDuePaymentSearchQuery] = useState("");
   const [showDeletedUsers, setShowDeletedUsers] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState("");
@@ -142,11 +115,10 @@ export default function AdminDashboard() {
       setLoading(true);
     }
     try {
-      const [usersRes, formsRes, paymentsRes, duePaymentsRes, logsRes] = await Promise.all([
+      const [usersRes, formsRes, paymentsRes, logsRes] = await Promise.all([
         fetch("/api/admin/registrations"),
         fetch("/api/admin/forms"),
         fetch("/api/admin/payments"),
-        fetch("/api/admin/due-payments"),
         fetch("/api/admin/logs?limit=200"),
       ]);
 
@@ -163,11 +135,6 @@ export default function AdminDashboard() {
       if (paymentsRes.ok) {
         const paymentsData = await paymentsRes.json();
         setPayments(paymentsData.data || []);
-      }
-
-      if (duePaymentsRes.ok) {
-        const duePaymentsData = await duePaymentsRes.json();
-        setDuePayments(duePaymentsData.data || []);
       }
 
       if (logsRes.ok) {
@@ -214,8 +181,10 @@ export default function AdminDashboard() {
       fetchData(false);
     }, 2000);
     
-    // Cleanup interval on unmount
-    return () => clearInterval(interval);
+    // Cleanup intervals on unmount
+    return () => {
+      clearInterval(interval);
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -336,36 +305,12 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleSyncDuePayments = async () => {
-    try {
-      const response = await fetch("/api/sync/due-payments", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        alert(`✅ Successfully synced ${result.count} due payment records to Google Sheets!`);
-      } else {
-        alert("❌ Failed to sync due payments to Google Sheets");
-      }
-    } catch (error) {
-      console.error("Error syncing due payments:", error);
-      alert("❌ Error syncing due payments to Google Sheets");
-    }
-  };
-
   const stats = {
     totalUsersVerified: users.filter((u) => !u.deleted && u.emailVerified).length,
     registered: users.filter((u) => !u.deleted && u.registrationDone).length,
     paidUnverified: payments.filter((p) => p.status !== "verified").length,
     totalForms: forms.length,
     verifiedPayments: payments.filter((p) => p.status === "verified").length,
-    duePaymentsCount: duePayments.filter(dp => dp.amountDue > 0).length,
-    overpaidCount: duePayments.filter(dp => dp.amountDue < 0).length,
-    unpaidCount: duePayments.filter(dp => dp.status === "unpaid" || dp.status === "unverified").length,
-    totalAmountDue: duePayments.reduce((sum, dp) => sum + (dp.amountDue > 0 ? dp.amountDue : 0), 0),
-    totalOverpaid: Math.abs(duePayments.reduce((sum, dp) => sum + (dp.amountDue < 0 ? dp.amountDue : 0), 0)),
   };
 
   // Filter users based on search query and deleted status
@@ -407,19 +352,6 @@ export default function AdminDashboard() {
       payment.transactionId?.toLowerCase().includes(searchLower) ||
       payment.status.toLowerCase().includes(searchLower) ||
       payment._id.toLowerCase().includes(searchLower)
-    );
-  });
-
-  // Filter due payments based on search query
-  const filteredDuePayments = duePayments.filter((duePayment) => {
-    const searchLower = duePaymentSearchQuery.toLowerCase();
-    return (
-      duePayment.userName.toLowerCase().includes(searchLower) ||
-      duePayment.userEmail.toLowerCase().includes(searchLower) ||
-      duePayment.universityName.toLowerCase().includes(searchLower) ||
-      duePayment.transactionId.toLowerCase().includes(searchLower) ||
-      duePayment._id.toLowerCase().includes(searchLower) ||
-      duePayment.forms.some(f => f.sport.toLowerCase().includes(searchLower))
     );
   });
 
@@ -564,15 +496,6 @@ export default function AdminDashboard() {
               <TabsTrigger value="payments">
                 <CreditCard className="h-4 w-4 mr-2" />
                 Payments
-              </TabsTrigger>
-              <TabsTrigger value="due-payments" className="relative">
-                <CreditCard className="h-4 w-4 mr-2" />
-                Due Payments
-                {(stats.duePaymentsCount > 0 || stats.overpaidCount > 0) && (
-                  <span className="ml-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-red-600 rounded-full">
-                    {stats.duePaymentsCount + stats.overpaidCount}
-                  </span>
-                )}
               </TabsTrigger>
               <TabsTrigger value="logs">
                 <FileTextIcon className="h-4 w-4 mr-2" />
@@ -949,182 +872,6 @@ export default function AdminDashboard() {
             </Card>
           </TabsContent>
 
-          {/* Due Payments Tab */}
-          <TabsContent value="due-payments">
-            <Card className="dark:bg-gray-800 dark:border-gray-700">
-              <CardHeader>
-                <CardTitle className="dark:text-white">Due Payments</CardTitle>
-                <CardDescription className="dark:text-gray-400">
-                  Track unpaid registrations and outstanding payments from player changes (₹800 per player)
-                </CardDescription>
-                {/* Search Bar */}
-                <div className="mt-4 relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input
-                    type="text"
-                    placeholder="Search by name, email, university, transaction ID, sport, or ID..."
-                    value={duePaymentSearchQuery}
-                    onChange={(e) => setDuePaymentSearchQuery(e.target.value)}
-                    className="pl-10 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                  />
-                </div>
-                {(stats.duePaymentsCount > 0 || stats.overpaidCount > 0 || stats.unpaidCount > 0) && (
-                  <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {stats.unpaidCount > 0 && (
-                      <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                        <p className="text-sm font-semibold text-red-900 dark:text-red-200">
-                          🚨 Unpaid/Unverified: {stats.unpaidCount} {stats.unpaidCount === 1 ? 'user' : 'users'}
-                        </p>
-                        <p className="text-xs text-red-700 dark:text-red-300 mt-1">
-                          Full registration amount due
-                        </p>
-                      </div>
-                    )}
-                    {stats.duePaymentsCount > 0 && (
-                      <div className="p-4 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg">
-                        <p className="text-sm font-semibold text-orange-900 dark:text-orange-200">
-                          ⚠️ Additional Due: {stats.duePaymentsCount} {stats.duePaymentsCount === 1 ? 'user' : 'users'}
-                        </p>
-                        <p className="text-xs text-orange-700 dark:text-orange-300 mt-1">
-                          Total: ₹{stats.totalAmountDue.toLocaleString()}
-                        </p>
-                      </div>
-                    )}
-                    {stats.overpaidCount > 0 && (
-                      <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-                        <p className="text-sm font-semibold text-green-900 dark:text-green-200">
-                          💰 Overpaid: {stats.overpaidCount} {stats.overpaidCount === 1 ? 'user' : 'users'}
-                        </p>
-                        <p className="text-xs text-green-700 dark:text-green-300 mt-1">
-                          Total: ₹{stats.totalOverpaid.toLocaleString()}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </CardHeader>
-              <CardContent>
-                {loading ? (
-                  <div className="flex justify-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-white"></div>
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    {filteredDuePayments.length === 0 ? (
-                      <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                        {duePayments.length === 0 ? (
-                          <div>
-                            <p className="text-lg font-semibold mb-2">✅ No Due Payments</p>
-                            <p className="text-sm">All registrations are fully paid!</p>
-                          </div>
-                        ) : (
-                          "No due payments found matching your search."
-                        )}
-                      </div>
-                    ) : (
-                      <Table>
-                        <TableHeader>
-                          <TableRow className="dark:border-gray-700">
-                            <TableHead className="dark:text-gray-300">User</TableHead>
-                            <TableHead className="dark:text-gray-300">Sports & Changes</TableHead>
-                            <TableHead className="dark:text-gray-300">Amount</TableHead>
-                            <TableHead className="dark:text-gray-300">Payment Status</TableHead>
-                            <TableHead className="dark:text-gray-300">Resolution</TableHead>
-                            <TableHead className="dark:text-gray-300">Actions</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {filteredDuePayments.map((duePayment) => (
-                            <TableRow key={duePayment._id} className="dark:border-gray-700">
-                              <TableCell className="dark:text-gray-300">
-                                <div>
-                                  <p className="font-medium dark:text-white">{duePayment.userName}</p>
-                                  <p className="text-xs text-gray-500 dark:text-gray-400">{duePayment.userEmail}</p>
-                                  <p className="text-xs text-gray-500 dark:text-gray-400">{duePayment.universityName}</p>
-                                </div>
-                              </TableCell>
-                              <TableCell className="dark:text-gray-300">
-                                <div className="space-y-1">
-                                  {duePayment.forms.map((form, idx) => (
-                                    <div key={idx} className="text-sm">
-                                      <span className="font-medium">{form.sport}</span>{" "}
-                                      <Badge variant="outline" className={form.difference > 0 ? "text-green-600" : "text-red-600"}>
-                                        {form.difference > 0 ? "+" : ""}{form.difference} players
-                                      </Badge>
-                                    </div>
-                                  ))}
-                                </div>
-                              </TableCell>
-                              <TableCell className="dark:text-gray-300">
-                                <div>
-                                  <span className={`font-bold text-lg ${duePayment.amountDue > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
-                                    {duePayment.amountDue > 0 ? "₹" : "-₹"}{Math.abs(duePayment.amountDue).toLocaleString()}
-                                  </span>
-                                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                                    {duePayment.originalPlayerCount} → {duePayment.currentPlayerCount} players
-                                  </p>
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                <Badge 
-                                  variant="default" 
-                                  className={
-                                    duePayment.status === "unpaid" ? "bg-red-600" :
-                                    duePayment.status === "unverified" ? "bg-yellow-600" :
-                                    duePayment.status === "overpaid" ? "bg-green-600" :
-                                    "bg-orange-600"
-                                  }
-                                >
-                                  {duePayment.status}
-                                </Badge>
-                              </TableCell>
-                              <TableCell>
-                                <Select
-                                  value={duePayment.resolutionStatus || "pending"}
-                                  onValueChange={async (value) => {
-                                    try {
-                                      await fetch(`/api/admin/due-payments/${duePayment._id}/status`, {
-                                        method: "PATCH",
-                                        headers: { "Content-Type": "application/json" },
-                                        body: JSON.stringify({ resolutionStatus: value }),
-                                      });
-                                      fetchData(true);
-                                    } catch (error) {
-                                      console.error("Failed to update status:", error);
-                                    }
-                                  }}
-                                >
-                                  <SelectTrigger className="w-32">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="pending">Pending</SelectItem>
-                                    <SelectItem value="in_progress">In Progress</SelectItem>
-                                    <SelectItem value="resolved">Resolved</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </TableCell>
-                              <TableCell>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => setSelectedDuePayment(duePayment)}
-                                  className="dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
-                                >
-                                  View Details
-                                </Button>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
           {/* Logs Tab */}
           <TabsContent value="logs">
             <Card className="dark:bg-gray-900 dark:border-gray-800">
@@ -1267,130 +1014,6 @@ export default function AdminDashboard() {
             fetchData(true);
           }}
         />
-      )}
-
-      {/* Due Payment Detail Dialog */}
-      {selectedDuePayment && (
-        <Dialog open={true} onOpenChange={() => setSelectedDuePayment(null)}>
-          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto dark:bg-gray-900 dark:text-white">
-            <DialogHeader>
-              <DialogTitle className="dark:text-white">Due Payment Details</DialogTitle>
-              <DialogDescription className="dark:text-gray-400">
-                Complete information about outstanding payment
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-6">
-              {/* User Information */}
-              <div>
-                <h3 className="font-semibold text-lg mb-3 dark:text-white">User Information</h3>
-                <div className="grid grid-cols-2 gap-4 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-                  <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Name</p>
-                    <p className="font-medium dark:text-white">{selectedDuePayment.userName}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Email</p>
-                    <p className="font-medium dark:text-white">{selectedDuePayment.userEmail}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">University</p>
-                    <p className="font-medium dark:text-white">{selectedDuePayment.universityName}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Transaction ID</p>
-                    <p className="font-medium dark:text-white">{selectedDuePayment.transactionId}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Payment Summary */}
-              <div>
-                <h3 className="font-semibold text-lg mb-3 dark:text-white">Payment Summary</h3>
-                <div className="grid grid-cols-3 gap-4 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-                  <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Original Players</p>
-                    <p className="text-2xl font-bold dark:text-white">{selectedDuePayment.originalPlayerCount}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Current Players</p>
-                    <p className="text-2xl font-bold dark:text-white">{selectedDuePayment.currentPlayerCount}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Difference</p>
-                    <p className={`text-2xl font-bold ${selectedDuePayment.playerDifference > 0 ? 'text-orange-600 dark:text-orange-400' : 'text-green-600 dark:text-green-400'}`}>
-                      {selectedDuePayment.playerDifference > 0 ? "+" : ""}{selectedDuePayment.playerDifference}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Amount Due */}
-              <div className={`p-6 rounded-lg border ${selectedDuePayment.amountDue > 0 ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' : 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'}`}>
-                <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
-                  {selectedDuePayment.amountDue > 0 ? 'Amount Due' : 'Overpaid Amount'}
-                </p>
-                <p className={`text-4xl font-bold ${selectedDuePayment.amountDue > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
-                  {selectedDuePayment.amountDue > 0 ? "₹" : "-₹"}{Math.abs(selectedDuePayment.amountDue).toLocaleString()}
-                </p>
-                <p className="text-sm text-gray-600 dark:text-gray-300 mt-2">
-                  @ ₹800 per player
-                </p>
-              </div>
-
-              {/* Sports Breakdown */}
-              <div>
-                <h3 className="font-semibold text-lg mb-3 dark:text-white">Sports Breakdown</h3>
-                <div className="space-y-3">
-                  {selectedDuePayment.forms.map((form, idx) => (
-                    <div key={idx} className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <p className="font-medium dark:text-white">{form.sport}</p>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">
-                            {form.originalPlayers} → {form.currentPlayers} players
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <Badge variant="outline" className={form.difference > 0 ? "text-orange-600 border-orange-600 dark:text-orange-400 dark:border-orange-400" : "text-green-600 border-green-600 dark:text-green-400 dark:border-green-400"}>
-                            {form.difference > 0 ? "+" : ""}{form.difference}
-                          </Badge>
-                          <p className="text-sm font-medium mt-1 dark:text-white">
-                            {form.difference > 0 ? "₹" : "-₹"}{Math.abs(form.difference * 800).toLocaleString()}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Status Information */}
-              <div>
-                <h3 className="font-semibold text-lg mb-3 dark:text-white">Status</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">Payment Status</p>
-                    <Badge 
-                      variant="default" 
-                      className={
-                        selectedDuePayment.status === "unpaid" ? "bg-red-600" :
-                        selectedDuePayment.status === "unverified" ? "bg-yellow-600" :
-                        selectedDuePayment.status === "overpaid" ? "bg-green-600" :
-                        "bg-orange-600"
-                      }
-                    >
-                      {selectedDuePayment.status}
-                    </Badge>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">Last Updated</p>
-                    <p className="text-sm dark:text-white">{new Date(selectedDuePayment.lastUpdated).toLocaleString()}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
       )}
 
       {/* Audit Log Details Dialog */}
