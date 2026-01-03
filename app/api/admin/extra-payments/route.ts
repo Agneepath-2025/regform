@@ -3,7 +3,7 @@ import { auth } from "@/auth";
 import { connectToDatabase } from "@/lib/mongodb";
 import { ObjectId } from "mongodb";
 
-interface DuePaymentRecord {
+interface ExtraPaymentRecord {
   _id: string;
   userId: string;
   userName: string;
@@ -38,14 +38,14 @@ export async function GET() {
     const paymentsCollection = db.collection("payments");
     const formsCollection = db.collection("form");
     const usersCollection = db.collection("users");
-    const duePaymentsCollection = db.collection("duePayments");
+    const extraPaymentsCollection = db.collection("extraPayments");
 
     // Get all verified payments
     const payments = await paymentsCollection
       .find({ status: "verified" })
       .toArray();
 
-    const duePayments: DuePaymentRecord[] = [];
+    const extraPayments: ExtraPaymentRecord[] = [];
 
     // PART 1: Track verified payments with player count changes
     for (const payment of payments) {
@@ -149,9 +149,9 @@ export async function GET() {
       // Show all changes (positive = amount due, negative = overpaid/refund)
       if (playerDifference !== 0) {
         // Get resolution status if exists
-        const statusDoc = await duePaymentsCollection.findOne({ recordId: payment._id.toString() });
-        
-        duePayments.push({
+        const statusDoc = await extraPaymentsCollection.findOne({ recordId: payment._id.toString() });
+
+        extraPayments.push({
           _id: payment._id.toString(),
           userId: payment.ownerId.toString(),
           userName: user.name || "N/A",
@@ -238,9 +238,9 @@ export async function GET() {
       const totalAmountDue = (totalPlayers * 800) + accommodationPrice;
 
       // Get resolution status if exists
-      const statusDoc = await duePaymentsCollection.findOne({ recordId: `unpaid_${ownerIdStr}` });
+      const statusDoc = await extraPaymentsCollection.findOne({ recordId: `unpaid_${ownerIdStr}` });
 
-      duePayments.push({
+      extraPayments.push({
         _id: ownerIdStr,
         userId: ownerIdStr,
         userName: user.name || "N/A",
@@ -259,11 +259,11 @@ export async function GET() {
       });
     }
 
-    return NextResponse.json({ success: true, data: duePayments });
+    return NextResponse.json({ success: true, data: extraPayments });
   } catch (error) {
-    console.error("Error fetching due payments:", error);
+    console.error("Error fetching extra payments:", error);
     return NextResponse.json(
-      { error: "Failed to fetch due payments" },
+      { error: "Failed to fetch extra payments" },
       { status: 500 }
     );
   }

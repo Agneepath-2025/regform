@@ -291,11 +291,11 @@ export async function PATCH(
         { collection: "form", recordId: id, sheetName: "Registrations" }
       ).catch(err => console.error("Background sync failed:", err));
 
-      // Sync due payments with retry
+      // Sync extra payments with retry
       syncWithRetry(
-        `${baseUrl}/api/sync/due-payments`,
+        `${baseUrl}/api/sync/extra-payments`,
         {}
-      ).catch(err => console.error("Due payments sync failed:", err));
+      ).catch(err => console.error("Extra payments sync failed:", err));
     } catch (error) {
       console.error("Error triggering sync:", error);
     }

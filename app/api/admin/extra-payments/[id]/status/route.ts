@@ -4,9 +4,9 @@ import { connectToDatabase } from "@/lib/mongodb";
 import { ObjectId } from "mongodb";
 
 /**
- * PATCH /api/admin/due-payments/[id]/status
+ * PATCH /api/admin/extra-payments/[id]/status
  * 
- * Updates the resolution status of a due payment
+ * Updates the resolution status of an extra payment
  */
 export async function PATCH(
   request: NextRequest,
@@ -30,11 +30,11 @@ export async function PATCH(
     }
 
     const { db } = await connectToDatabase();
-    const duePaymentsCollection = db.collection("duePayments");
+    const extraPaymentsCollection = db.collection("extraPayments");
 
     // Store resolution status in a dedicated collection
     // Use the id as-is since it could be a payment ID, user ID, or composite key
-    await duePaymentsCollection.updateOne(
+    await extraPaymentsCollection.updateOne(
       { recordId: id },
       {
         $set: {
@@ -47,7 +47,7 @@ export async function PATCH(
       { upsert: true }
     );
 
-    console.log(`✅ Due payment ${id} status updated to: ${resolutionStatus}`);
+    console.log(`✅ Extra payment ${id} status updated to: ${resolutionStatus}`);
 
     return NextResponse.json({
       success: true,
@@ -55,7 +55,7 @@ export async function PATCH(
     });
 
   } catch (error) {
-    console.error("Error updating due payment status:", error);
+    console.error("Error updating extra payment status:", error);
     return NextResponse.json(
       { error: "Failed to update status" },
       { status: 500 }

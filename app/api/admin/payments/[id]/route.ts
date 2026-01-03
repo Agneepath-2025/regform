@@ -82,7 +82,7 @@ export async function PATCH(
     if (body.status === "verified") {
       updateData.registrationStatus = "Confirmed";
       
-      // Create baseline snapshot for due payments tracking if it doesn't exist
+      // Create baseline snapshot for extra payments tracking if it doesn't exist
       if (existingPayment && existingPayment.ownerId) {
         // Check if baseline snapshot exists
         if (!existingPayment.baselineSnapshot) {

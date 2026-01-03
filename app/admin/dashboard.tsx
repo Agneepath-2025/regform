@@ -76,7 +76,7 @@ interface Payment {
   updatedAt?: string;
 }
 
-interface DuePayment {
+interface ExtraPayment {
   _id: string;
   userId: string;
   userName: string;
@@ -118,20 +118,20 @@ export default function AdminDashboard() {
   const [users, setUsers] = useState<User[]>([]);
   const [forms, setForms] = useState<Form[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
-  const [duePayments, setDuePayments] = useState<DuePayment[]>([]);
+  const [extraPayments, setExtraPayments] = useState<ExtraPayment[]>([]);
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [selectedForm, setSelectedForm] = useState<Form | null>(null);
-  const [selectedDuePayment, setSelectedDuePayment] = useState<DuePayment | null>(null);
+  const [selectedExtraPayment, setSelectedExtraPayment] = useState<ExtraPayment | null>(null);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
   const [advancedMode, setAdvancedMode] = useState(false);
   const [userSearchQuery, setUserSearchQuery] = useState("");
   const [formSearchQuery, setFormSearchQuery] = useState("");
   const [paymentSearchQuery, setPaymentSearchQuery] = useState("");
-  const [duePaymentSearchQuery, setDuePaymentSearchQuery] = useState("");
+  const [extraPaymentSearchQuery, setExtraPaymentSearchQuery] = useState("");
   const [showDeletedUsers, setShowDeletedUsers] = useState(false);
 
   const fetchData = async (showLoading = false) => {
@@ -139,11 +139,11 @@ export default function AdminDashboard() {
       setLoading(true);
     }
     try {
-      const [usersRes, formsRes, paymentsRes, duePaymentsRes, logsRes] = await Promise.all([
+      const [usersRes, formsRes, paymentsRes, extraPaymentsRes, logsRes] = await Promise.all([
         fetch("/api/admin/registrations"),
         fetch("/api/admin/forms"),
         fetch("/api/admin/payments"),
-        fetch("/api/admin/due-payments"),
+        fetch("/api/admin/extra-payments"),
         fetch("/api/admin/logs?limit=200"),
       ]);
 
@@ -162,9 +162,9 @@ export default function AdminDashboard() {
         setPayments(paymentsData.data || []);
       }
 
-      if (duePaymentsRes.ok) {
-        const duePaymentsData = await duePaymentsRes.json();
-        setDuePayments(duePaymentsData.data || []);
+      if (extraPaymentsRes.ok) {
+        const extraPaymentsData = await extraPaymentsRes.json();
+        setExtraPayments(extraPaymentsData.data || []);
       }
 
       if (logsRes.ok) {
@@ -251,16 +251,16 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleSyncDuePayments = async () => {
+  const handleSyncExtraPayments = async () => {
     try {
-      const response = await fetch("/api/sync/due-payments", {
+      const response = await fetch("/api/sync/extra-payments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });
 
       if (response.ok) {
         const result = await response.json();
-        alert(`✅ Successfully synced ${result.count} due payment records to Google Sheets!`);
+        alert(`✅ Successfully synced ${result.count} extra payment records to Google Sheets!`);
       } else {
         alert("❌ Failed to sync extra payments to Google Sheets");
       }
@@ -276,11 +276,11 @@ export default function AdminDashboard() {
     paidUnverified: payments.filter((p) => p.status !== "verified").length,
     totalForms: forms.length,
     verifiedPayments: payments.filter((p) => p.status === "verified").length,
-    duePaymentsCount: duePayments.filter(dp => dp.amountDue > 0).length,
-    overpaidCount: duePayments.filter(dp => dp.amountDue < 0).length,
-    unpaidCount: duePayments.filter(dp => dp.status === "unpaid" || dp.status === "unverified").length,
-    totalAmountDue: duePayments.reduce((sum, dp) => sum + (dp.amountDue > 0 ? dp.amountDue : 0), 0),
-    totalOverpaid: Math.abs(duePayments.reduce((sum, dp) => sum + (dp.amountDue < 0 ? dp.amountDue : 0), 0)),
+    extraPaymentsCount: extraPayments.filter(dp => dp.amountDue > 0).length,
+    overpaidCount: extraPayments.filter(dp => dp.amountDue < 0).length,
+    unpaidCount: extraPayments.filter(dp => dp.status === "unpaid" || dp.status === "unverified").length,
+    totalAmountDue: extraPayments.reduce((sum, dp) => sum + (dp.amountDue > 0 ? dp.amountDue : 0), 0),
+    totalOverpaid: Math.abs(extraPayments.reduce((sum, dp) => sum + (dp.amountDue < 0 ? dp.amountDue : 0), 0)),
   };
 
   // Filter users based on search query and deleted status
@@ -325,16 +325,16 @@ export default function AdminDashboard() {
     );
   });
 
-  // Filter due payments based on search query
-  const filteredDuePayments = duePayments.filter((duePayment) => {
-    const searchLower = duePaymentSearchQuery.toLowerCase();
+  // Filter extra payments based on search query
+  const filteredExtraPayments = extraPayments.filter((extraPayment) => {
+    const searchLower = extraPaymentSearchQuery.toLowerCase();
     return (
-      duePayment.userName.toLowerCase().includes(searchLower) ||
-      duePayment.userEmail.toLowerCase().includes(searchLower) ||
-      duePayment.universityName.toLowerCase().includes(searchLower) ||
-      duePayment.transactionId.toLowerCase().includes(searchLower) ||
-      duePayment._id.toLowerCase().includes(searchLower) ||
-      duePayment.forms.some(f => f.sport.toLowerCase().includes(searchLower))
+      extraPayment.userName.toLowerCase().includes(searchLower) ||
+      extraPayment.userEmail.toLowerCase().includes(searchLower) ||
+      extraPayment.universityName.toLowerCase().includes(searchLower) ||
+      extraPayment.transactionId.toLowerCase().includes(searchLower) ||
+      extraPayment._id.toLowerCase().includes(searchLower) ||
+      extraPayment.forms.some(f => f.sport.toLowerCase().includes(searchLower))
     );
   });
 
@@ -448,12 +448,12 @@ export default function AdminDashboard() {
                 <CreditCard className="h-4 w-4 mr-2" />
                 Payments
               </TabsTrigger>
-              <TabsTrigger value="due-payments" className="relative">
+              <TabsTrigger value="extra-payments" className="relative">
                 <CreditCard className="h-4 w-4 mr-2" />
                 Extra Payments
-                {(stats.duePaymentsCount > 0 || stats.overpaidCount > 0) && (
+                {(stats.extraPaymentsCount > 0 || stats.overpaidCount > 0) && (
                   <span className="ml-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-red-600 rounded-full">
-                    {stats.duePaymentsCount + stats.overpaidCount}
+                    {stats.extraPaymentsCount + stats.overpaidCount}
                   </span>
                 )}
               </TabsTrigger>
@@ -833,7 +833,7 @@ export default function AdminDashboard() {
           </TabsContent>
 
           {/* Extra Payments Tab */}
-          <TabsContent value="due-payments">
+          <TabsContent value="extra-payments">
             <Card className="dark:bg-gray-800 dark:border-gray-700">
               <CardHeader>
                 <CardTitle className="dark:text-white">Extra Payments</CardTitle>
@@ -846,12 +846,12 @@ export default function AdminDashboard() {
                   <Input
                     type="text"
                     placeholder="Search by name, email, university, transaction ID, sport, or ID..."
-                    value={duePaymentSearchQuery}
-                    onChange={(e) => setDuePaymentSearchQuery(e.target.value)}
+                    value={extraPaymentSearchQuery}
+                    onChange={(e) => setExtraPaymentSearchQuery(e.target.value)}
                     className="pl-10 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                   />
                 </div>
-                {(stats.duePaymentsCount > 0 || stats.overpaidCount > 0 || stats.unpaidCount > 0) && (
+                {(stats.extraPaymentsCount > 0 || stats.overpaidCount > 0 || stats.unpaidCount > 0) && (
                   <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
                     {stats.unpaidCount > 0 && (
                       <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
@@ -863,10 +863,10 @@ export default function AdminDashboard() {
                         </p>
                       </div>
                     )}
-                    {stats.duePaymentsCount > 0 && (
+                    {stats.extraPaymentsCount > 0 && (
                       <div className="p-4 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg">
                         <p className="text-sm font-semibold text-orange-900 dark:text-orange-200">
-                          ⚠️ Additional Due: {stats.duePaymentsCount} {stats.duePaymentsCount === 1 ? 'user' : 'users'}
+                          ⚠️ Additional Due: {stats.extraPaymentsCount} {stats.extraPaymentsCount === 1 ? 'user' : 'users'}
                         </p>
                         <p className="text-xs text-orange-700 dark:text-orange-300 mt-1">
                           Total: ₹{stats.totalAmountDue.toLocaleString()}
@@ -893,9 +893,9 @@ export default function AdminDashboard() {
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
-                    {filteredDuePayments.length === 0 ? (
+                    {filteredExtraPayments.length === 0 ? (
                       <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                        {duePayments.length === 0 ? (
+                        {extraPayments.length === 0 ? (
                           <div>
                             <p className="text-lg font-semibold mb-2">✅ No Extra Payments</p>
                             <p className="text-sm">All registrations are fully paid!</p>
@@ -917,18 +917,18 @@ export default function AdminDashboard() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {filteredDuePayments.map((duePayment) => (
-                            <TableRow key={duePayment._id} className="dark:border-gray-700">
+                          {filteredExtraPayments.map((extraPayment) => (
+                            <TableRow key={extraPayment._id} className="dark:border-gray-700">
                               <TableCell className="dark:text-gray-300">
                                 <div>
-                                  <p className="font-medium dark:text-white">{duePayment.userName}</p>
-                                  <p className="text-xs text-gray-500 dark:text-gray-400">{duePayment.userEmail}</p>
-                                  <p className="text-xs text-gray-500 dark:text-gray-400">{duePayment.universityName}</p>
+                                  <p className="font-medium dark:text-white">{extraPayment.userName}</p>
+                                  <p className="text-xs text-gray-500 dark:text-gray-400">{extraPayment.userEmail}</p>
+                                  <p className="text-xs text-gray-500 dark:text-gray-400">{extraPayment.universityName}</p>
                                 </div>
                               </TableCell>
                               <TableCell className="dark:text-gray-300">
                                 <div className="space-y-1">
-                                  {duePayment.forms.map((form, idx) => (
+                                  {extraPayment.forms.map((form, idx) => (
                                     <div key={idx} className="text-sm">
                                       <span className="font-medium">{form.sport}</span>{" "}
                                       <Badge variant="outline" className={form.difference > 0 ? "text-green-600" : "text-red-600"}>
@@ -940,11 +940,11 @@ export default function AdminDashboard() {
                               </TableCell>
                               <TableCell className="dark:text-gray-300">
                                 <div>
-                                  <span className={`font-bold text-lg ${duePayment.amountDue > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
-                                    {duePayment.amountDue > 0 ? "₹" : "-₹"}{Math.abs(duePayment.amountDue).toLocaleString()}
+                                  <span className={`font-bold text-lg ${extraPayment.amountDue > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+                                    {extraPayment.amountDue > 0 ? "₹" : "-₹"}{Math.abs(extraPayment.amountDue).toLocaleString()}
                                   </span>
                                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                                    {duePayment.originalPlayerCount} → {duePayment.currentPlayerCount} players
+                                    {extraPayment.originalPlayerCount} → {extraPayment.currentPlayerCount} players
                                   </p>
                                 </div>
                               </TableCell>
@@ -952,21 +952,21 @@ export default function AdminDashboard() {
                                 <Badge 
                                   variant="default" 
                                   className={
-                                    duePayment.status === "unpaid" ? "bg-red-600" :
-                                    duePayment.status === "unverified" ? "bg-yellow-600" :
-                                    duePayment.status === "overpaid" ? "bg-green-600" :
+                                    extraPayment.status === "unpaid" ? "bg-red-600" :
+                                    extraPayment.status === "unverified" ? "bg-yellow-600" :
+                                    extraPayment.status === "overpaid" ? "bg-green-600" :
                                     "bg-orange-600"
                                   }
                                 >
-                                  {duePayment.status}
+                                  {extraPayment.status}
                                 </Badge>
                               </TableCell>
                               <TableCell>
                                 <Select
-                                  value={duePayment.resolutionStatus || "pending"}
+                                  value={extraPayment.resolutionStatus || "pending"}
                                   onValueChange={async (value) => {
                                     try {
-                                      await fetch(`/api/admin/due-payments/${duePayment._id}/status`, {
+                                      await fetch(`/api/admin/extra-payments/${extraPayment._id}/status`, {
                                         method: "PATCH",
                                         headers: { "Content-Type": "application/json" },
                                         body: JSON.stringify({ resolutionStatus: value }),
@@ -991,7 +991,7 @@ export default function AdminDashboard() {
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => setSelectedDuePayment(duePayment)}
+                                  onClick={() => setSelectedExtraPayment(extraPayment)}
                                   className="dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
                                 >
                                   View Details
@@ -1152,12 +1152,12 @@ export default function AdminDashboard() {
         />
       )}
 
-      {/* Due Payment Detail Dialog */}
-      {selectedDuePayment && (
-        <Dialog open={true} onOpenChange={() => setSelectedDuePayment(null)}>
+      {/* Extra Payment Detail Dialog */}
+      {selectedExtraPayment && (
+        <Dialog open={true} onOpenChange={() => setSelectedExtraPayment(null)}>
           <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto dark:bg-gray-900 dark:text-white">
             <DialogHeader>
-              <DialogTitle className="dark:text-white">Due Payment Details</DialogTitle>
+              <DialogTitle className="dark:text-white">Extra Payment Details</DialogTitle>
               <DialogDescription className="dark:text-gray-400">
                 Complete information about outstanding payment
               </DialogDescription>
@@ -1169,19 +1169,19 @@ export default function AdminDashboard() {
                 <div className="grid grid-cols-2 gap-4 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
                   <div>
                     <p className="text-sm text-gray-500 dark:text-gray-400">Name</p>
-                    <p className="font-medium dark:text-white">{selectedDuePayment.userName}</p>
+                    <p className="font-medium dark:text-white">{selectedExtraPayment.userName}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500 dark:text-gray-400">Email</p>
-                    <p className="font-medium dark:text-white">{selectedDuePayment.userEmail}</p>
+                    <p className="font-medium dark:text-white">{selectedExtraPayment.userEmail}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500 dark:text-gray-400">University</p>
-                    <p className="font-medium dark:text-white">{selectedDuePayment.universityName}</p>
+                    <p className="font-medium dark:text-white">{selectedExtraPayment.universityName}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500 dark:text-gray-400">Transaction ID</p>
-                    <p className="font-medium dark:text-white">{selectedDuePayment.transactionId}</p>
+                    <p className="font-medium dark:text-white">{selectedExtraPayment.transactionId}</p>
                   </div>
                 </div>
               </div>
@@ -1192,28 +1192,28 @@ export default function AdminDashboard() {
                 <div className="grid grid-cols-3 gap-4 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
                   <div>
                     <p className="text-sm text-gray-500 dark:text-gray-400">Original Players</p>
-                    <p className="text-2xl font-bold dark:text-white">{selectedDuePayment.originalPlayerCount}</p>
+                    <p className="text-2xl font-bold dark:text-white">{selectedExtraPayment.originalPlayerCount}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500 dark:text-gray-400">Current Players</p>
-                    <p className="text-2xl font-bold dark:text-white">{selectedDuePayment.currentPlayerCount}</p>
+                    <p className="text-2xl font-bold dark:text-white">{selectedExtraPayment.currentPlayerCount}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500 dark:text-gray-400">Difference</p>
-                    <p className={`text-2xl font-bold ${selectedDuePayment.playerDifference > 0 ? 'text-orange-600 dark:text-orange-400' : 'text-green-600 dark:text-green-400'}`}>
-                      {selectedDuePayment.playerDifference > 0 ? "+" : ""}{selectedDuePayment.playerDifference}
+                    <p className={`text-2xl font-bold ${selectedExtraPayment.playerDifference > 0 ? 'text-orange-600 dark:text-orange-400' : 'text-green-600 dark:text-green-400'}`}>
+                      {selectedExtraPayment.playerDifference > 0 ? "+" : ""}{selectedExtraPayment.playerDifference}
                     </p>
                   </div>
                 </div>
               </div>
 
               {/* Amount Due */}
-              <div className={`p-6 rounded-lg border ${selectedDuePayment.amountDue > 0 ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' : 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'}`}>
+              <div className={`p-6 rounded-lg border ${selectedExtraPayment.amountDue > 0 ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' : 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'}`}>
                 <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
-                  {selectedDuePayment.amountDue > 0 ? 'Amount Due' : 'Overpaid Amount'}
+                  {selectedExtraPayment.amountDue > 0 ? 'Amount Due' : 'Overpaid Amount'}
                 </p>
-                <p className={`text-4xl font-bold ${selectedDuePayment.amountDue > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
-                  {selectedDuePayment.amountDue > 0 ? "₹" : "-₹"}{Math.abs(selectedDuePayment.amountDue).toLocaleString()}
+                <p className={`text-4xl font-bold ${selectedExtraPayment.amountDue > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+                  {selectedExtraPayment.amountDue > 0 ? "₹" : "-₹"}{Math.abs(selectedExtraPayment.amountDue).toLocaleString()}
                 </p>
                 <p className="text-sm text-gray-600 dark:text-gray-300 mt-2">
                   @ ₹800 per player
@@ -1224,7 +1224,7 @@ export default function AdminDashboard() {
               <div>
                 <h3 className="font-semibold text-lg mb-3 dark:text-white">Sports Breakdown</h3>
                 <div className="space-y-3">
-                  {selectedDuePayment.forms.map((form, idx) => (
+                  {selectedExtraPayment.forms.map((form, idx) => (
                     <div key={idx} className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
                       <div className="flex justify-between items-center">
                         <div>
@@ -1256,18 +1256,18 @@ export default function AdminDashboard() {
                     <Badge 
                       variant="default" 
                       className={
-                        selectedDuePayment.status === "unpaid" ? "bg-red-600" :
-                        selectedDuePayment.status === "unverified" ? "bg-yellow-600" :
-                        selectedDuePayment.status === "overpaid" ? "bg-green-600" :
+                        selectedExtraPayment.status === "unpaid" ? "bg-red-600" :
+                        selectedExtraPayment.status === "unverified" ? "bg-yellow-600" :
+                        selectedExtraPayment.status === "overpaid" ? "bg-green-600" :
                         "bg-orange-600"
                       }
                     >
-                      {selectedDuePayment.status}
+                      {selectedExtraPayment.status}
                     </Badge>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">Last Updated</p>
-                    <p className="text-sm dark:text-white">{new Date(selectedDuePayment.lastUpdated).toLocaleString()}</p>
+                    <p className="text-sm dark:text-white">{new Date(selectedExtraPayment.lastUpdated).toLocaleString()}</p>
                   </div>
                 </div>
               </div>

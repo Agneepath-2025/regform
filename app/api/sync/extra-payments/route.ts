@@ -3,7 +3,7 @@ import { google } from "googleapis";
 import { connectToDatabase } from "@/lib/mongodb";
 import { ObjectId } from "mongodb";
 
-interface DuePaymentRecord {
+interface ExtraPaymentRecord {
   _id: string;
   userId: string;
   userName: string;
@@ -28,7 +28,7 @@ interface DuePaymentRecord {
 }
 
 /**
- * POST /api/sync/due-payments
+ * POST /api/sync/extra-payments
  * 
  * Syncs extra payments data to Google Sheets "Extra Payments" tab
  * Includes unpaid, unverified, pending, and overpaid records
@@ -42,9 +42,9 @@ export async function POST(req: NextRequest) {
     const paymentsCollection = db.collection("payments");
     const formsCollection = db.collection("form");
     const usersCollection = db.collection("users");
-    const duePaymentsCollection = db.collection("duePayments");
+    const extraPaymentsCollection = db.collection("extraPayments");
 
-    const duePayments: DuePaymentRecord[] = [];
+    const extraPayments: ExtraPaymentRecord[] = [];
 
     // PART 1: Track verified payments with player count changes
     const payments = await paymentsCollection
@@ -100,18 +100,18 @@ export async function POST(req: NextRequest) {
 
       const playerDifference = totalCurrent - totalOriginal;
 
-      // Only add to due payments if there are actual changes
+      // Only add to extra payments if there are actual changes
       if (hasChanges && playerDifference !== 0) {
         const user = await usersCollection.findOne({
           _id: new ObjectId(payment.ownerId),
         });
 
         // Get resolution status
-        const duePaymentRecord = await duePaymentsCollection.findOne({
+        const extraPaymentRecord = await extraPaymentsCollection.findOne({
           recordId: payment._id.toString(),
         });
 
-        duePayments.push({
+        extraPayments.push({
           _id: payment._id.toString(),
           userId: payment.ownerId,
           userName: user?.name || "Unknown",
@@ -125,7 +125,7 @@ export async function POST(req: NextRequest) {
           amountDue: playerDifference * 800,
           status: playerDifference > 0 ? "pending" : "overpaid",
           lastUpdated: payment.updatedAt || payment.createdAt || new Date(),
-          resolutionStatus: duePaymentRecord?.resolutionStatus || "pending",
+          resolutionStatus: extraPaymentRecord?.resolutionStatus || "pending",
           forms: formDetails,
         });
       }
@@ -191,11 +191,11 @@ export async function POST(req: NextRequest) {
       const status = userPayment ? "unverified" : "unpaid";
       const recordId = userPayment ? userPayment._id.toString() : `unpaid_${ownerIdStr}`;
       
-      const duePaymentRecord = await duePaymentsCollection.findOne({
+      const extraPaymentRecord = await extraPaymentsCollection.findOne({
         recordId,
       });
 
-      duePayments.push({
+      extraPayments.push({
         _id: recordId,
         userId: ownerIdStr,
         userName: user.name || "Unknown",
@@ -209,17 +209,17 @@ export async function POST(req: NextRequest) {
         amountDue: totalPlayers * 800,
         status,
         lastUpdated: userPayment?.updatedAt || userPayment?.createdAt || new Date(),
-        resolutionStatus: duePaymentRecord?.resolutionStatus || "pending",
+        resolutionStatus: extraPaymentRecord?.resolutionStatus || "pending",
         forms: formDetails,
       });
     }
 
-    console.log(`📊 Found ${duePayments.length} extra payment records to sync`);
+    console.log(`📊 Found ${extraPayments.length} extra payment records to sync`);
 
-    const duePaymentsData: unknown[][] = [];
+    const extraPaymentsData: unknown[][] = [];
 
     // Format all extra payments for Google Sheets
-    for (const duePayment of duePayments) {
+    for (const extraPayment of extraPayments) {
       const currentDate = new Date();
       const date = currentDate.toLocaleDateString('en-IN', { 
         timeZone: 'Asia/Kolkata',
@@ -235,24 +235,24 @@ export async function POST(req: NextRequest) {
       });
 
       // Format sports with changes
-      const sportsModified = duePayment.forms.map((form: { sport: string; difference: number }) => 
+      const sportsModified = extraPayment.forms.map((form: { sport: string; difference: number }) => 
         `${form.sport} (${form.difference > 0 ? '+' : ''}${form.difference})`
       ).join(', ');
 
-      duePaymentsData.push([
+      extraPaymentsData.push([
         date,
         time,
-        duePayment.userName || 'N/A',
-        duePayment.userEmail || 'N/A',
-        duePayment.universityName || 'N/A',
-        duePayment.transactionId || 'No Payment',
+        extraPayment.userName || 'N/A',
+        extraPayment.userEmail || 'N/A',
+        extraPayment.universityName || 'N/A',
+        extraPayment.transactionId || 'No Payment',
         sportsModified,
-        duePayment.originalPlayerCount.toString(),
-        duePayment.currentPlayerCount.toString(),
-        duePayment.playerDifference.toString(),
-        duePayment.amountDue.toString(),
-        duePayment.status || 'pending',
-        duePayment.resolutionStatus || 'pending'
+        extraPayment.originalPlayerCount.toString(),
+        extraPayment.currentPlayerCount.toString(),
+        extraPayment.playerDifference.toString(),
+        extraPayment.amountDue.toString(),
+        extraPayment.status || 'pending',
+        extraPayment.resolutionStatus || 'pending'
       ]);
     }
 
@@ -331,27 +331,27 @@ export async function POST(req: NextRequest) {
     });
 
     // Write new data
-    if (duePaymentsData.length > 0) {
+    if (extraPaymentsData.length > 0) {
       await sheets.spreadsheets.values.update({
         spreadsheetId,
         range: `${sheetName}!A2`,
         valueInputOption: 'RAW',
         requestBody: {
-          values: duePaymentsData
+          values: extraPaymentsData
         }
       });
     }
 
-    console.log(`✅ Synced ${duePaymentsData.length} due payment records to Google Sheets`);
+    console.log(`✅ Synced ${extraPaymentsData.length} extra payment records to Google Sheets`);
 
     return NextResponse.json({
       success: true,
-      message: `Successfully synced ${duePaymentsData.length} due payment records`,
-      count: duePaymentsData.length
+      message: `Successfully synced ${extraPaymentsData.length} extra payment records`,
+      count: extraPaymentsData.length
     });
 
   } catch (error) {
-    console.error("❌ Error syncing due payments:", error);
+    console.error("❌ Error syncing extra payments:", error);
     return NextResponse.json(
       { 
         success: false, 
