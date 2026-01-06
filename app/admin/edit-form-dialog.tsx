@@ -54,6 +54,8 @@ interface Player {
   gender?: string;
   category1?: string;
   category2?: string;
+  category3?: string;
+  category4?: string;
   [key: string]: unknown;
 }
 
@@ -205,6 +207,8 @@ export default function EditFormDialog({ form, onClose, onUpdate }: Props) {
       newPlayer.category1 = "";
       if (config.categoryType === 'swimming') {
         newPlayer.category2 = "";
+        newPlayer.category3 = "";
+        newPlayer.category4 = "";
       }
     }
     setPlayers([...players, newPlayer]);
@@ -453,6 +457,34 @@ export default function EditFormDialog({ form, onClose, onUpdate }: Props) {
                               <SelectContent className="dark:bg-gray-700 dark:border-gray-600">
                                 <SelectItem value="">None</SelectItem>
                                 {swimmingCategories.map((cat) => (
+                                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-sm dark:text-gray-300">Category 3 (Optional)</Label>
+                            <Select value={player.category3 || ""} onValueChange={(val) => updatePlayer(idx, "category3", val)}>
+                              <SelectTrigger className="dark:bg-gray-600 dark:border-gray-500 dark:text-white">
+                                <SelectValue placeholder="Select category" />
+                              </SelectTrigger>
+                              <SelectContent className="dark:bg-gray-700 dark:border-gray-600">
+                                <SelectItem value="">None</SelectItem>
+                                {swimmingCategories.map((cat) => (
+                                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-sm dark:text-gray-300">Category 4 - Relay (Optional)</Label>
+                            <Select value={player.category4 || ""} onValueChange={(val) => updatePlayer(idx, "category4", val)}>
+                              <SelectTrigger className="dark:bg-gray-600 dark:border-gray-500 dark:text-white">
+                                <SelectValue placeholder="Select relay category" />
+                              </SelectTrigger>
+                              <SelectContent className="dark:bg-gray-700 dark:border-gray-600">
+                                <SelectItem value="">None</SelectItem>
+                                {swimmingCategories.filter(cat => ["200m Freestyle Relay", "200m Freestyle Relay (Mixed)"].includes(cat)).map((cat) => (
                                   <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                                 ))}
                               </SelectContent>

@@ -127,6 +127,8 @@ export const playerMeta: formMeta = {
     gender: { label: "Gender", placeholder: "Select Gender" },
     category1: { label: "Category 1", placeholder: "Select Category" },
     category2: { label: "Category 2", placeholder: "Select Category" },
+    category3: { label: "Category 3", placeholder: "Select Category" },
+    category4: { label: "Category 4 (Relay - Optional)", placeholder: "Select Category" },
     photo: { label: "Upload Profile Photo", placeholder: "Upload Profile Photo", type: "photo", accept: "image/jpeg,image/png" }
 };
 
@@ -446,13 +448,41 @@ export const eventSchema: EventSchema = {
                     pageName: "Coach Details",
                     fields: z.object({
                         coachFields,
-                        playerFields: z.array(playerFields.extend({ category1: z.enum(swimmingCategories, { message: "Category 1 is required" }), category2: z.enum(swimmingCategories, { message: "Category 1 is required" }).optional() }))
+                        playerFields: z.array(playerFields.extend({ category1: z.enum(swimmingCategories, { message: "Category 1 is required" }), category2: z.enum(swimmingCategories, { message: "Category 2 is required" }).optional(), category3: z.enum(swimmingCategories, { message: "Category 3 is required" }).optional(), category4: z.enum(swimmingCategories, { message: "Category 4 is required" }).optional() }).refine(
+                            (data) => {
+                                const relayCategories = ["200m Freestyle Relay", "200m Freestyle Relay (Mixed)"];
+                                const selected = [data.category1, data.category2, data.category3, data.category4].filter(c => typeof c === 'string' && c && c !== "Select Category");
+                                const relayCount = selected.filter(c => relayCategories.includes(c as any)).length;
+                                const individualCount = selected.filter(c => !relayCategories.includes(c as any)).length;
+                                
+                                // Max 3 individual categories
+                                if (individualCount > 3) return false;
+                                // Can have at most 1 relay type
+                                if (relayCount > 1) return false;
+                                return true;
+                            },
+                            { message: "Maximum 3 individual categories and only 1 relay type allowed" }
+                        ))
                             .min(1, `Fill details of minimum ${1} players`)
                             .max(8, `A maximum of ${8} players are allowed`),
                     }),
                     draft: z.object({
                         coachFields,
-                        playerFields: z.array(playerFieldsDraft.extend({ category1: z.enum(swimmingCategories, { message: "Category 1 is required" }).optional(), category2: z.enum(swimmingCategories, { message: "Category 1 is required" }).optional() }))
+                        playerFields: z.array(playerFieldsDraft.extend({ category1: z.enum(swimmingCategories, { message: "Category 1 is required" }).optional(), category2: z.enum(swimmingCategories, { message: "Category 2 is required" }).optional(), category3: z.enum(swimmingCategories, { message: "Category 3 is required" }).optional(), category4: z.enum(swimmingCategories, { message: "Category 4 is required" }).optional() }).refine(
+                            (data) => {
+                                const relayCategories = ["200m Freestyle Relay", "200m Freestyle Relay (Mixed)"];
+                                const selected = [data.category1, data.category2, data.category3, data.category4].filter(c => typeof c === 'string' && c && c !== "Select Category");
+                                const relayCount = selected.filter(c => relayCategories.includes(c as any)).length;
+                                const individualCount = selected.filter(c => !relayCategories.includes(c as any)).length;
+                                
+                                // Max 3 individual categories
+                                if (individualCount > 3) return false;
+                                // Can have at most 1 relay type
+                                if (relayCount > 1) return false;
+                                return true;
+                            },
+                            { message: "Maximum 3 individual categories and only 1 relay type allowed" }
+                        ))
                             .min(1, `Fill details of minimum ${1} players`)
                             .max(8, `A maximum of ${8} players are allowed`),
                     }),
@@ -470,13 +500,41 @@ export const eventSchema: EventSchema = {
                     pageName: "Coach Details",
                     fields: z.object({
                         coachFields,
-                        playerFields: z.array(playerFields.extend({ category1: z.enum(swimmingCategories, { message: "Category 1 is required" }), category2: z.enum(swimmingCategories, { message: "Category 1 is required" }).optional() }))
+                        playerFields: z.array(playerFields.extend({ category1: z.enum(swimmingCategories, { message: "Category 1 is required" }), category2: z.enum(swimmingCategories, { message: "Category 2 is required" }).optional(), category3: z.enum(swimmingCategories, { message: "Category 3 is required" }).optional(), category4: z.enum(swimmingCategories, { message: "Category 4 is required" }).optional() }).refine(
+                            (data) => {
+                                const relayCategories = ["200m Freestyle Relay", "200m Freestyle Relay (Mixed)"];
+                                const selected = [data.category1, data.category2, data.category3, data.category4].filter(c => typeof c === 'string' && c && c !== "Select Category");
+                                const relayCount = selected.filter(c => relayCategories.includes(c as any)).length;
+                                const individualCount = selected.filter(c => !relayCategories.includes(c as any)).length;
+                                
+                                // Max 3 individual categories
+                                if (individualCount > 3) return false;
+                                // Can have at most 1 relay type
+                                if (relayCount > 1) return false;
+                                return true;
+                            },
+                            { message: "Maximum 3 individual categories and only 1 relay type allowed" }
+                        ))
                             .min(1, `Fill details of minimum ${1} players`)
                             .max(8, `A maximum of ${8} players are allowed`),
                     }),
                     draft: z.object({
                         coachFields,
-                        playerFields: z.array(playerFieldsDraft.extend({ category1: z.enum(swimmingCategories, { message: "Category 1 is required" }).optional(), category2: z.enum(swimmingCategories, { message: "Category 1 is required" }).optional() }))
+                        playerFields: z.array(playerFieldsDraft.extend({ category1: z.enum(swimmingCategories, { message: "Category 1 is required" }).optional(), category2: z.enum(swimmingCategories, { message: "Category 2 is required" }).optional(), category3: z.enum(swimmingCategories, { message: "Category 3 is required" }).optional(), category4: z.enum(swimmingCategories, { message: "Category 4 is required" }).optional() }).refine(
+                            (data) => {
+                                const relayCategories = ["200m Freestyle Relay", "200m Freestyle Relay (Mixed)"];
+                                const selected = [data.category1, data.category2, data.category3, data.category4].filter(c => typeof c === 'string' && c && c !== "Select Category");
+                                const relayCount = selected.filter(c => relayCategories.includes(c as any)).length;
+                                const individualCount = selected.filter(c => !relayCategories.includes(c as any)).length;
+                                
+                                // Max 3 individual categories
+                                if (individualCount > 3) return false;
+                                // Can have at most 1 relay type
+                                if (relayCount > 1) return false;
+                                return true;
+                            },
+                            { message: "Maximum 3 individual categories and only 1 relay type allowed" }
+                        ))
                             .min(1, `Fill details of minimum ${1} players`)
                             .max(8, `A maximum of ${8} players are allowed`),
                     }),
