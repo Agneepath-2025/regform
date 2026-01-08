@@ -119,35 +119,52 @@ export async function syncRecordToSheet(
     
     if (collection === "payments") {
       // Payment ID is in column D (index 3)
-      const docIdString = document._id.toString();
+      const docIdString = document._id.toString().trim();
+      console.log(`🔍 Searching for payment by ID: "${docIdString}" in ${allRows.length - 1} rows`);
       for (let i = 1; i < allRows.length; i++) {
-        if (allRows[i][3] === docIdString) {
+        const rowPaymentId = String(allRows[i][3] || "").trim();
+        if (rowPaymentId === docIdString) {
           rowIndex = i;
+          console.log(`✅ Found matching payment at row ${i + 1}`);
           break;
         }
       }
+      if (rowIndex === -1) {
+        console.log(`❌ No matching payment found for ID: "${docIdString}"`);
+      }
     } else if (collection === "users") {
       // Email is in column B (index 1)
-      const emailString = document.email || "";
+      const emailString = String(document.email || "").toLowerCase().trim();
+      console.log(`🔍 Searching for user by email: "${emailString}" in ${allRows.length - 1} rows`);
       for (let i = 1; i < allRows.length; i++) {
-        if (allRows[i][1] === emailString) {
+        const rowEmail = String(allRows[i][1] || "").toLowerCase().trim();
+        if (rowEmail === emailString) {
           rowIndex = i;
+          console.log(`✅ Found matching user at row ${i + 1}`);
           break;
         }
+      }
+      if (rowIndex === -1) {
+        console.log(`❌ No matching user found for email: "${emailString}"`);
       }
     } else if (collection === "form" && targetSheet === "Registrations") {
       // For Registrations sheet: Match by email (column D, index 3) + sport (column A, index 0)
       const owner = document.ownerData as Record<string, unknown> | undefined;
-      const ownerEmail = String(owner?.email || "");
-      const sport = String(document.title || "");
+      const ownerEmail = String(owner?.email || "").toLowerCase().trim();
+      const sport = String(document.title || "").toLowerCase().trim();
+      console.log(`🔍 Searching for form by email="${ownerEmail}" + sport="${sport}" in ${allRows.length - 1} rows`);
       
       for (let i = 1; i < allRows.length; i++) {
-        const rowEmail = allRows[i][3] || "";
-        const rowSport = allRows[i][0] || "";
+        const rowEmail = String(allRows[i][3] || "").toLowerCase().trim();
+        const rowSport = String(allRows[i][0] || "").toLowerCase().trim();
         if (rowEmail === ownerEmail && rowSport === sport) {
           rowIndex = i;
+          console.log(`✅ Found matching form at row ${i + 1}`);
           break;
         }
+      }
+      if (rowIndex === -1) {
+        console.log(`❌ No matching form found for email="${ownerEmail}" + sport="${sport}"`);
       }
     } else {
       // Other collections: ID in column A
