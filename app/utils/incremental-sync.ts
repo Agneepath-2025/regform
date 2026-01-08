@@ -13,7 +13,6 @@ export async function syncRecordToSheet(
 ): Promise<{ success: boolean; message: string }> {
   try {
     console.log(`📊 Direct sync: collection=${collection}, recordId=${recordId}, sheetName=${sheetName}`);
-    console.log(`📋 Using Google Sheet ID: ${process.env.GOOGLE_SHEET_ID?.substring(0, 15)}...`);
 
     // Connect to MongoDB and fetch the specific record
     const { db } = await connectToDatabase();
@@ -44,6 +43,22 @@ export async function syncRecordToSheet(
       ]).toArray();
       
       document = paymentAggregation[0];
+    } else if (collection === "form") {
+      // For forms, include owner data
+      const formAggregation = await db.collection(collection).aggregate([
+        { $match: { _id: new ObjectId(recordId) } },
+        {
+          $lookup: {
+            from: "users",
+            localField: "ownerId",
+            foreignField: "_id",
+            as: "ownerData"
+          }
+        },
+        { $unwind: { path: "$ownerData", preserveNullAndEmptyArrays: true } },
+      ]).toArray();
+      
+      document = formAggregation[0];
     } else {
       // For other collections, simple findOne
       document = await db.collection(collection).findOne({ _id: new ObjectId(recordId) });
@@ -110,6 +125,20 @@ export async function syncRecordToSheet(
       const emailString = document.email || "";
       for (let i = 1; i < allRows.length; i++) {
         if (allRows[i][1] === emailString) {
+          rowIndex = i;
+          break;
+        }
+      }
+    } else if (collection === "form" && targetSheet === "Registrations") {
+      // For Registrations sheet: Match by email (column D, index 3) + sport (column A, index 0)
+      const owner = document.ownerData as Record<string, unknown> | undefined;
+      const ownerEmail = String(owner?.email || "");
+      const sport = String(document.title || "");
+      
+      for (let i = 1; i < allRows.length; i++) {
+        const rowEmail = allRows[i][3] || "";
+        const rowSport = allRows[i][0] || "";
+        if (rowEmail === ownerEmail && rowSport === sport) {
           rowIndex = i;
           break;
         }
@@ -192,18 +221,53 @@ export async function syncRecordToSheet(
         new Date(document.updatedAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }),
       ];
     } else if (collection === "form") {
-      const owner = document.ownerData;
+      // Format form data for Registrations sheet
+      // Headers: Sport/Event, Status, University Name, User Email, User Phone, Created At, Updated At, 
+      // Player Count, Player Names, Player Emails, Player Phones, POC/Coach Name, POC/Coach Email, POC/Coach Phone
+      
+      const fields = document.fields as Record<string, unknown> | undefined;
+      const playerFields = (fields?.playerFields as Record<string, unknown>[]) || [];
+      const coachFields = (fields?.coachFields as Record<string, unknown>) || {};
+      
+      // Get owner data (user info)
+      let ownerUniversity = "";
+      let ownerEmail = "";
+      let ownerPhone = "";
+      if (document.ownerId) {
+        // If ownerData is already populated (from aggregation), use it
+        const owner = document.ownerData as Record<string, unknown> | undefined;
+        if (owner) {
+          ownerUniversity = String(owner.universityName || "");
+          ownerEmail = String(owner.email || "");
+          ownerPhone = String(owner.phone || "");
+        }
+      }
+      
+      // Extract player details
+      const playerNames = playerFields.map((p: Record<string, unknown>) => String(p.name || p.playerName || "")).join(" | ");
+      const playerEmails = playerFields.map((p: Record<string, unknown>) => String(p.email || "")).join(" | ");
+      const playerPhones = playerFields.map((p: Record<string, unknown>) => String(p.phone || "")).join(" | ");
+      
+      const formatDate = (date: unknown) => {
+        if (!date) return "";
+        return new Date(date as string | Date).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
+      };
+      
       rowData = [
-        document._id.toString(),
-        document.sport || "",
-        document.category || "",
-        document.players?.length || 0,
-        JSON.stringify(document.players || []),
-        document.status || "draft",
-        owner?.name || "",
-        owner?.email || "",
-        owner?.phoneNumber || "",
-        new Date(document.updatedAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }),
+        String(document.title || ""),
+        String(document.status || ""),
+        ownerUniversity,
+        ownerEmail,
+        ownerPhone,
+        formatDate(document.createdAt),
+        formatDate(document.updatedAt),
+        playerFields.length.toString(),
+        playerNames,
+        playerEmails,
+        playerPhones,
+        String(coachFields.name || ""),
+        String(coachFields.email || ""),
+        String(coachFields.phone || coachFields.contact || "")
       ];
     }
 
@@ -248,23 +312,7 @@ export async function syncRecordToSheet(
     return { success: true, message: `Synced ${collection}:${recordId} to ${targetSheet}` };
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Sync failed";
-    console.error("❌ Direct sync error:", {
-      collection,
-      recordId,
-      sheetName,
-      spreadsheetId: process.env.GOOGLE_SHEET_ID?.substring(0, 15) + "...",
-      error: error instanceof Error ? {
-        message: error.message,
-        name: error.name,
-        stack: error.stack?.split('\n').slice(0, 3).join('\n')
-      } : String(error)
-    });
-    
-    // Log specific Google API errors
-    if (error && typeof error === 'object' && 'code' in error) {
-      console.error(`🔴 Google Sheets API Error Code: ${(error as { code: unknown }).code}`);
-    }
-    
-    return { success: false, message: `Sync failed: ${errorMessage}` };
+    console.error("❌ Direct sync error:", error);
+    return { success: false, message: errorMessage };
   }
 }
