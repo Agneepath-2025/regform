@@ -7,6 +7,7 @@ import { addSecurityHeaders } from "@/app/utils/security/headers";
 import { rateLimit } from "@/app/utils/rateLimit";
 import { auth } from "@/auth";
 import { z } from "zod";
+import { syncRecordToSheet } from "@/app/utils/incremental-sync";
 
 const updateUserSchema = z.object({
   deleted: z.boolean().optional(),
@@ -96,17 +97,15 @@ export async function PATCH(
         );
       }
 
-      // Trigger incremental sync to Google Sheets
-      const syncUrl = new URL("/api/sync/incremental", req.url);
-      fetch(syncUrl.toString(), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          collection: "users",
-          recordId: id,
-          sheetName: "Users",
-        }),
-      }).catch((err) => logError(err, { context: "Google Sheets sync" }));
+      // Trigger direct sync to Google Sheets (avoiding HTTP fetch and 403 errors)
+      (async () => {
+        try {
+          await syncRecordToSheet("users", id, "Users");
+          console.log(`✅ Direct sync completed for user: ${id}`);
+        } catch (err) {
+          logError(err, { context: "Google Sheets direct sync" });
+        }
+      })();
 
       return addSecurityHeaders(
         NextResponse.json({

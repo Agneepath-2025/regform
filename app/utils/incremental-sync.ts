@@ -209,16 +209,22 @@ export async function syncRecordToSheet(
         document.sendEmail ? "Yes" : "No"
       ];
     } else if (collection === "users") {
+      // Format user data for Users sheet
+      // Headers: Name, Email, Contact Number, University, Verified, Registration Done, Payment Done, Created At
+      const formatDate = (date: unknown) => {
+        if (!date) return "";
+        return new Date(date as string | Date).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
+      };
+      
       rowData = [
-        document._id.toString(),
-        document.name || "",
-        document.email || "",
-        document.phoneNumber || "",
-        document.gender || "",
-        document.college || "",
-        document.registrationDone || false,
-        document.paymentDone || false,
-        new Date(document.updatedAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }),
+        String(document.name || ""),
+        String(document.email || ""),
+        String(document.phone || ""),
+        String(document.universityName || ""),
+        document.emailVerified ? "Yes" : "No",
+        document.registrationDone ? "Yes" : "No",
+        document.paymentDone ? "Yes" : "No",
+        formatDate(document.createdAt)
       ];
     } else if (collection === "form") {
       // Format form data for Registrations sheet
