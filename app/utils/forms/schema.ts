@@ -173,8 +173,6 @@ export const sportField = z.object({
         "Table Tennis (Women)",
         "Squash (Men)",
         "Squash (Women)",
-        "Swimming (Men)",
-        "Swimming (Women)",
         "8 Ball Pool (Mixed)",
         "Snooker (Mixed)",
         "Shooting",
