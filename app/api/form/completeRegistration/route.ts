@@ -4,6 +4,7 @@ import { Collection, ObjectId } from "mongodb";
 import { NextRequest, NextResponse } from "next/server";
 import { fetchUserData } from "@/app/utils/GetUpdateUser";
 import { syncUserRegistration } from "@/app/utils/sheets-event-sync";
+import { addUserToDmz } from "@/app/utils/dmz-api";
 
 type UserDoc = {
   _id?: string | { $oid?: string } | { _id?: string };
@@ -140,6 +141,16 @@ export async function POST(req: NextRequest) {
         });
       }
 
+      // Add user to DMZ database (non-blocking)
+      addUserToDmz({
+        email: fallback.email || email,
+        name: (fallback.name as string) || '',
+        university: (fallback.universityName as string) || '',
+        phone: (fallback.phone as string) || ''
+      }).catch(err => {
+        console.error("[DMZ] Failed to add user after registration completion (fallback):", err);
+      });
+
       return NextResponse.json(
         { success: true, message: "Registration completed (fallback)", data: fallback },
         { status: 200 }
@@ -158,6 +169,16 @@ export async function POST(req: NextRequest) {
         console.error("[Sheets] Failed to sync user after registration completion:", err);
       });
     }
+
+    // Add user to DMZ database (non-blocking)
+    addUserToDmz({
+      email: updatedDoc.email || email,
+      name: (updatedDoc.name as string) || '',
+      university: (updatedDoc.universityName as string) || '',
+      phone: (updatedDoc.phone as string) || ''
+    }).catch(err => {
+      console.error("[DMZ] Failed to add user after registration completion:", err);
+    });
 
     return NextResponse.json(
       {
