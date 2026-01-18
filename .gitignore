@@ -49,3 +49,6 @@ SECURITY.md
 SECURITY_QUICK_START.md
 ADMIN_SYNC_WORKFLOW.md
 documentation/ADMIN_SYNC_WORKFLOW.md
+
+# Sentry Config File
+.env.sentry-build-plugin

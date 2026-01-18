@@ -4,6 +4,8 @@
  * See: https://nextjs.org/docs/app/building-your-application/optimizing/instrumentation
  */
 
+import * as Sentry from '@sentry/nextjs';
+
 export async function register() {
   if (process.env.NEXT_RUNTIME === 'nodejs') {
     console.log('[Instrumentation] Server started');
@@ -31,5 +33,17 @@ export async function register() {
         }
       }, 3000); // Wait 3 seconds for server to be ready
     }
+    
+    await import('./sentry.server.config');
+  }
+
+  if (process.env.NEXT_RUNTIME === 'edge') {
+    await import('./sentry.edge.config');
   }
 }
+
+export const onRequestError = Sentry.captureRequestError;
+
+
+
+
