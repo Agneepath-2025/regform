@@ -144,6 +144,15 @@ export default function EditFormDialog({ form, onClose, onUpdate }: Props) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Show warning but allow admin to proceed
+    if (validationError) {
+      const confirmed = confirm(
+        `⚠️ ${validationError}\n\nDo you want to save anyway? The form will be updated but may not meet registration requirements.`
+      );
+      if (!confirmed) return;
+    }
+    
     setSaving(true);
 
     try {
@@ -340,9 +349,11 @@ export default function EditFormDialog({ form, onClose, onUpdate }: Props) {
                 </div>
 
                 {validationError && (
-                  <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded">
-                    <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
-                    <span className="text-sm text-red-600 dark:text-red-400">{validationError}</span>
+                  <div className="flex items-center gap-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded">
+                    <AlertCircle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+                    <span className="text-sm text-yellow-700 dark:text-yellow-300">
+                      ⚠️ {validationError} (You can still save, but the team may not meet competition requirements)
+                    </span>
                   </div>
                 )}
                 
