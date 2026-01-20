@@ -20,7 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Trash2, Plus, AlertCircle, CalendarIcon } from "lucide-react";
+import { Trash2, Plus, AlertCircle, CalendarIcon, RefreshCw } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
@@ -130,6 +130,15 @@ export default function EditFormDialog({ form, onClose, onUpdate }: Props) {
 
   // Validation state
   const [validationError, setValidationError] = useState<string>("");
+  
+  // Swap player state
+  const [swapPlayerIndex, setSwapPlayerIndex] = useState<number | null>(null);
+  const [swapPlayerData, setSwapPlayerData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    date: ""
+  });
 
   useEffect(() => {
     // Validate player count
@@ -196,6 +205,91 @@ export default function EditFormDialog({ form, onClose, onUpdate }: Props) {
 
   const removePlayer = (index: number) => {
     setPlayers(players.filter((_, i) => i !== index));
+  };
+
+  const initiateSwapPlayer = (index: number) => {
+    const player = players[index];
+    setSwapPlayerIndex(index);
+    setSwapPlayerData({
+      name: player.name || "",
+      email: player.email || "",
+      phone: player.phone || "",
+      date: player.date || ""
+    });
+  };
+
+  const handleSwapPlayer = async () => {
+    if (swapPlayerIndex === null) return;
+
+    const oldPlayer = players[swapPlayerIndex];
+    
+    // Validate new player data
+    if (!swapPlayerData.name || !swapPlayerData.email || !swapPlayerData.phone) {
+      alert("Please fill in all required fields (Name, Email, Phone)");
+      return;
+    }
+
+    const confirmed = confirm(
+      `⚠️ Swap Player Confirmation\n\n` +
+      `Old: ${oldPlayer.name} (${oldPlayer.email})\n` +
+      `New: ${swapPlayerData.name} (${swapPlayerData.email})\n\n` +
+      `This will:\n` +
+      `• Update MongoDB\n` +
+      `• Sync to Google Sheets\n` +
+      `• Update DMZ API (if team owner)\n\n` +
+      `Continue?`
+    );
+
+    if (!confirmed) return;
+
+    setSaving(true);
+
+    try {
+      const response = await fetch(`/api/admin/forms/${form._id}/swap-player`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          playerIndex: swapPlayerIndex,
+          oldPlayerData: {
+            email: oldPlayer.email,
+            name: oldPlayer.name,
+            phone: oldPlayer.phone
+          },
+          newPlayerData: swapPlayerData
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        alert(`✅ Player swapped successfully!\n\n${result.message}`);
+        
+        // Update local state
+        const newPlayers = [...players];
+        newPlayers[swapPlayerIndex] = { ...oldPlayer, ...swapPlayerData };
+        setPlayers(newPlayers);
+        
+        // Reset swap state
+        setSwapPlayerIndex(null);
+        setSwapPlayerData({ name: "", email: "", phone: "", date: "" });
+        
+        onUpdate();
+      } else {
+        const error = await response.json();
+        alert(`❌ Failed to swap player: ${error.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error("Error swapping player:", error);
+      alert("❌ Failed to swap player");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const cancelSwap = () => {
+    setSwapPlayerIndex(null);
+    setSwapPlayerData({ name: "", email: "", phone: "", date: "" });
   };
 
   const addPlayer = () => {
@@ -358,19 +452,120 @@ export default function EditFormDialog({ form, onClose, onUpdate }: Props) {
                 )}
                 
                 {players.map((player, idx) => (
-                  <div key={idx} className="p-4 bg-gray-50 dark:bg-gray-700 rounded space-y-3">
+                  <div key={idx} className="p-4 bg-gray-50 dark:bg-gray-700 rounded space-y-3 relative">
                     <div className="flex items-center justify-between">
                       <h4 className="font-medium text-sm dark:text-gray-300">Player {idx + 1}</h4>
-                      <Button
-                        type="button"
-                        onClick={() => removePlayer(idx)}
-                        size="sm"
-                        variant="ghost"
-                        className="text-red-500 hover:text-red-700 dark:hover:bg-gray-600"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          onClick={() => initiateSwapPlayer(idx)}
+                          size="sm"
+                          variant="ghost"
+                          className="text-blue-500 hover:text-blue-700 dark:hover:bg-gray-600"
+                          title="Swap Player"
+                        >
+                          <RefreshCw className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          onClick={() => removePlayer(idx)}
+                          size="sm"
+                          variant="ghost"
+                          className="text-red-500 hover:text-red-700 dark:hover:bg-gray-600"
+                          title="Remove Player"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
+                    
+                    {/* Swap Player Form */}
+                    {swapPlayerIndex === idx && (
+                      <div className="border-2 border-blue-500 dark:border-blue-400 rounded p-3 bg-blue-50 dark:bg-blue-900/20">
+                        <div className="flex items-center justify-between mb-3">
+                          <h5 className="font-semibold text-sm text-blue-700 dark:text-blue-300">
+                            🔄 Swap Player Details
+                          </h5>
+                          <Button
+                            type="button"
+                            onClick={cancelSwap}
+                            size="sm"
+                            variant="ghost"
+                            className="text-gray-500 hover:text-gray-700"
+                          >
+                            ✕
+                          </Button>
+                        </div>
+                        <div className="space-y-2">
+                          <div>
+                            <Label className="text-xs text-gray-600 dark:text-gray-400">Current: {player.name} ({player.email})</Label>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="space-y-1">
+                              <Label className="text-xs dark:text-gray-300">New Name *</Label>
+                              <Input
+                                value={swapPlayerData.name}
+                                onChange={(e) => setSwapPlayerData({ ...swapPlayerData, name: e.target.value })}
+                                className="text-sm dark:bg-gray-600 dark:border-gray-500"
+                                placeholder="Enter new name"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs dark:text-gray-300">New Email *</Label>
+                              <Input
+                                type="email"
+                                value={swapPlayerData.email}
+                                onChange={(e) => setSwapPlayerData({ ...swapPlayerData, email: e.target.value })}
+                                className="text-sm dark:bg-gray-600 dark:border-gray-500"
+                                placeholder="Enter new email"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs dark:text-gray-300">New Phone *</Label>
+                              <Input
+                                value={swapPlayerData.phone}
+                                onChange={(e) => setSwapPlayerData({ ...swapPlayerData, phone: e.target.value })}
+                                className="text-sm dark:bg-gray-600 dark:border-gray-500"
+                                placeholder="Enter new phone"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs dark:text-gray-300">DOB (Optional)</Label>
+                              <Input
+                                type="date"
+                                value={swapPlayerData.date}
+                                onChange={(e) => setSwapPlayerData({ ...swapPlayerData, date: e.target.value })}
+                                className="text-sm dark:bg-gray-600 dark:border-gray-500"
+                              />
+                            </div>
+                          </div>
+                          <div className="flex gap-2 mt-3">
+                            <Button
+                              type="button"
+                              onClick={handleSwapPlayer}
+                              size="sm"
+                              className="flex-1 bg-blue-600 hover:bg-blue-700"
+                              disabled={saving}
+                            >
+                              {saving ? "Swapping..." : "Confirm Swap"}
+                            </Button>
+                            <Button
+                              type="button"
+                              onClick={cancelSwap}
+                              size="sm"
+                              variant="outline"
+                              className="flex-1"
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                            This will update MongoDB, Google Sheets, and DMZ API
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-1">
                         <Label className="text-sm dark:text-gray-300">Name</Label>
