@@ -45,6 +45,7 @@ export const sports: Record<string, string> = {
     Volleyball_Women: "Volleyball (Women)",
     Table_Tennis_Men: "Table Tennis (Men)",
     Table_Tennis_Women: "Table Tennis (Women)",
+    Squash: "Squash",
     Swimming_Men: "Swimming (Men)",
     Swimming_Women: "Swimming (Women)",
     Shooting: "Shooting"
@@ -167,6 +168,7 @@ export const sportField = z.object({
         "Volleyball (Women)",
         "Table Tennis (Men)",
         "Table Tennis (Women)",
+        "Squash",
         "Shooting",
     ], { message: "Select a sport" }),
 });
@@ -236,6 +238,7 @@ export const SportsGuidlines: Record<string, string> = {
     Volleyball_Women: "volleyball",
     Table_Tennis_Men: "tabletennis",
     Table_Tennis_Women: "tabletennis",
+    Squash: "squash",
     Swimming_Men: "swimming",
     Swimming_Women: "swimming",
     Shooting: "shooting"
@@ -317,6 +320,30 @@ export const eventSchema: EventSchema = {
             eventName: sports.Table_Tennis_Women,
             specificPages: [
                 generatePageWithPlayerFields(4, 5), // 3 to 5 players
+            ],
+        },
+        Squash: {
+            eventName: sports.Squash,
+            specificPages: [
+                {
+                    pageName: "Coach Details",
+                    fields: z.object({
+                        coachFields,
+                        playerFields: z.array(playerFields.extend({ gender: z.enum(["Select Gender", "Male", "Female"], { message: "Gender is required" }) }))
+                            .min(1, `Fill details of minimum ${1} players`)
+                            .max(10, `A maximum of ${10} players are allowed`),
+                    }),
+                    draft: z.object({
+                        coachFields,
+                        playerFields: z.array(playerFieldsDraft.extend({ gender: z.enum(["Select Gender", "Male", "Female"], { message: "Gender is required" }) }))
+                            .min(1, `Fill details of minimum ${1} players`)
+                            .max(10, `A maximum of ${10} players are allowed`),
+                    }),
+                    meta: {
+                        coachFields: coachFieldsMeta,
+                        playerFields: playerMeta,
+                    },
+                }
             ],
         },
         Chess_Mixed: {
