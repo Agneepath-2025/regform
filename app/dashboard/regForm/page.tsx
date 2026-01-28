@@ -4,7 +4,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
 import { useEffect, useState } from "react"
-import { ArrowRight, Medal } from 'lucide-react';
+import { useRouter } from "next/navigation"
 import HeadingWithUnderline from "@/app/components/dashboard/headingWithUnderline"
 import RenderPopoverForm from "@/app/components/dashboard/form/PopoverForm"
 import { eventSchema, sports } from "@/app/utils/forms/schema"
@@ -154,7 +154,18 @@ const getAuthToken = (): string | null => {
 
 export default function RegForm() {
   const router = useRouter();
-  const [loading, setLoading] = useState(true)
+  
+  // Redirect to dashboard since registrations are closed
+  useEffect(() => {
+    router.replace("/dashboard");
+  }, [router]);
+  
+  return (
+    <div className="flex items-center justify-center w-full h-screen">
+      <span className="text-red-600 font-semibold text-lg">Registrations have been closed. Please check back later.</span>
+    </div>
+  );
+}
   const [data, setData] = useState<FormData[]>([])
   const [registrationDone, setRegistrationDone] = useState<boolean | null>(null)
 

@@ -51,13 +51,11 @@ const getAuthToken = (): string | null => {
 
   const currentStep =
     pathname === "/dashboard" ? 1 :
-    pathname === "/dashboard/regForm" ? 2 :
-    pathname === "/dashboard/Payments" ? 3 :
-    4;
+    pathname === "/dashboard/Payments" ? 2 :
+    3;
 
   const [items, setItems] = useState<MenuItem[]>([
     { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, disabled: false },
-    { title: "Registration Form", url: "/dashboard/regForm", icon: BookText, disabled: false },
     { title: "Payments", url: "/dashboard/Payments", icon: CreditCard, disabled: true },
   ]);
   const [loading, setLoading] = useState(false)
@@ -187,30 +185,10 @@ const getAuthToken = (): string | null => {
 
   {/* STEP 2 */}
   <button
-    onClick={() => router.push("/dashboard/regForm")}
-    className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-400 hover:bg-gray-200"
-  >
-    2
-  </button>
-
-  <div className="flex-1 h-px bg-gray-300 mx-2"></div>
-
-  {/* STEP 3 */}
-  <button
     onClick={() => router.push("/dashboard/Payments")}
     className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-400 hover:bg-gray-200"
   >
-    3
-  </button>
-
-  <div className="flex-1 h-px bg-gray-300 mx-2"></div>
-
-  {/* STEP 4 — sends user back to dashboard */}
-  <button
-    onClick={() => router.push("/dashboard")}
-    className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-400 hover:bg-gray-200"
-  >
-    4
+    2
   </button>
 
 </div>
@@ -226,9 +204,7 @@ const getAuthToken = (): string | null => {
                   className="absolute top-0 left-0 h-full bg-black transition-all duration-500"
                   style={{
                     width:
-                      currentStep === 1 ? "25%" :
-                      currentStep === 2 ? "50%" :
-                      currentStep === 3 ? "75%" :
+                      currentStep === 1 ? "50%" :
                       "100%"
                   }}
                 />

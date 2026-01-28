@@ -69,7 +69,7 @@ const EmptyState = () => (
     <Medal className="w-16 h-16 text-gray-400 mb-4" />
     <h3 className="text-xl font-bold text-gray-700 mb-2">No Sports Registered</h3>
     <p className="text-gray-500 text-center max-w-md">
-      You haven't registered for any sports yet. Register for a sport to start your athletic journey!<br></br> you can register for a sport by going to Registration form page from side bar or clicking on this <Link href="/dashboard/regForm" className='text-blue-600'>link</Link>
+      Registrations have closed. You can no longer register for sports, but you can still complete your payment if you have a pending registration.
     </p>
   </div>
 );
@@ -170,7 +170,7 @@ export default function Dashboard() {
           Welcome back, {formattedName}! 🏆
         </h2>
         <p className="text-sm text-gray-300">
-          Track your sports registrations and stay in the game. <Link href="/dashboard/regForm" className="text-xs text-blue-300 hover:text-blue-100 underline">Register here</Link>
+          Registration has closed. Complete your payment to finalize your registration.
         </p>
       </div>
 

@@ -936,9 +936,16 @@ export default function Payments() {
   const overallTotal = calculateSportsTotal()
   const sportsTotal = calculateSportsTotal();
 
+  // Allow payment access if user has submitted any forms (registrations are now closed)
+  // or if they already paid
+  const hasSubmittedForms = submittedData && submittedData.length > 0;
 
-  if (registrationDone === false || registrationDone === null || paymentDone === true) {
-    return <div className="w-full h-full flex items-center justify-center"><span className="text-red-600 font-semibold">{paymentDone === true  ? "Payments have already been confirmed"  : "Please complete your registration first before making payments"}</span></div>
+  if (paymentDone === true) {
+    return <div className="w-full h-full flex items-center justify-center"><span className="text-red-600 font-semibold">Payments have already been confirmed</span></div>
+  }
+
+  if (!hasSubmittedForms) {
+    return <div className="w-full h-full flex items-center justify-center"><span className="text-red-600 font-semibold">No registrations found. Registrations have been closed.</span></div>
   }
 
   if (isLoading) return <div className="flex items-center justify-center h-64">
