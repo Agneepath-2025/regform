@@ -37,7 +37,6 @@ export const sports: Record<string, string> = {
     Basketball_Men: "Basketball (Men)",
     Basketball_Women: "Basketball (Women)",
     Chess_Mixed: "Chess (Mixed)",
-    Football_Men: "Football (Men)",
     Futsal_Women: "Futsal (Women)",
     Tennis_Mixed: "Tennis (Mixed)",
     Volleyball_Men: "Volleyball (Men)",
@@ -159,7 +158,6 @@ export const sportField = z.object({
         "Basketball (Men)",
         "Basketball (Women)",
         "Chess (Mixed)",
-        "Football (Men)",
         "Futsal (Women)",
         "Tennis (Mixed)",
         "Volleyball (Men)",
@@ -228,7 +226,6 @@ export const SportsGuidlines: Record<string, string> = {
     Basketball_Men: "basketball",
     Basketball_Women: "basketball",
     Chess_Mixed: "chess",
-    Football_Men: "football",
     Futsal_Women: "futsal",
     Tennis_Mixed: "tennis",
     Volleyball_Men: "volleyball",
@@ -275,12 +272,6 @@ export const eventSchema: EventSchema = {
             eventName: sports.Basketball_Women,
             specificPages: [
                 generatePageWithPlayerFields(7, 12), // 7 to 12 players
-            ],
-        },
-        Football_Men: {
-            eventName: sports.Football_Men,
-            specificPages: [
-                generatePageWithPlayerFields(11, 15), // 11 to 15 players
             ],
         },
         Futsal_Women: {
