@@ -4,7 +4,7 @@ import { connectToDatabase } from "@/lib/mongodb";
 import { ObjectId } from "mongodb";
 import { logAuditEvent, calculateChanges } from "@/app/utils/audit-logger";
 import { syncRecordToSheet } from "@/app/utils/incremental-sync";
-import { syncFormPlayersToDmz } from "@/app/utils/dmz-api";
+import { syncFormPlayersToDmz, removeUserFromDmz } from "@/app/utils/dmz-api";
 
 export async function GET(
   request: Request,
@@ -200,6 +200,7 @@ export async function PATCH(
     }
 
     // 🔄 Sync all players to DMZ when fields are updated (non-blocking)
+    // Also remove players that were deleted from the form
     if (body.fields && result.status === 'submitted') {
       try {
         // Get owner university name
@@ -208,6 +209,28 @@ export async function PATCH(
         
         if (owner?.universityName) {
           console.log(`[DMZ] Admin updated form ${id} - syncing players to DMZ`);
+          
+          // Get old player emails from existing form
+          const oldPlayerFields = (existingForm.fields as Record<string, unknown>)?.playerFields as Array<{ email?: string }> || [];
+          const oldEmails = new Set(oldPlayerFields.map(p => p.email).filter(Boolean));
+          
+          // Get new player emails from updated form
+          const newPlayerFields = (body.fields as Record<string, unknown>)?.playerFields as Array<{ email?: string }> || [];
+          const newEmails = new Set(newPlayerFields.map(p => p.email).filter(Boolean));
+          
+          // Find deleted players (in old but not in new)
+          const deletedEmails = [...oldEmails].filter(email => !newEmails.has(email));
+          
+          // Remove deleted players from DMZ
+          if (deletedEmails.length > 0) {
+            console.log(`[DMZ] Removing ${deletedEmails.length} deleted players from DMZ:`, deletedEmails);
+            for (const email of deletedEmails) {
+              removeUserFromDmz(email as string)
+                .catch(err => console.error(`[DMZ] Failed to remove ${email}:`, err));
+            }
+          }
+          
+          // Sync all current players to DMZ
           syncFormPlayersToDmz(body, owner.universityName)
             .catch(err => console.error("[DMZ] Failed to sync players after admin edit:", err));
         } else {
