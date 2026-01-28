@@ -155,24 +155,35 @@ export async function PATCH(
     const owner = await db.collection("users").findOne({ _id: form.ownerId });
     
     if (owner && owner.universityName && result.status === 'submitted') {
-      // 🔄 Remove all old players from DMZ
-      console.log(`[DMZ] Removing ${swaps.length} old players from DMZ...`);
-      import('@/app/utils/dmz-api').then(({ removeUserFromDmz }) => {
-        for (const swap of swaps) {
-          removeUserFromDmz(swap.oldPlayerData.email)
-            .catch(err => console.error(`[DMZ] Failed to remove old player ${swap.oldPlayerData.email}:`, err));
-        }
+      // 🔄 Optimized DMZ sync: Remove old players and add only new players
+      // This avoids re-adding all existing players and reduces duplication risk
+      console.log(`[DMZ] Batch swapping ${swaps.length} players in DMZ...`);
+      import('@/app/utils/dmz-api').then(({ removeUserFromDmz, addUserToDmz }) => {
+        // Remove all old players and add new players sequentially to avoid race conditions
+        const swapPromises = swaps.map(async (swap) => {
+          try {
+            // First remove the old player
+            await removeUserFromDmz(swap.oldPlayerData.email)
+              .catch(err => console.error(`[DMZ] Failed to remove ${swap.oldPlayerData.email}:`, err));
+            
+            // Then add the new player
+            await addUserToDmz({
+              email: swap.newPlayerData.email,
+              name: swap.newPlayerData.name,
+              phone: swap.newPlayerData.phone,
+              university: owner.universityName as string
+            });
+            
+            console.log(`[DMZ] ✅ Swapped: ${swap.oldPlayerData.email} → ${swap.newPlayerData.email}`);
+          } catch (err) {
+            console.error(`[DMZ] ❌ Failed to swap ${swap.oldPlayerData.email} → ${swap.newPlayerData.email}:`, err);
+          }
+        });
+        
+        Promise.allSettled(swapPromises).then(() => {
+          console.log(`[DMZ] Batch swap complete: ${swaps.length} players processed`);
+        });
       });
-
-      // 🔄 Sync all current players to DMZ (including all new players)
-      // This ensures the DMZ database has the latest player list
-      console.log(`[DMZ] Syncing all players to DMZ after batch swap (form ${id})...`);
-      import('@/app/utils/dmz-api').then(({ syncFormPlayersToDmz }) => {
-        syncFormPlayersToDmz(result as { fields?: { playerFields?: Array<{ name?: string; email?: string; phone?: string; [key: string]: unknown; }>; }; }, owner.universityName as string)
-          .catch(err => console.error("[DMZ] Failed to sync players after batch swap:", err));
-      });
-      
-      console.log(`🔄 DMZ sync triggered for ${swaps.length} player swaps`);
     } else if (!owner?.universityName) {
       console.warn(`[DMZ] Cannot sync - university not found for owner: ${form.ownerId}`);
     } else if (result.status !== 'submitted') {
