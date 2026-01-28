@@ -2,11 +2,9 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Trophy, Users, Medal } from 'lucide-react';
-import Link from 'next/link';
 import HeadingWithUnderline from '../components/dashboard/headingWithUnderline';
 import { sports } from '../utils/forms/schema';
 import { useRouter } from 'next/navigation';
-/* eslint-disable react/no-unescaped-entities */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
 interface SubmittedForm {
