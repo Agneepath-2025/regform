@@ -201,7 +201,7 @@ export async function PATCH(
 
     // 🔄 Sync all players to DMZ when fields are updated (non-blocking)
     // Also remove players that were deleted from the form
-    if (body.fields && result.status === 'submitted') {
+    if (body.fields) {
       try {
         // Get owner university name
         const usersCollection = db.collection("users");
