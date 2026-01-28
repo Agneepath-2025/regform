@@ -4,6 +4,7 @@ import { connectToDatabase } from "@/lib/mongodb";
 import { ObjectId } from "mongodb";
 import { logAuditEvent, calculateChanges } from "@/app/utils/audit-logger";
 import { syncRecordToSheet } from "@/app/utils/incremental-sync";
+import { syncFormPlayersToDmz } from "@/app/utils/dmz-api";
 
 export async function GET(
   request: Request,
@@ -196,6 +197,25 @@ export async function PATCH(
     } catch (error) {
       console.error("⚠️ Failed to update user submittedForms:", error);
       // Don't fail the entire request if user update fails
+    }
+
+    // 🔄 Sync all players to DMZ when fields are updated (non-blocking)
+    if (body.fields && result.status === 'submitted') {
+      try {
+        // Get owner university name
+        const usersCollection = db.collection("users");
+        const owner = await usersCollection.findOne({ _id: result.ownerId });
+        
+        if (owner?.universityName) {
+          console.log(`[DMZ] Admin updated form ${id} - syncing players to DMZ`);
+          syncFormPlayersToDmz(body, owner.universityName)
+            .catch(err => console.error("[DMZ] Failed to sync players after admin edit:", err));
+        } else {
+          console.warn(`[DMZ] Cannot sync - university not found for owner: ${result.ownerId}`);
+        }
+      } catch (error) {
+        console.error("[DMZ] Error syncing to DMZ after admin edit:", error);
+      }
     }
 
     // 🔄 Automatically update payment record if player count changed
