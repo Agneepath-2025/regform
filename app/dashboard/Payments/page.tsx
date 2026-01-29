@@ -938,7 +938,7 @@ export default function Payments() {
 
   // Allow payment access if user has submitted any forms (registrations are now closed)
   // or if they already paid
-  const hasSubmittedForms = submittedData && submittedData.length > 0;
+  const hasSubmittedForms = !!(paymentData && paymentData.submittedForms && Object.keys(paymentData.submittedForms).length > 0);
 
   if (paymentDone === true) {
     return <div className="w-full h-full flex items-center justify-center"><span className="text-red-600 font-semibold">Payments have already been confirmed</span></div>
