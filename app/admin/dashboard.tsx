@@ -32,6 +32,7 @@ import EditPaymentDialog from "./edit-payment-dialog";
 import { LogOut, Users, FileText, Moon, Sun, CreditCard, Search, Trash2, RotateCcw, FileText as FileTextIcon, Download, Upload } from "lucide-react";
 import { useTheme } from "./theme-provider";
 import { Input } from "@/components/ui/input";
+import { sports } from "@/app/utils/forms/schema";
 
 interface User {
   _id: string;
@@ -786,7 +787,7 @@ export default function AdminDashboard() {
                         {filteredForms.map((form) => (
                           <TableRow key={form._id} className="dark:border-gray-700">
                             <TableCell className="font-medium dark:text-white">
-                              {form.title}
+                              {sports[form.title as keyof typeof sports] || form.title}
                             </TableCell>
                             <TableCell>
                               <Badge
@@ -1305,21 +1306,11 @@ export default function AdminDashboard() {
                     <SelectValue placeholder="Choose a sport" />
                   </SelectTrigger>
                   <SelectContent className="dark:bg-gray-700 dark:border-gray-600 max-h-60">
-                    <SelectItem value="Basketball">Basketball</SelectItem>
-                    <SelectItem value="Football">Football</SelectItem>
-                    <SelectItem value="Cricket">Cricket</SelectItem>
-                    <SelectItem value="Badminton (Men)">Badminton (Men)</SelectItem>
-                    <SelectItem value="Badminton (Women)">Badminton (Women)</SelectItem>
-                    <SelectItem value="Swimming">Swimming</SelectItem>
-                    <SelectItem value="Table Tennis">Table Tennis</SelectItem>
-                    <SelectItem value="Tennis">Tennis</SelectItem>
-                    <SelectItem value="Volleyball">Volleyball</SelectItem>
-                    <SelectItem value="Chess">Chess</SelectItem>
-                    <SelectItem value="Squash">Squash</SelectItem>
-                    <SelectItem value="Snooker">Snooker</SelectItem>
-                    <SelectItem value="Pool">Pool</SelectItem>
-                    <SelectItem value="Futsal">Futsal</SelectItem>
-                    <SelectItem value="Shooting">Shooting</SelectItem>
+                    {Object.entries(sports).map(([key, label]) => (
+                      <SelectItem key={key} value={key}>
+                        {label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

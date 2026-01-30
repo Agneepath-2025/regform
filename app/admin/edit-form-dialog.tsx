@@ -25,6 +25,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { sports } from "@/app/utils/forms/schema";
 
 interface Form {
   _id: string;
@@ -345,7 +346,7 @@ export default function EditFormDialog({ form, onClose, onUpdate }: Props) {
     <Dialog open={true} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto dark:bg-gray-800 dark:border-gray-700">
         <DialogHeader>
-          <DialogTitle className="dark:text-white">Form Details - {form.title}</DialogTitle>
+          <DialogTitle className="dark:text-white">Form Details - {sports[form.title as keyof typeof sports] || form.title}</DialogTitle>
           <DialogDescription className="dark:text-gray-400">
             View and manage form submission
           </DialogDescription>

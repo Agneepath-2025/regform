@@ -27,6 +27,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { sports } from "@/app/utils/forms/schema";
 
 interface Form {
   _id: string;
@@ -208,7 +209,7 @@ export default function EditFormAdvancedDialog({ form, onClose, onUpdate }: Prop
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto dark:bg-gray-800 dark:border-gray-700">
         <DialogHeader>
           <DialogTitle className="dark:text-white">
-            Edit Form - {form.title} (Advanced)
+            Edit Form - {sports[form.title as keyof typeof sports] || form.title} (Advanced)
           </DialogTitle>
           <DialogDescription className="dark:text-gray-400">
             Full control over form data with JSON editing and player management
