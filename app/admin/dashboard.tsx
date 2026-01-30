@@ -109,6 +109,11 @@ export default function AdminDashboard() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState("");
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
+  const [showAddFormDialog, setShowAddFormDialog] = useState(false);
+  const [newFormData, setNewFormData] = useState({ sport: "", userId: "" });
+  const [createNewUser, setCreateNewUser] = useState(false);
+  const [newUserData, setNewUserData] = useState({ name: "", email: "", phone: "", universityName: "" });
+  const [addingForm, setAddingForm] = useState(false);
 
   const fetchData = async (showLoading = false) => {
     if (showLoading) {
@@ -302,6 +307,58 @@ export default function AdminDashboard() {
     } finally {
       setIsSyncing(false);
       setTimeout(() => setSyncMessage(""), 5000);
+    }
+  };
+
+  const handleAddForm = async () => {
+    if (!newFormData.sport) {
+      alert("Please select a sport");
+      return;
+    }
+
+    if (createNewUser) {
+      if (!newUserData.name || !newUserData.email || !newUserData.universityName) {
+        alert("Please fill in all required user fields (name, email, university)");
+        return;
+      }
+    } else {
+      if (!newFormData.userId) {
+        alert("Please select a user");
+        return;
+      }
+    }
+
+    setAddingForm(true);
+    try {
+      const response = await fetch("/api/admin/forms", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: newFormData.sport,
+          ownerId: createNewUser ? undefined : newFormData.userId,
+          createUser: createNewUser,
+          userData: createNewUser ? newUserData : undefined,
+          status: "draft"
+        })
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        alert(`✅ Form created successfully!\nForm ID: ${result.formId}${createNewUser ? '\nUser ID: ' + result.userId : ''}`);
+        setShowAddFormDialog(false);
+        setNewFormData({ sport: "", userId: "" });
+        setNewUserData({ name: "", email: "", phone: "", universityName: "" });
+        setCreateNewUser(false);
+        await fetchData(false);
+      } else {
+        alert(`❌ Error: ${result.message}`);
+      }
+    } catch (error) {
+      console.error("Error adding form:", error);
+      alert("Failed to create form");
+    } finally {
+      setAddingForm(false);
     }
   };
 
@@ -674,6 +731,14 @@ export default function AdminDashboard() {
                     </CardDescription>
                   </div>
                   <div className="flex items-center gap-2">
+                    <Button
+                      onClick={() => setShowAddFormDialog(true)}
+                      size="sm"
+                      className="mr-4"
+                    >
+                      <FileText className="h-4 w-4 mr-1" />
+                      Add Form
+                    </Button>
                     <Label className="text-sm dark:text-gray-300">JSON Mode</Label>
                     <Switch
                       checked={advancedMode}
@@ -1142,6 +1207,148 @@ export default function AdminDashboard() {
                   </div>
                 </div>
               )}
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Add Form Dialog */}
+      {showAddFormDialog && (
+        <Dialog open={showAddFormDialog} onOpenChange={setShowAddFormDialog}>
+          <DialogContent className="dark:bg-gray-800 dark:border-gray-700 max-w-md">
+            <DialogHeader>
+              <DialogTitle className="dark:text-white">Add New Form</DialogTitle>
+              <DialogDescription className="dark:text-gray-400">
+                Create a new sport registration form
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 mt-4">
+              {/* Toggle between existing and new user */}
+              <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <Label htmlFor="createUser" className="dark:text-gray-300 text-sm">
+                  Create new user with this form
+                </Label>
+                <Switch
+                  id="createUser"
+                  checked={createNewUser}
+                  onCheckedChange={setCreateNewUser}
+                />
+              </div>
+
+              {!createNewUser ? (
+                <div className="space-y-2">
+                  <Label htmlFor="userId" className="dark:text-gray-300">Select Existing User</Label>
+                  <Select value={newFormData.userId} onValueChange={(val) => setNewFormData({ ...newFormData, userId: val })}>
+                    <SelectTrigger className="dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                      <SelectValue placeholder="Choose a user" />
+                    </SelectTrigger>
+                    <SelectContent className="dark:bg-gray-700 dark:border-gray-600 max-h-60">
+                      {users.filter(u => !u.deleted).map((user) => (
+                        <SelectItem key={user._id} value={user._id}>
+                          {user.name} ({user.universityName})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="userName" className="dark:text-gray-300">User Name *</Label>
+                    <Input
+                      id="userName"
+                      value={newUserData.name}
+                      onChange={(e) => setNewUserData({ ...newUserData, name: e.target.value })}
+                      placeholder="Enter full name"
+                      className="dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="userEmail" className="dark:text-gray-300">Email *</Label>
+                    <Input
+                      id="userEmail"
+                      type="text"
+                      value={newUserData.email}
+                      onChange={(e) => setNewUserData({ ...newUserData, email: e.target.value })}
+                      pattern="[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}"
+                      placeholder="user@university.edu"
+                      className="dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="userPhone" className="dark:text-gray-300">Phone (Optional)</Label>
+                    <Input
+                      id="userPhone"
+                      value={newUserData.phone}
+                      onChange={(e) => setNewUserData({ ...newUserData, phone: e.target.value })}
+                      placeholder="+1234567890"
+                      className="dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="userUniversity" className="dark:text-gray-300">University Name *</Label>
+                    <Input
+                      id="userUniversity"
+                      value={newUserData.universityName}
+                      onChange={(e) => setNewUserData({ ...newUserData, universityName: e.target.value })}
+                      placeholder="Enter university name"
+                      className="dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    />
+                  </div>
+                </div>
+              )}
+              
+              <div className="space-y-2">
+                <Label htmlFor="sport" className="dark:text-gray-300">Select Sport</Label>
+                <Select value={newFormData.sport} onValueChange={(val) => setNewFormData({ ...newFormData, sport: val })}>
+                  <SelectTrigger className="dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    <SelectValue placeholder="Choose a sport" />
+                  </SelectTrigger>
+                  <SelectContent className="dark:bg-gray-700 dark:border-gray-600 max-h-60">
+                    <SelectItem value="Basketball">Basketball</SelectItem>
+                    <SelectItem value="Football">Football</SelectItem>
+                    <SelectItem value="Cricket">Cricket</SelectItem>
+                    <SelectItem value="Badminton (Men)">Badminton (Men)</SelectItem>
+                    <SelectItem value="Badminton (Women)">Badminton (Women)</SelectItem>
+                    <SelectItem value="Swimming">Swimming</SelectItem>
+                    <SelectItem value="Table Tennis">Table Tennis</SelectItem>
+                    <SelectItem value="Tennis">Tennis</SelectItem>
+                    <SelectItem value="Volleyball">Volleyball</SelectItem>
+                    <SelectItem value="Chess">Chess</SelectItem>
+                    <SelectItem value="Squash">Squash</SelectItem>
+                    <SelectItem value="Snooker">Snooker</SelectItem>
+                    <SelectItem value="Pool">Pool</SelectItem>
+                    <SelectItem value="Futsal">Futsal</SelectItem>
+                    <SelectItem value="Shooting">Shooting</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex gap-2 pt-4">
+                <Button
+                  onClick={handleAddForm}
+                  disabled={addingForm || !newFormData.sport || (!createNewUser && !newFormData.userId) || (createNewUser && (!newUserData.name || !newUserData.email || !newUserData.universityName))}
+                  className="flex-1"
+                >
+                  {addingForm ? "Creating..." : (createNewUser ? "Create User & Form" : "Create Form")}
+                </Button>
+                <Button
+                  onClick={() => {
+                    setShowAddFormDialog(false);
+                    setNewFormData({ sport: "", userId: "" });
+                    setNewUserData({ name: "", email: "", phone: "", universityName: "" });
+                    setCreateNewUser(false);
+                  }}
+                  variant="outline"
+                  className="flex-1 dark:border-gray-600"
+                >
+                  Cancel
+                </Button>
+              </div>
+
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                {createNewUser ? "A new user will be created and verified automatically." : "After creating the form, you can edit it to add players and coach details."}
+              </p>
             </div>
           </DialogContent>
         </Dialog>
