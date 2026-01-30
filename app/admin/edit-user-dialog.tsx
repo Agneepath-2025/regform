@@ -96,11 +96,13 @@ export default function EditUserDialog({ user, onClose, onUpdate }: Props) {
             <Label htmlFor="email" className="dark:text-gray-300">Email</Label>
             <Input
               id="email"
-              type="email"
+              type="text"
               value={formData.email}
               onChange={(e) =>
                 setFormData({ ...formData, email: e.target.value })
               }
+              pattern="[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}"
+              title="Please enter a valid email address"
               required
               className="dark:bg-gray-700 dark:border-gray-600 dark:text-white"
             />
