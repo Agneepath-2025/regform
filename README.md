@@ -63,6 +63,29 @@ All automation scripts are in [`scripts/`](./scripts/):
 
 **Quick start:** See [`scripts/README.md`](./scripts/README.md)
 
+---
+
+## Repository overview ✅
+
+This project contains the Next.js web app, serverless API endpoints, scripts for deployment and backups, and detailed operational docs. Below are the main areas you should know and the READMEs that explain them.
+
+| Area | Purpose |
+|------|---------|
+| `app/` | Front-end (Next.js App Router) — see [`app/README.md`](./app/README.md) |
+| `app/(authentication)/` | Authentication flows — see [`app/(authentication)/README.md`](./app/(authentication)/README.md) |
+| `app/admin/` & `admin/` | Admin UI & admin docs — see [`app/admin/README.md`](./app/admin/README.md) and [`admin/README.md`](./admin/README.md) |
+| `app/dashboard/` & `dashboard/` | Organizer dashboards — see [`app/dashboard/README.md`](./app/dashboard/README.md) and [`dashboard/README.md`](./dashboard/README.md) |
+| `api/` | Server endpoints and webhooks — see [`api/README.md`](./api/README.md) |
+| `components/` | Reusable UI components — see [`components/README.md`](./components/README.md) |
+| `lib/`, `utils/` | Shared helpers & server utilities — see [`lib/README.md`](./lib/README.md) and [`utils/README.md`](./utils/README.md) |
+| `hooks/` | Shared React hooks — see [`hooks/README.md`](./hooks/README.md) |
+| `templates/` | Email/HTML templates used by Mailer — see [`templates/README.md`](./templates/README.md) |
+| `public/` | Static assets (images, documents) — see [`public/README.md`](./public/README.md) |
+| `scripts/` | Deploy/backup scripts — see [`scripts/README.md`](./scripts/README.md) |
+| `documentation/` | Operational guides for backups, webhooks, and local dev — see [`documentation/README.md`](./documentation/README.md) |
+
+> Tip: Start with `scripts/setup-local.sh` to get a reproducible local environment, then open the `app/README.md` and `api/README.md` to learn the core app flows.
+
 ## Contributors
 <a href="https://github.com/Agneepath-2025/regform/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=Agneepath-2025/regform" />
