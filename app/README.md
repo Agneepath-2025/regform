@@ -31,4 +31,5 @@ Where to look next
 - `api/` for backend endpoints
 
 ---
-*This README is a concise entry point for the front-end app.*
+
+# add details

@@ -15,4 +15,3 @@ Testing
 - Use React Testing Library to test hook behavior via `renderHook`.
 
 ---
-*Hooks library reference.*

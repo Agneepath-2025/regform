@@ -13,4 +13,3 @@ Best Practices
 - Prefer re-usable small utilities over large monoliths.
 
 ---
-*Reference for backend- and client-shared helpers.*

@@ -6,7 +6,7 @@ Overview
 
 Guidelines
 - Naming: `PascalCase` for components, file name matches component name.
-- Styling: Use Tailwind classes and module CSS files where needed (`styles/`).
+- Styling: Use Tailwind c lasses and module CSS files where needed (`styles/`).
 - Accessibility: Use semantic HTML and labels on inputs; add aria- attributes when needed.
 
 Where to find things
