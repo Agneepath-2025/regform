@@ -24,4 +24,3 @@ Links & References
 - Google Apps Script webhook: `documentation/GOOGLE_APPS_SCRIPT_WEBHOOK.md`
 
 ---
-*This README offers a quick map for backend endpoints.*

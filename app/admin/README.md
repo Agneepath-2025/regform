@@ -14,4 +14,3 @@ Security
 - Audit logging: Use `utils/audit-logger.ts` for important actions.
 
 ---
-*Admin portal quick reference.*

@@ -31,4 +31,3 @@ Quick start for a new team taking over the project.
 - Payment issues: check `api/payments/` webhooks and Google Apps Script hooks (see docs)
 
 ---
-*Keep this file short; add real contact names and incident channels when handing over.*

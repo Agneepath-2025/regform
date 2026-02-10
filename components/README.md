@@ -18,4 +18,3 @@ Testing & Storybook
 - There is no Storybook currently; consider adding one to simplify component testing.
 
 ---
-*Use this as the first stop when modifying UI.*
